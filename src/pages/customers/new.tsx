@@ -56,124 +56,122 @@ export default function NewCustomerPage() {
     <>
       <SEO title="New Customer - Satmar Montreal Matzos" />
       
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
-        <div className="container mx-auto px-6 py-8">
-          <div className="mb-6 flex items-center gap-4">
-            <Link href="/customers">
-              <Button variant="ghost" size="icon">
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-            </Link>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">New Customer</h1>
-              <p className="text-gray-600">Add a new customer to your database</p>
-            </div>
+      <div className="container mx-auto px-6 py-8">
+        <div className="mb-6 flex items-center gap-4">
+          <Link href="/customers">
+            <Button variant="ghost" size="icon">
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">New Customer</h1>
+            <p className="text-gray-600">Add a new customer to your database</p>
           </div>
+        </div>
 
-          <form onSubmit={handleSubmit} className="max-w-3xl mx-auto">
-            <Card className="border-amber-200 shadow-lg">
-              <CardHeader>
-                <CardTitle>Customer Details</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="name" className="flex items-center gap-2">
-                      <User className="w-4 h-4" /> Name
-                    </Label>
-                    <Input
-                      id="name"
-                      value={formData.name}
-                      onChange={handleChange}
-                      placeholder="Full Name"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email" className="flex items-center gap-2">
-                      <Mail className="w-4 h-4" /> Email
-                    </Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      placeholder="email@example.com"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone" className="flex items-center gap-2">
-                      <Phone className="w-4 h-4" /> Phone
-                    </Label>
-                    <Input
-                      id="phone"
-                      value={formData.phone}
-                      onChange={handleChange}
-                      placeholder="(514) 555-0123"
-                    />
-                  </div>
-                </div>
-
+        <form onSubmit={handleSubmit} className="max-w-3xl mx-auto">
+          <Card className="border-amber-200 shadow-lg">
+            <CardHeader>
+              <CardTitle>Customer Details</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="address" className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4" /> Address
+                  <Label htmlFor="name" className="flex items-center gap-2">
+                    <User className="w-4 h-4" /> Name
                   </Label>
                   <Input
-                    id="address"
-                    value={formData.address}
+                    id="name"
+                    value={formData.name}
                     onChange={handleChange}
-                    placeholder="Street Address"
+                    placeholder="Full Name"
                   />
                 </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="city">City</Label>
-                    <Input
-                      id="city"
-                      value={formData.city}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="state">Province/State</Label>
-                    <Input
-                      id="state"
-                      value={formData.state}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="zip">Postal Code</Label>
-                    <Input
-                      id="zip"
-                      value={formData.zip}
-                      onChange={handleChange}
-                      placeholder="H3W 2R2"
-                    />
-                  </div>
-                </div>
-
                 <div className="space-y-2">
-                  <Label htmlFor="notes">Notes</Label>
-                  <Textarea
-                    id="notes"
-                    value={formData.notes}
+                  <Label htmlFor="email" className="flex items-center gap-2">
+                    <Mail className="w-4 h-4" /> Email
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
                     onChange={handleChange}
-                    placeholder="Additional notes about this customer..."
-                    rows={3}
+                    placeholder="email@example.com"
                   />
                 </div>
-
-                <div className="pt-4 flex justify-end">
-                  <Button type="submit" className="gap-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800">
-                    <Save className="w-4 h-4" />
-                    Save Customer
-                  </Button>
+                <div className="space-y-2">
+                  <Label htmlFor="phone" className="flex items-center gap-2">
+                    <Phone className="w-4 h-4" /> Phone
+                  </Label>
+                  <Input
+                    id="phone"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    placeholder="(514) 555-0123"
+                  />
                 </div>
-              </CardContent>
-            </Card>
-          </form>
-        </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="address" className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4" /> Address
+                </Label>
+                <Input
+                  id="address"
+                  value={formData.address}
+                  onChange={handleChange}
+                  placeholder="Street Address"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="city">City</Label>
+                  <Input
+                    id="city"
+                    value={formData.city}
+                    onChange={handleChange}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="state">Province/State</Label>
+                  <Input
+                    id="state"
+                    value={formData.state}
+                    onChange={handleChange}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="zip">Postal Code</Label>
+                  <Input
+                    id="zip"
+                    value={formData.zip}
+                    onChange={handleChange}
+                    placeholder="H3W 2R2"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="notes">Notes</Label>
+                <Textarea
+                  id="notes"
+                  value={formData.notes}
+                  onChange={handleChange}
+                  placeholder="Additional notes about this customer..."
+                  rows={3}
+                />
+              </div>
+
+              <div className="pt-4 flex justify-end">
+                <Button type="submit" className="gap-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800">
+                  <Save className="w-4 h-4" />
+                  Save Customer
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </form>
       </div>
     </>
   );

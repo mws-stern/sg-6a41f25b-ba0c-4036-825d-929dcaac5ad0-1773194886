@@ -154,12 +154,14 @@ export const saveOrders = (orders: Order[]): void => {
 export const addOrder = (order: Omit<Order, "id" | "orderNumber" | "createdAt" | "updatedAt">): Order => {
   const orders = getOrders();
   const orderNumber = `ORD-${Date.now()}`;
+  const now = new Date();
   const newOrder: Order = {
     ...order,
     id: Date.now().toString(),
     orderNumber,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    createdAt: now.toISOString(),
+    updatedAt: now.toISOString(),
+    orderTime: now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
   };
   orders.push(newOrder);
   saveOrders(orders);

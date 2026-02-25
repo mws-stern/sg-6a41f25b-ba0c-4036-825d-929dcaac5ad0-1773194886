@@ -17,6 +17,7 @@ export interface InventoryEntry {
   amount: number;
   date: string;
   notes?: string;
+  createdAt: string;
 }
 
 export interface Customer {
@@ -35,6 +36,7 @@ export interface Customer {
 export interface OrderItem {
   productId: string;
   productName: string;
+  productNameHebrew?: string;
   quantity: number;
   pricePerLb: number;
   totalPrice: number;
@@ -60,6 +62,7 @@ export interface Order {
   createdAt: string;
   updatedAt: string;
   deliveryDate?: string;
+  orderTime?: string;
 }
 
 export interface Invoice {
