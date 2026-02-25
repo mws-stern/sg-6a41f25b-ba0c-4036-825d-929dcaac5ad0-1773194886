@@ -5,7 +5,8 @@ import { useRouter } from "next/router";
 import { ArrowLeft, Printer, Mail, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getInvoice, getSettings } from "@/lib/store";
-import type { Invoice, Settings } from "@/lib/store";
+import type { Settings } from "@/lib/store";
+import type { Invoice } from "@/types";
 
 export default function InvoicePage() {
   const router = useRouter();
