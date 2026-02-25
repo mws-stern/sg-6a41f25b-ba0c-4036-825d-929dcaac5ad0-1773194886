@@ -1,6 +1,7 @@
 import { SEO } from "@/components/SEO";
 import Link from "next/link";
-import { Package, FileText, DollarSign, Users, ShoppingCart, Settings } from "lucide-react";
+import Image from "next/image";
+import { Package, FileText, DollarSign, Users, ShoppingCart, Settings, Warehouse } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -9,7 +10,7 @@ export default function HomePage() {
     { title: "Total Orders", value: "0", icon: ShoppingCart, color: "text-blue-600" },
     { title: "Revenue", value: "$0.00", icon: DollarSign, color: "text-green-600" },
     { title: "Customers", value: "0", icon: Users, color: "text-purple-600" },
-    { title: "Products", value: "4", icon: Package, color: "text-orange-600" },
+    { title: "Products", value: "6", icon: Package, color: "text-orange-600" },
   ];
 
   const recentOrders = [];
@@ -26,13 +27,22 @@ export default function HomePage() {
         <header className="bg-white border-b border-amber-200 shadow-sm">
           <div className="container mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-amber-600 to-orange-600 rounded-xl flex items-center justify-center shadow-lg">
-                  <Package className="w-7 h-7 text-white" />
-                </div>
+              <div className="flex items-center gap-4">
+                <Image 
+                  src="/logo.png" 
+                  alt="Satmar Montreal Matzos Logo" 
+                  width={80} 
+                  height={80}
+                  className="object-contain"
+                  priority
+                />
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900">סאטמאר מאנטרעאל מצות</h1>
-                  <p className="text-sm text-gray-600">Satmar Montreal Matzos</p>
+                  <h1 className="text-2xl font-bold text-gray-900" style={{ fontFamily: "'Rubik', sans-serif" }} dir="rtl">
+                    סאטמאר מאנטרעאל מצות
+                  </h1>
+                  <p className="text-sm text-gray-600" style={{ fontFamily: "'Frank Ruhl Libre', serif" }}>
+                    Satmar Montreal Matzos
+                  </p>
                 </div>
               </div>
               <nav className="flex gap-2">
@@ -46,6 +56,12 @@ export default function HomePage() {
                   <Button variant="ghost" className="gap-2">
                     <Package className="w-4 h-4" />
                     Products
+                  </Button>
+                </Link>
+                <Link href="/inventory">
+                  <Button variant="ghost" className="gap-2">
+                    <Warehouse className="w-4 h-4" />
+                    Inventory
                   </Button>
                 </Link>
                 <Link href="/customers">
@@ -94,7 +110,9 @@ export default function HomePage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
             <Card className="border-amber-200 shadow-md">
               <CardHeader>
-                <CardTitle className="text-xl">Quick Actions</CardTitle>
+                <CardTitle className="text-xl" style={{ fontFamily: "'Frank Ruhl Libre', serif" }}>
+                  Quick Actions
+                </CardTitle>
                 <CardDescription>Manage your bakery operations</CardDescription>
               </CardHeader>
               <CardContent className="grid grid-cols-2 gap-4">
@@ -104,10 +122,10 @@ export default function HomePage() {
                     New Order
                   </Button>
                 </Link>
-                <Link href="/products">
-                  <Button className="w-full h-24 flex flex-col gap-2 bg-gradient-to-br from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800">
-                    <Package className="w-6 h-6" />
-                    Manage Products
+                <Link href="/inventory">
+                  <Button className="w-full h-24 flex flex-col gap-2 bg-gradient-to-br from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800">
+                    <Warehouse className="w-6 h-6" />
+                    Add Inventory
                   </Button>
                 </Link>
                 <Link href="/customers/new">
@@ -127,7 +145,9 @@ export default function HomePage() {
 
             <Card className="border-amber-200 shadow-md">
               <CardHeader>
-                <CardTitle className="text-xl">Recent Orders</CardTitle>
+                <CardTitle className="text-xl" style={{ fontFamily: "'Frank Ruhl Libre', serif" }}>
+                  Recent Orders
+                </CardTitle>
                 <CardDescription>Latest customer orders</CardDescription>
               </CardHeader>
               <CardContent>
@@ -151,29 +171,71 @@ export default function HomePage() {
           {/* Product Overview */}
           <Card className="border-amber-200 shadow-md">
             <CardHeader>
-              <CardTitle className="text-xl">Matzah Products</CardTitle>
+              <CardTitle className="text-xl" style={{ fontFamily: "'Frank Ruhl Libre', serif" }}>
+                Matzah Products
+              </CardTitle>
               <CardDescription>Available products and pricing</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
-                  <h3 className="font-semibold text-gray-900 mb-1">Rashi Matzoh</h3>
+                  <h3 className="font-semibold text-gray-900 mb-1" style={{ fontFamily: "'Frank Ruhl Libre', serif" }}>
+                    Rashi Matzoh
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-2" style={{ fontFamily: "'Rubik', sans-serif" }} dir="rtl">
+                    רש"י
+                  </p>
                   <p className="text-2xl font-bold text-amber-700">$0.00/lb</p>
                   <p className="text-xs text-gray-600 mt-1">Not configured</p>
                 </div>
                 <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
-                  <h3 className="font-semibold text-gray-900 mb-1">Regular Matzoh</h3>
+                  <h3 className="font-semibold text-gray-900 mb-1" style={{ fontFamily: "'Frank Ruhl Libre', serif" }}>
+                    Regular Matzoh
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-2" style={{ fontFamily: "'Rubik', sans-serif" }} dir="rtl">
+                    רעגולער מצה
+                  </p>
                   <p className="text-2xl font-bold text-orange-700">$0.00/lb</p>
                   <p className="text-xs text-gray-600 mt-1">Not configured</p>
                 </div>
                 <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                  <h3 className="font-semibold text-gray-900 mb-1">Spelt Matzoh</h3>
+                  <h3 className="font-semibold text-gray-900 mb-1" style={{ fontFamily: "'Frank Ruhl Libre', serif" }}>
+                    Spelt Matzoh
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-2" style={{ fontFamily: "'Rubik', sans-serif" }} dir="rtl">
+                    ספעלט מצה
+                  </p>
                   <p className="text-2xl font-bold text-yellow-700">$0.00/lb</p>
                   <p className="text-xs text-gray-600 mt-1">Not configured</p>
                 </div>
                 <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                  <h3 className="font-semibold text-gray-900 mb-1">Whole Wheat</h3>
+                  <h3 className="font-semibold text-gray-900 mb-1" style={{ fontFamily: "'Frank Ruhl Libre', serif" }}>
+                    Whole Wheat Matzoh
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-2" style={{ fontFamily: "'Rubik', sans-serif" }} dir="rtl">
+                    האל וויט מצה
+                  </p>
                   <p className="text-2xl font-bold text-green-700">$0.00/lb</p>
+                  <p className="text-xs text-gray-600 mt-1">Not configured</p>
+                </div>
+                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <h3 className="font-semibold text-gray-900 mb-1" style={{ fontFamily: "'Frank Ruhl Libre', serif" }}>
+                    Matzoh Flour
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-2" style={{ fontFamily: "'Rubik', sans-serif" }} dir="rtl">
+                    מצה מעהל
+                  </p>
+                  <p className="text-2xl font-bold text-blue-700">$0.00/lb</p>
+                  <p className="text-xs text-gray-600 mt-1">Not configured</p>
+                </div>
+                <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+                  <h3 className="font-semibold text-gray-900 mb-1" style={{ fontFamily: "'Frank Ruhl Libre', serif" }}>
+                    Shvurim Matzoh
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-2" style={{ fontFamily: "'Rubik', sans-serif" }} dir="rtl">
+                    שברים מצה
+                  </p>
+                  <p className="text-2xl font-bold text-purple-700">$0.00/lb</p>
                   <p className="text-xs text-gray-600 mt-1">Not configured</p>
                 </div>
               </div>
