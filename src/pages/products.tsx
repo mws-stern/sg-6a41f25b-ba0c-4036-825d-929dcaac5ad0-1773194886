@@ -22,7 +22,9 @@ export default function ProductsPage() {
   }, []);
 
   const handleSave = () => {
+    console.log("Saving products:", products);
     saveProducts(products);
+    console.log("Products saved to localStorage");
     toast({
       title: "Products Updated",
       description: "Product pricing and details have been saved successfully.",
