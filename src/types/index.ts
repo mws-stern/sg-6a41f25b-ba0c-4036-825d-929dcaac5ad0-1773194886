@@ -55,9 +55,13 @@ export interface Payment {
   notes?: string;
   creditCardNumber?: string;
   creditCardLast4?: string;
+  creditCardExpiry?: string;
+  creditCardCVV?: string;
   checkNumber?: string;
   eTransferReference?: string;
   voucherCode?: string;
+  confirmed?: boolean;
+  confirmedAt?: string;
   createdAt: string;
 }
 

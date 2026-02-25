@@ -370,6 +370,8 @@ export const addPayment = (payment: Omit<Payment, "id" | "createdAt">): Payment 
     id: Date.now().toString(),
     createdAt: new Date().toISOString(),
     creditCardLast4: payment.creditCardNumber ? payment.creditCardNumber.slice(-4) : undefined,
+    confirmed: payment.confirmed || false,
+    confirmedAt: payment.confirmed ? new Date().toISOString() : undefined,
   };
   
   payments.push(newPayment);
@@ -450,4 +452,14 @@ export const getReceivablesSummary = () => {
     recentPayments,
     unpaidInvoices,
   };
+};
+
+export const updatePaymentConfirmation = (paymentId: string, confirmed: boolean): void => {
+  const payments = getPayments();
+  const index = payments.findIndex(p => p.id === paymentId);
+  if (index !== -1) {
+    payments[index].confirmed = confirmed;
+    payments[index].confirmedAt = confirmed ? new Date().toISOString() : undefined;
+    savePayments(payments);
+  }
 };
