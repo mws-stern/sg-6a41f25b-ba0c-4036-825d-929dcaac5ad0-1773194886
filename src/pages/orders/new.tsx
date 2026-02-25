@@ -2,13 +2,14 @@ import { SEO } from "@/components/SEO";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { ArrowLeft, Plus, Trash2, Send } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Send, Save } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import { getProducts, getCustomers, addOrder, getSettings } from "@/lib/store";
 import type { Product, Customer, OrderItem } from "@/types";
@@ -23,6 +24,8 @@ export default function NewOrderPage() {
   const [items, setItems] = useState<OrderItem[]>([]);
   const [notes, setNotes] = useState("");
   const [deliveryDate, setDeliveryDate] = useState("");
+  const [orderDiscount, setOrderDiscount] = useState("");
+  const [orderDiscountType, setOrderDiscountType] = useState<"percent" | "fixed">("percent");
 
   useEffect(() => {
     setMounted(true);
@@ -35,9 +38,9 @@ export default function NewOrderPage() {
     setItems([...items, {
       productId: products[0].id,
       productName: products[0].name,
-      quantity: 1,
+      quantity: 0,
       pricePerLb: products[0].pricePerLb,
-      totalPrice: products[0].pricePerLb,
+      totalPrice: 0,
     }]);
   };
 
@@ -55,8 +58,45 @@ export default function NewOrderPage() {
         };
       }
     } else if (field === "quantity") {
-      newItems[index].quantity = parseFloat(value) || 0;
-      newItems[index].totalPrice = newItems[index].pricePerLb * newItems[index].quantity;
+      const qty = parseFloat(value) || 0;
+      newItems[index].quantity = qty;
+      const basePrice = newItems[index].pricePerLb * qty;
+      
+      if (newItems[index].discount && newItems[index].discountType) {
+        if (newItems[index].discountType === "percent") {
+          newItems[index].finalPrice = basePrice * (1 - (newItems[index].discount! / 100));
+        } else {
+          newItems[index].finalPrice = basePrice - newItems[index].discount!;
+        }
+      } else {
+        newItems[index].totalPrice = basePrice;
+      }
+    } else if (field === "discount") {
+      const discountValue = parseFloat(value) || 0;
+      newItems[index].discount = discountValue > 0 ? discountValue : undefined;
+      const basePrice = newItems[index].pricePerLb * newItems[index].quantity;
+      
+      if (discountValue > 0) {
+        if (newItems[index].discountType === "percent") {
+          newItems[index].finalPrice = basePrice * (1 - (discountValue / 100));
+        } else {
+          newItems[index].finalPrice = basePrice - discountValue;
+        }
+      } else {
+        newItems[index].finalPrice = undefined;
+        newItems[index].totalPrice = basePrice;
+      }
+    } else if (field === "discountType") {
+      newItems[index].discountType = value;
+      const basePrice = newItems[index].pricePerLb * newItems[index].quantity;
+      
+      if (newItems[index].discount) {
+        if (value === "percent") {
+          newItems[index].finalPrice = basePrice * (1 - (newItems[index].discount! / 100));
+        } else {
+          newItems[index].finalPrice = basePrice - newItems[index].discount!;
+        }
+      }
     } else {
       (newItems[index] as any)[field] = value;
     }
@@ -68,19 +108,36 @@ export default function NewOrderPage() {
   };
 
   const calculateSubtotal = () => {
-    return items.reduce((sum, item) => sum + item.totalPrice, 0);
+    return items.reduce((sum, item) => {
+      return sum + (item.finalPrice ?? item.totalPrice);
+    }, 0);
+  };
+
+  const calculateDiscount = () => {
+    if (!orderDiscount || parseFloat(orderDiscount) <= 0) return 0;
+    const subtotal = calculateSubtotal();
+    if (orderDiscountType === "percent") {
+      return subtotal * (parseFloat(orderDiscount) / 100);
+    }
+    return parseFloat(orderDiscount);
   };
 
   const calculateTax = () => {
     const settings = getSettings();
-    return calculateSubtotal() * (settings.taxRate / 100);
+    const afterDiscount = calculateSubtotal() - calculateDiscount();
+    return afterDiscount * (settings.taxRate / 100);
   };
 
   const calculateTotal = () => {
-    return calculateSubtotal() + calculateTax();
+    return calculateSubtotal() - calculateDiscount() + calculateTax();
   };
 
-  const handleSubmit = () => {
+  const getProductStock = (productId: string) => {
+    const product = products.find(p => p.id === productId);
+    return product?.currentInventory || 0;
+  };
+
+  const handleSubmit = (status: "draft" | "pending") => {
     if (!selectedCustomerId) {
       toast({
         title: "Error",
@@ -102,6 +159,8 @@ export default function NewOrderPage() {
     const customer = customers.find(c => c.id === selectedCustomerId);
     if (!customer) return;
 
+    const discount = parseFloat(orderDiscount) || undefined;
+
     const order = addOrder({
       customerId: customer.id,
       customerName: customer.name,
@@ -110,14 +169,16 @@ export default function NewOrderPage() {
       subtotal: calculateSubtotal(),
       tax: calculateTax(),
       total: calculateTotal(),
-      status: "pending",
+      discount,
+      discountType: discount ? orderDiscountType : undefined,
+      status,
       notes,
       deliveryDate: deliveryDate || undefined,
     });
 
     toast({
-      title: "Order Created",
-      description: `Order ${order.orderNumber} has been created successfully`,
+      title: status === "draft" ? "Draft Saved" : "Order Created",
+      description: `Order ${order.orderNumber} has been ${status === "draft" ? "saved as draft" : "created successfully"}`,
     });
 
     router.push(`/orders/${order.id}`);
@@ -140,8 +201,10 @@ export default function NewOrderPage() {
               </Button>
             </Link>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">New Order</h1>
-              <p className="text-gray-600">Create a new customer order</p>
+              <h1 className="text-3xl font-bold text-gray-900" style={{ fontFamily: "'Frank Ruhl Libre', serif" }}>
+                New Order
+              </h1>
+              <p className="text-gray-600" style={{ fontFamily: "'Rubik', sans-serif" }}>Create a new customer order</p>
             </div>
           </div>
 
@@ -195,56 +258,109 @@ export default function NewOrderPage() {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {items.map((item, index) => (
-                        <div key={index} className="flex gap-4 items-start p-4 bg-amber-50 rounded-lg">
-                          <div className="flex-1 grid grid-cols-3 gap-4">
-                            <div>
-                              <Label>Product</Label>
-                              <Select
-                                value={item.productId}
-                                onValueChange={(value) => updateItem(index, "productId", value)}
+                      {items.map((item, index) => {
+                        const stock = getProductStock(item.productId);
+                        const product = products.find(p => p.id === item.productId);
+                        const basePrice = item.pricePerLb * item.quantity;
+                        const finalPrice = item.finalPrice ?? item.totalPrice;
+                        
+                        return (
+                          <div key={index} className="p-4 bg-amber-50 rounded-lg border border-amber-200 space-y-4">
+                            <div className="flex gap-4 items-start">
+                              <div className="flex-1 grid grid-cols-3 gap-4">
+                                <div>
+                                  <Label>Product</Label>
+                                  <Select
+                                    value={item.productId}
+                                    onValueChange={(value) => updateItem(index, "productId", value)}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {products.map((product) => (
+                                        <SelectItem key={product.id} value={product.id}>
+                                          <div className="flex items-center justify-between w-full gap-4">
+                                            <span>{product.name}</span>
+                                            <span className="text-sm text-muted-foreground" dir="rtl" style={{ fontFamily: "'Rubik', sans-serif" }}>
+                                              {product.nameHebrew}
+                                            </span>
+                                          </div>
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    Stock: {stock.toFixed(1)} lbs
+                                  </p>
+                                </div>
+                                <div>
+                                  <Label>Quantity (lbs)</Label>
+                                  <Input
+                                    type="number"
+                                    step="0.5"
+                                    min="0"
+                                    placeholder="0"
+                                    value={item.quantity || ""}
+                                    onChange={(e) => updateItem(index, "quantity", e.target.value)}
+                                  />
+                                </div>
+                                <div>
+                                  <Label>Price</Label>
+                                  <Input
+                                    value={`$${basePrice.toFixed(2)}`}
+                                    disabled
+                                    className="bg-white"
+                                  />
+                                </div>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => removeItem(index)}
+                                className="mt-6"
                               >
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {products.map((product) => (
-                                    <SelectItem key={product.id} value={product.id}>
-                                      {product.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                                <Trash2 className="w-4 h-4 text-red-600" />
+                              </Button>
                             </div>
-                            <div>
-                              <Label>Quantity (lbs)</Label>
-                              <Input
-                                type="number"
-                                step="0.5"
-                                min="0"
-                                value={item.quantity}
-                                onChange={(e) => updateItem(index, "quantity", e.target.value)}
-                              />
-                            </div>
-                            <div>
-                              <Label>Total</Label>
-                              <Input
-                                value={`$${item.totalPrice.toFixed(2)}`}
-                                disabled
-                                className="bg-white"
-                              />
+
+                            <div className="border-t border-amber-300 pt-4">
+                              <Label className="mb-2 block">Item Discount (Optional)</Label>
+                              <div className="grid grid-cols-3 gap-4">
+                                <RadioGroup
+                                  value={item.discountType || "percent"}
+                                  onValueChange={(value) => updateItem(index, "discountType", value)}
+                                  className="flex gap-4"
+                                >
+                                  <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="percent" id={`percent-${index}`} />
+                                    <Label htmlFor={`percent-${index}`}>Percent %</Label>
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="fixed" id={`fixed-${index}`} />
+                                    <Label htmlFor={`fixed-${index}`}>Fixed $</Label>
+                                  </div>
+                                </RadioGroup>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  placeholder={item.discountType === "percent" ? "0%" : "$0.00"}
+                                  value={item.discount || ""}
+                                  onChange={(e) => updateItem(index, "discount", e.target.value)}
+                                />
+                                <div>
+                                  <Input
+                                    value={`Final: $${finalPrice.toFixed(2)}`}
+                                    disabled
+                                    className="bg-white font-semibold"
+                                  />
+                                </div>
+                              </div>
                             </div>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removeItem(index)}
-                            className="mt-6"
-                          >
-                            <Trash2 className="w-4 h-4 text-red-600" />
-                          </Button>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </CardContent>
@@ -289,6 +405,40 @@ export default function NewOrderPage() {
                       <span>Subtotal:</span>
                       <span>${calculateSubtotal().toFixed(2)}</span>
                     </div>
+                    
+                    <div className="border-t border-amber-200 pt-2">
+                      <Label className="mb-2 block">Order Discount (Optional)</Label>
+                      <RadioGroup
+                        value={orderDiscountType}
+                        onValueChange={(value: "percent" | "fixed") => setOrderDiscountType(value)}
+                        className="flex gap-4 mb-2"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="percent" id="order-percent" />
+                          <Label htmlFor="order-percent">Percent %</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="fixed" id="order-fixed" />
+                          <Label htmlFor="order-fixed">Fixed $</Label>
+                        </div>
+                      </RadioGroup>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder={orderDiscountType === "percent" ? "0%" : "$0.00"}
+                        value={orderDiscount}
+                        onChange={(e) => setOrderDiscount(e.target.value)}
+                      />
+                    </div>
+                    
+                    {calculateDiscount() > 0 && (
+                      <div className="flex justify-between text-green-600">
+                        <span>Discount:</span>
+                        <span>-${calculateDiscount().toFixed(2)}</span>
+                      </div>
+                    )}
+                    
                     <div className="flex justify-between text-gray-600">
                       <span>Tax:</span>
                       <span>${calculateTax().toFixed(2)}</span>
@@ -300,14 +450,26 @@ export default function NewOrderPage() {
                       </div>
                     </div>
                   </div>
-                  <Button
-                    onClick={handleSubmit}
-                    className="w-full gap-2 bg-gradient-to-r from-blue-600 to-blue-700"
-                    disabled={!selectedCustomerId || items.length === 0}
-                  >
-                    <Send className="w-4 h-4" />
-                    Create Order
-                  </Button>
+                  
+                  <div className="space-y-2">
+                    <Button
+                      onClick={() => handleSubmit("pending")}
+                      className="w-full gap-2 bg-gradient-to-r from-blue-600 to-blue-700"
+                      disabled={!selectedCustomerId || items.length === 0}
+                    >
+                      <Send className="w-4 h-4" />
+                      Create Order
+                    </Button>
+                    <Button
+                      onClick={() => handleSubmit("draft")}
+                      variant="outline"
+                      className="w-full gap-2"
+                      disabled={!selectedCustomerId || items.length === 0}
+                    >
+                      <Save className="w-4 h-4" />
+                      Save as Draft
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             </div>
