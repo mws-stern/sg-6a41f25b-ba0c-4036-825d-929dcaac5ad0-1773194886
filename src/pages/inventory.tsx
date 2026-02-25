@@ -53,7 +53,7 @@ export default function InventoryPage() {
         title="Inventory Management - Satmar Montreal Matzos"
         description="Track and manage matzoh inventory"
       />
-      <div className="min-h-screen bg-gradient-to-b from-amber-50 to-white dark:from-gray-900 dark:to-gray-950">
+      <div className="min-h-screen">
         <div className="container py-8">
           <div className="mb-8">
             <h1 className="text-4xl font-bold mb-2" style={{ fontFamily: "'Frank Ruhl Libre', serif" }}>

@@ -2,7 +2,7 @@ import { SEO } from "@/components/SEO";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { ArrowLeft, Printer, Mail, Download } from "lucide-react";
+import { ArrowLeft, Printer, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getInvoice, getSettings } from "@/lib/store";
 import type { Settings } from "@/lib/store";
@@ -30,8 +30,7 @@ export default function InvoicePage() {
     <>
       <SEO title={`Invoice ${invoice.invoiceNumber}`} />
       
-      <div className="min-h-screen bg-gray-50 print:bg-white">
-        {/* Toolbar - Hidden when printing */}
+      <div className="min-h-screen print:bg-white">
         <div className="bg-white border-b border-gray-200 shadow-sm print:hidden">
           <div className="container mx-auto px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -47,18 +46,21 @@ export default function InvoicePage() {
                 <Printer className="w-4 h-4" />
                 Print
               </Button>
+              <Link href="/">
+                <Button variant="outline" className="gap-2">
+                  Return to Home
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
 
-        {/* Invoice Paper */}
         <div className="container mx-auto px-4 py-8 print:p-0 print:m-0">
           <div className="max-w-4xl mx-auto bg-white shadow-lg p-12 rounded-lg print:shadow-none print:rounded-none">
-            {/* Header */}
             <div className="flex justify-between items-start mb-12 border-b border-gray-200 pb-8">
               <div>
                 <h1 className="text-4xl font-bold text-gray-900 mb-2">{settings.companyName}</h1>
-                <h2 className="text-2xl font-hebrew text-gray-800 mb-4">{settings.companyNameHebrew}</h2>
+                <h2 className="text-2xl font-semibold text-gray-800 mb-4" style={{ fontFamily: "'Heebo', sans-serif" }}>{settings.companyNameHebrew}</h2>
                 <div className="text-gray-600 space-y-1">
                   <p>{settings.address}</p>
                   <p>{settings.phone}</p>
@@ -67,7 +69,6 @@ export default function InvoicePage() {
               </div>
               <div className="text-right">
                 <h3 className="text-3xl font-bold text-gray-900 mb-2">INVOICE</h3>
-                <h4 className="text-2xl font-hebrew text-gray-800 mb-4">חשבונית</h4>
                 <div className="text-gray-600 space-y-1">
                   <p><span className="font-semibold">Invoice #:</span> {invoice.invoiceNumber}</p>
                   <p><span className="font-semibold">Date:</span> {new Date(invoice.createdAt).toLocaleDateString()}</p>
@@ -76,21 +77,21 @@ export default function InvoicePage() {
               </div>
             </div>
 
-            {/* Bill To */}
             <div className="mb-12">
-              <h3 className="text-lg font-bold text-gray-900 mb-4 uppercase tracking-wider border-b border-gray-200 pb-2">Bill To / לכבוד</h3>
+              <h3 className="text-lg font-bold text-gray-900 mb-4 uppercase tracking-wider border-b border-gray-200 pb-2">
+                Bill To / <span style={{ fontFamily: "'Heebo', sans-serif" }}>לכבוד</span>
+              </h3>
               <div className="text-gray-800">
                 <p className="text-xl font-semibold mb-2">{invoice.customerName}</p>
                 <p>{invoice.customerEmail}</p>
               </div>
             </div>
 
-            {/* Items Table */}
             <div className="mb-12">
               <table className="w-full">
                 <thead>
                   <tr className="border-b-2 border-gray-900">
-                    <th className="text-left py-3 font-bold text-gray-900">Description / תיאור</th>
+                    <th className="text-left py-3 font-bold text-gray-900">Description</th>
                     <th className="text-center py-3 font-bold text-gray-900">Qty (lbs)</th>
                     <th className="text-right py-3 font-bold text-gray-900">Price</th>
                     <th className="text-right py-3 font-bold text-gray-900">Amount</th>
@@ -99,7 +100,12 @@ export default function InvoicePage() {
                 <tbody className="divide-y divide-gray-200">
                   {invoice.items.map((item, index) => (
                     <tr key={index}>
-                      <td className="py-4 text-gray-800 font-medium">{item.productName}</td>
+                      <td className="py-4 text-gray-800">
+                        <div className="font-medium">{item.productName}</div>
+                        <div className="text-sm" style={{ fontFamily: "'Heebo', sans-serif" }} dir="rtl">
+                          {item.productNameHebrew}
+                        </div>
+                      </td>
                       <td className="py-4 text-center text-gray-600">{item.quantity}</td>
                       <td className="py-4 text-right text-gray-600">${item.pricePerLb.toFixed(2)}</td>
                       <td className="py-4 text-right text-gray-900 font-semibold">${item.totalPrice.toFixed(2)}</td>
@@ -109,7 +115,6 @@ export default function InvoicePage() {
               </table>
             </div>
 
-            {/* Totals */}
             <div className="flex justify-end">
               <div className="w-64 space-y-3">
                 <div className="flex justify-between text-gray-600">
@@ -127,10 +132,8 @@ export default function InvoicePage() {
               </div>
             </div>
 
-            {/* Footer */}
             <div className="mt-16 pt-8 border-t border-gray-200 text-center text-gray-500 text-sm">
               <p>Thank you for your business!</p>
-              <p className="font-hebrew text-lg mt-2">!תודה על הקנייה</p>
             </div>
           </div>
         </div>

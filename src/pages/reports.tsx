@@ -213,159 +213,157 @@ export default function ReportsPage() {
     <>
       <SEO title="Reports & Analytics - Satmar Montreal Matzos" />
       
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
-        <div className="container mx-auto px-6 py-8">
-          <div className="mb-6 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link href="/">
-                <Button variant="ghost" size="icon">
-                  <ArrowLeft className="w-5 h-5" />
-                </Button>
-              </Link>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">Reports & Analytics</h1>
-                <p className="text-gray-600">Financial overview and sales performance</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-gray-500" />
-                <Select value={period} onValueChange={setPeriod}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Time</SelectItem>
-                    <SelectItem value="month">This Month</SelectItem>
-                    <SelectItem value="week">This Week</SelectItem>
-                    <SelectItem value="today">Today</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button onClick={exportToCSV} variant="outline" className="gap-2">
-                <Download className="w-4 h-4" />
-                Export CSV
+      <div className="container mx-auto px-6 py-8">
+        <div className="mb-6 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link href="/">
+              <Button variant="ghost" size="icon">
+                <ArrowLeft className="w-5 h-5" />
               </Button>
-              <Button onClick={exportToPDF} className="gap-2 bg-amber-600 hover:bg-amber-700">
-                <FileText className="w-4 h-4" />
-                Export PDF
-              </Button>
+            </Link>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Reports & Analytics</h1>
+              <p className="text-gray-600">Financial overview and sales performance</p>
             </div>
           </div>
-
-          {/* Key Metrics */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card className="border-amber-200">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">Total Revenue</CardTitle>
-                <DollarSign className="w-4 h-4 text-green-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">${stats.totalRevenue.toFixed(2)}</div>
-                <p className="text-xs text-gray-500 mt-1">
-                  {period === 'all' ? 'Lifetime revenue' : 'For selected period'}
-                </p>
-              </CardContent>
-            </Card>
-            <Card className="border-amber-200">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">Orders</CardTitle>
-                <ShoppingCart className="w-4 h-4 text-blue-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.totalOrders}</div>
-                <p className="text-xs text-gray-500 mt-1">Total orders processed</p>
-              </CardContent>
-            </Card>
-            <Card className="border-amber-200">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">Volume Sold</CardTitle>
-                <TrendingUp className="w-4 h-4 text-orange-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.totalWeight.toFixed(1)} lbs</div>
-                <p className="text-xs text-gray-500 mt-1">Total weight of matzos</p>
-              </CardContent>
-            </Card>
-            <Card className="border-amber-200">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">Active Customers</CardTitle>
-                <Users className="w-4 h-4 text-purple-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{customerCount}</div>
-                <p className="text-xs text-gray-500 mt-1">Total registered customers</p>
-              </CardContent>
-            </Card>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-gray-500" />
+              <Select value={period} onValueChange={setPeriod}>
+                <SelectTrigger className="w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Time</SelectItem>
+                  <SelectItem value="month">This Month</SelectItem>
+                  <SelectItem value="week">This Week</SelectItem>
+                  <SelectItem value="today">Today</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button onClick={exportToCSV} variant="outline" className="gap-2">
+              <Download className="w-4 h-4" />
+              Export CSV
+            </Button>
+            <Button onClick={exportToPDF} className="gap-2 bg-amber-600 hover:bg-amber-700">
+              <FileText className="w-4 h-4" />
+              Export PDF
+            </Button>
           </div>
+        </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Sales by Product */}
-            <Card className="border-amber-200">
-              <CardHeader>
-                <CardTitle>Sales by Product</CardTitle>
-                <CardDescription>Revenue breakdown by matzah type</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {stats.topProducts.length === 0 ? (
-                    <p className="text-center text-gray-500 py-8">No sales data available</p>
-                  ) : (
-                    stats.topProducts.map((product, index) => (
-                      <div key={index} className="flex items-center justify-between border-b border-gray-100 last:border-0 pb-2 last:pb-0">
-                        <div>
-                          <p className="font-medium text-gray-900">{product.name}</p>
-                          <p className="text-sm text-gray-500">{product.quantity.toFixed(1)} lbs sold</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-bold text-gray-900">${product.revenue.toFixed(2)}</p>
-                          <p className="text-sm text-gray-500">
-                            {((product.revenue / (stats.totalRevenue || 1)) * 100).toFixed(1)}%
-                          </p>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+        {/* Key Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <Card className="border-amber-200">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">Total Revenue</CardTitle>
+              <DollarSign className="w-4 h-4 text-green-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">${stats.totalRevenue.toFixed(2)}</div>
+              <p className="text-xs text-gray-500 mt-1">
+                {period === 'all' ? 'Lifetime revenue' : 'For selected period'}
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="border-amber-200">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">Orders</CardTitle>
+              <ShoppingCart className="w-4 h-4 text-blue-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.totalOrders}</div>
+              <p className="text-xs text-gray-500 mt-1">Total orders processed</p>
+            </CardContent>
+          </Card>
+          <Card className="border-amber-200">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">Volume Sold</CardTitle>
+              <TrendingUp className="w-4 h-4 text-orange-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.totalWeight.toFixed(1)} lbs</div>
+              <p className="text-xs text-gray-500 mt-1">Total weight of matzos</p>
+            </CardContent>
+          </Card>
+          <Card className="border-amber-200">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">Active Customers</CardTitle>
+              <Users className="w-4 h-4 text-purple-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{customerCount}</div>
+              <p className="text-xs text-gray-500 mt-1">Total registered customers</p>
+            </CardContent>
+          </Card>
+        </div>
 
-            {/* Recent Activity */}
-            <Card className="border-amber-200">
-              <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
-                <CardDescription>Latest financial transactions</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {stats.filteredOrders.slice(0, 5).map((order) => (
-                    <div key={order.id} className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                          order.status === 'confirmed' || order.status === 'delivered' 
-                            ? 'bg-green-100 text-green-600' 
-                            : 'bg-yellow-100 text-yellow-600'
-                        }`}>
-                          <DollarSign className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-900">Order #{order.orderNumber}</p>
-                          <p className="text-xs text-gray-500">{order.customerName}</p>
-                        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Sales by Product */}
+          <Card className="border-amber-200">
+            <CardHeader>
+              <CardTitle>Sales by Product</CardTitle>
+              <CardDescription>Revenue breakdown by matzah type</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {stats.topProducts.length === 0 ? (
+                  <p className="text-center text-gray-500 py-8">No sales data available</p>
+                ) : (
+                  stats.topProducts.map((product, index) => (
+                    <div key={index} className="flex items-center justify-between border-b border-gray-100 last:border-0 pb-2 last:pb-0">
+                      <div>
+                        <p className="font-medium text-gray-900">{product.name}</p>
+                        <p className="text-sm text-gray-500">{product.quantity.toFixed(1)} lbs sold</p>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-gray-900">+${order.total.toFixed(2)}</p>
-                        <p className="text-xs text-gray-500">{new Date(order.createdAt).toLocaleDateString()}</p>
+                        <p className="font-bold text-gray-900">${product.revenue.toFixed(2)}</p>
+                        <p className="text-sm text-gray-500">
+                          {((product.revenue / (stats.totalRevenue || 1)) * 100).toFixed(1)}%
+                        </p>
                       </div>
                     </div>
-                  ))}
-                  {stats.filteredOrders.length === 0 && (
-                    <p className="text-center text-gray-500 py-8">No recent activity</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Recent Activity */}
+          <Card className="border-amber-200">
+            <CardHeader>
+              <CardTitle>Recent Activity</CardTitle>
+              <CardDescription>Latest financial transactions</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {stats.filteredOrders.slice(0, 5).map((order) => (
+                  <div key={order.id} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                        order.status === 'confirmed' || order.status === 'delivered' 
+                          ? 'bg-green-100 text-green-600' 
+                          : 'bg-yellow-100 text-yellow-600'
+                      }`}>
+                        <DollarSign className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">Order #{order.orderNumber}</p>
+                        <p className="text-xs text-gray-500">{order.customerName}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-gray-900">+${order.total.toFixed(2)}</p>
+                      <p className="text-xs text-gray-500">{new Date(order.createdAt).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                ))}
+                {stats.filteredOrders.length === 0 && (
+                  <p className="text-center text-gray-500 py-8">No recent activity</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </>

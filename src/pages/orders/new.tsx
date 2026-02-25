@@ -38,6 +38,7 @@ export default function NewOrderPage() {
     setItems([...items, {
       productId: products[0].id,
       productName: products[0].name,
+      productNameHebrew: products[0].nameHebrew,
       quantity: 0,
       pricePerLb: products[0].pricePerLb,
       totalPrice: 0,
@@ -53,6 +54,7 @@ export default function NewOrderPage() {
           ...newItems[index],
           productId: product.id,
           productName: product.name,
+          productNameHebrew: product.nameHebrew,
           pricePerLb: product.pricePerLb,
           totalPrice: product.pricePerLb * newItems[index].quantity,
         };
@@ -192,287 +194,285 @@ export default function NewOrderPage() {
     <>
       <SEO title="New Order - Satmar Montreal Matzos" />
       
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
-        <div className="container mx-auto px-6 py-8">
-          <div className="mb-6 flex items-center gap-4">
-            <Link href="/orders">
-              <Button variant="ghost" size="icon">
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-            </Link>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900" style={{ fontFamily: "'Frank Ruhl Libre', serif" }}>
-                New Order
-              </h1>
-              <p className="text-gray-600" style={{ fontFamily: "'Rubik', sans-serif" }}>Create a new customer order</p>
-            </div>
+      <div className="container mx-auto px-6 py-8">
+        <div className="mb-6 flex items-center gap-4">
+          <Link href="/orders">
+            <Button variant="ghost" size="icon">
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900" style={{ fontFamily: "'Frank Ruhl Libre', serif" }}>
+              New Order
+            </h1>
+            <p className="text-gray-600" style={{ fontFamily: "'Heebo', sans-serif" }}>Create a new customer order</p>
           </div>
+        </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-6">
-              <Card className="border-amber-200">
-                <CardHeader>
-                  <CardTitle>Customer Information</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <Label>Select Customer</Label>
-                    <Select value={selectedCustomerId} onValueChange={setSelectedCustomerId}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Choose a customer" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {customers.map((customer) => (
-                          <SelectItem key={customer.id} value={customer.id}>
-                            {customer.name} - {customer.email}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            <Card className="border-amber-200">
+              <CardHeader>
+                <CardTitle>Customer Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label>Select Customer</Label>
+                  <Select value={selectedCustomerId} onValueChange={setSelectedCustomerId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a customer" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {customers.map((customer) => (
+                        <SelectItem key={customer.id} value={customer.id}>
+                          {customer.name} - {customer.email}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {customers.length === 0 && (
+                  <div className="text-center py-4">
+                    <p className="text-gray-600 mb-3">No customers found</p>
+                    <Link href="/customers/new">
+                      <Button variant="outline" size="sm">Add First Customer</Button>
+                    </Link>
                   </div>
-                  {customers.length === 0 && (
-                    <div className="text-center py-4">
-                      <p className="text-gray-600 mb-3">No customers found</p>
-                      <Link href="/customers/new">
-                        <Button variant="outline" size="sm">Add First Customer</Button>
-                      </Link>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                )}
+              </CardContent>
+            </Card>
 
-              <Card className="border-amber-200">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle>Order Items</CardTitle>
-                    <Button onClick={addItem} size="sm" className="gap-2">
-                      <Plus className="w-4 h-4" />
-                      Add Item
-                    </Button>
+            <Card className="border-amber-200">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Order Items</CardTitle>
+                  <Button onClick={addItem} size="sm" className="gap-2">
+                    <Plus className="w-4 h-4" />
+                    Add Item
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {items.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <p>No items added yet</p>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  {items.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
-                      <p>No items added yet</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {items.map((item, index) => {
-                        const stock = getProductStock(item.productId);
-                        const product = products.find(p => p.id === item.productId);
-                        const basePrice = item.pricePerLb * item.quantity;
-                        const finalPrice = item.finalPrice ?? item.totalPrice;
-                        
-                        return (
-                          <div key={index} className="p-4 bg-amber-50 rounded-lg border border-amber-200 space-y-4">
-                            <div className="flex gap-4 items-start">
-                              <div className="flex-1 grid grid-cols-3 gap-4">
-                                <div>
-                                  <Label>Product</Label>
-                                  <Select
-                                    value={item.productId}
-                                    onValueChange={(value) => updateItem(index, "productId", value)}
-                                  >
-                                    <SelectTrigger>
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {products.map((product) => (
-                                        <SelectItem key={product.id} value={product.id}>
-                                          <div className="flex items-center justify-between w-full gap-4">
-                                            <span>{product.name}</span>
-                                            <span className="text-sm text-muted-foreground" dir="rtl" style={{ fontFamily: "'Rubik', sans-serif" }}>
-                                              {product.nameHebrew}
-                                            </span>
-                                          </div>
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                  <p className="text-xs text-muted-foreground mt-1">
-                                    Stock: {stock.toFixed(1)} lbs
-                                  </p>
-                                </div>
-                                <div>
-                                  <Label>Quantity (lbs)</Label>
-                                  <Input
-                                    type="number"
-                                    step="0.5"
-                                    min="0"
-                                    placeholder="0"
-                                    value={item.quantity || ""}
-                                    onChange={(e) => updateItem(index, "quantity", e.target.value)}
-                                  />
-                                </div>
-                                <div>
-                                  <Label>Price</Label>
-                                  <Input
-                                    value={`$${basePrice.toFixed(2)}`}
-                                    disabled
-                                    className="bg-white"
-                                  />
-                                </div>
-                              </div>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => removeItem(index)}
-                                className="mt-6"
-                              >
-                                <Trash2 className="w-4 h-4 text-red-600" />
-                              </Button>
-                            </div>
-
-                            <div className="border-t border-amber-300 pt-4">
-                              <Label className="mb-2 block">Item Discount (Optional)</Label>
-                              <div className="grid grid-cols-3 gap-4">
-                                <RadioGroup
-                                  value={item.discountType || "percent"}
-                                  onValueChange={(value) => updateItem(index, "discountType", value)}
-                                  className="flex gap-4"
+                ) : (
+                  <div className="space-y-4">
+                    {items.map((item, index) => {
+                      const stock = getProductStock(item.productId);
+                      const product = products.find(p => p.id === item.productId);
+                      const basePrice = item.pricePerLb * item.quantity;
+                      const finalPrice = item.finalPrice ?? item.totalPrice;
+                      
+                      return (
+                        <div key={index} className="p-4 bg-amber-50 rounded-lg border border-amber-200 space-y-4">
+                          <div className="flex gap-4 items-start">
+                            <div className="flex-1 grid grid-cols-3 gap-4">
+                              <div>
+                                <Label>Product</Label>
+                                <Select
+                                  value={item.productId}
+                                  onValueChange={(value) => updateItem(index, "productId", value)}
                                 >
-                                  <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="percent" id={`percent-${index}`} />
-                                    <Label htmlFor={`percent-${index}`}>Percent %</Label>
-                                  </div>
-                                  <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="fixed" id={`fixed-${index}`} />
-                                    <Label htmlFor={`fixed-${index}`}>Fixed $</Label>
-                                  </div>
-                                </RadioGroup>
+                                  <SelectTrigger>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {products.map((product) => (
+                                      <SelectItem key={product.id} value={product.id}>
+                                        <div className="flex items-center justify-between w-full gap-4">
+                                          <span>{product.name}</span>
+                                          <span className="text-sm text-muted-foreground" dir="rtl" style={{ fontFamily: "'Heebo', sans-serif" }}>
+                                            {product.nameHebrew}
+                                          </span>
+                                        </div>
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Stock: {stock.toFixed(1)} lbs
+                                </p>
+                              </div>
+                              <div>
+                                <Label>Quantity (lbs)</Label>
                                 <Input
                                   type="number"
-                                  step="0.01"
+                                  step="0.5"
                                   min="0"
-                                  placeholder={item.discountType === "percent" ? "0%" : "$0.00"}
-                                  value={item.discount || ""}
-                                  onChange={(e) => updateItem(index, "discount", e.target.value)}
+                                  placeholder="0"
+                                  value={item.quantity || ""}
+                                  onChange={(e) => updateItem(index, "quantity", e.target.value)}
                                 />
-                                <div>
-                                  <Input
-                                    value={`Final: $${finalPrice.toFixed(2)}`}
-                                    disabled
-                                    className="bg-white font-semibold"
-                                  />
+                              </div>
+                              <div>
+                                <Label>Price</Label>
+                                <Input
+                                  value={`$${basePrice.toFixed(2)}`}
+                                  disabled
+                                  className="bg-white"
+                                />
+                              </div>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeItem(index)}
+                              className="mt-6"
+                            >
+                              <Trash2 className="w-4 h-4 text-red-600" />
+                            </Button>
+                          </div>
+
+                          <div className="border-t border-amber-300 pt-4">
+                            <Label className="mb-2 block">Item Discount (Optional)</Label>
+                            <div className="grid grid-cols-3 gap-4">
+                              <RadioGroup
+                                value={item.discountType || "percent"}
+                                onValueChange={(value) => updateItem(index, "discountType", value)}
+                                className="flex gap-4"
+                              >
+                                <div className="flex items-center space-x-2">
+                                  <RadioGroupItem value="percent" id={`percent-${index}`} />
+                                  <Label htmlFor={`percent-${index}`}>Percent %</Label>
                                 </div>
+                                <div className="flex items-center space-x-2">
+                                  <RadioGroupItem value="fixed" id={`fixed-${index}`} />
+                                  <Label htmlFor={`fixed-${index}`}>Fixed $</Label>
+                                </div>
+                              </RadioGroup>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                placeholder={item.discountType === "percent" ? "0%" : "$0.00"}
+                                value={item.discount || ""}
+                                onChange={(e) => updateItem(index, "discount", e.target.value)}
+                              />
+                              <div>
+                                <Input
+                                  value={`Final: $${finalPrice.toFixed(2)}`}
+                                  disabled
+                                  className="bg-white font-semibold"
+                                />
                               </div>
                             </div>
                           </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card className="border-amber-200">
-                <CardHeader>
-                  <CardTitle>Additional Details</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <Label htmlFor="delivery-date">Delivery Date (Optional)</Label>
-                    <Input
-                      id="delivery-date"
-                      type="date"
-                      value={deliveryDate}
-                      onChange={(e) => setDeliveryDate(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="notes">Order Notes (Optional)</Label>
-                    <Textarea
-                      id="notes"
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      rows={3}
-                      placeholder="Special instructions, delivery notes, etc."
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div>
-              <Card className="border-amber-200 sticky top-6">
-                <CardHeader>
-                  <CardTitle>Order Summary</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-gray-600">
-                      <span>Subtotal:</span>
-                      <span>${calculateSubtotal().toFixed(2)}</span>
-                    </div>
-                    
-                    <div className="border-t border-amber-200 pt-2">
-                      <Label className="mb-2 block">Order Discount (Optional)</Label>
-                      <RadioGroup
-                        value={orderDiscountType}
-                        onValueChange={(value: "percent" | "fixed") => setOrderDiscountType(value)}
-                        className="flex gap-4 mb-2"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="percent" id="order-percent" />
-                          <Label htmlFor="order-percent">Percent %</Label>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="fixed" id="order-fixed" />
-                          <Label htmlFor="order-fixed">Fixed $</Label>
-                        </div>
-                      </RadioGroup>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        placeholder={orderDiscountType === "percent" ? "0%" : "$0.00"}
-                        value={orderDiscount}
-                        onChange={(e) => setOrderDiscount(e.target.value)}
-                      />
-                    </div>
-                    
-                    {calculateDiscount() > 0 && (
-                      <div className="flex justify-between text-green-600">
-                        <span>Discount:</span>
-                        <span>-${calculateDiscount().toFixed(2)}</span>
-                      </div>
-                    )}
-                    
-                    <div className="flex justify-between text-gray-600">
-                      <span>Tax:</span>
-                      <span>${calculateTax().toFixed(2)}</span>
-                    </div>
-                    <div className="border-t border-amber-200 pt-2">
-                      <div className="flex justify-between text-lg font-bold">
-                        <span>Total:</span>
-                        <span>${calculateTotal().toFixed(2)}</span>
-                      </div>
-                    </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="border-amber-200">
+              <CardHeader>
+                <CardTitle>Additional Details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="delivery-date">Delivery Date (Optional)</Label>
+                  <Input
+                    id="delivery-date"
+                    type="date"
+                    value={deliveryDate}
+                    onChange={(e) => setDeliveryDate(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="notes">Order Notes (Optional)</Label>
+                  <Textarea
+                    id="notes"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    rows={3}
+                    placeholder="Special instructions, delivery notes, etc."
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div>
+            <Card className="border-amber-200 sticky top-6">
+              <CardHeader>
+                <CardTitle>Order Summary</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-gray-600">
+                    <span>Subtotal:</span>
+                    <span>${calculateSubtotal().toFixed(2)}</span>
                   </div>
                   
-                  <div className="space-y-2">
-                    <Button
-                      onClick={() => handleSubmit("pending")}
-                      className="w-full gap-2 bg-gradient-to-r from-blue-600 to-blue-700"
-                      disabled={!selectedCustomerId || items.length === 0}
+                  <div className="border-t border-amber-200 pt-2">
+                    <Label className="mb-2 block">Order Discount (Optional)</Label>
+                    <RadioGroup
+                      value={orderDiscountType}
+                      onValueChange={(value: "percent" | "fixed") => setOrderDiscountType(value)}
+                      className="flex gap-4 mb-2"
                     >
-                      <Send className="w-4 h-4" />
-                      Create Order
-                    </Button>
-                    <Button
-                      onClick={() => handleSubmit("draft")}
-                      variant="outline"
-                      className="w-full gap-2"
-                      disabled={!selectedCustomerId || items.length === 0}
-                    >
-                      <Save className="w-4 h-4" />
-                      Save as Draft
-                    </Button>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="percent" id="order-percent" />
+                        <Label htmlFor="order-percent">Percent %</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="fixed" id="order-fixed" />
+                        <Label htmlFor="order-fixed">Fixed $</Label>
+                      </div>
+                    </RadioGroup>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder={orderDiscountType === "percent" ? "0%" : "$0.00"}
+                      value={orderDiscount}
+                      onChange={(e) => setOrderDiscount(e.target.value)}
+                    />
                   </div>
-                </CardContent>
-              </Card>
-            </div>
+                  
+                  {calculateDiscount() > 0 && (
+                    <div className="flex justify-between text-green-600">
+                      <span>Discount:</span>
+                      <span>-${calculateDiscount().toFixed(2)}</span>
+                    </div>
+                  )}
+                  
+                  <div className="flex justify-between text-gray-600">
+                    <span>Tax:</span>
+                    <span>${calculateTax().toFixed(2)}</span>
+                  </div>
+                  <div className="border-t border-amber-200 pt-2">
+                    <div className="flex justify-between text-lg font-bold">
+                      <span>Total:</span>
+                      <span>${calculateTotal().toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Button
+                    onClick={() => handleSubmit("pending")}
+                    className="w-full gap-2 bg-gradient-to-r from-blue-600 to-blue-700"
+                    disabled={!selectedCustomerId || items.length === 0}
+                  >
+                    <Send className="w-4 h-4" />
+                    Create Order
+                  </Button>
+                  <Button
+                    onClick={() => handleSubmit("draft")}
+                    variant="outline"
+                    className="w-full gap-2"
+                    disabled={!selectedCustomerId || items.length === 0}
+                  >
+                    <Save className="w-4 h-4" />
+                    Save as Draft
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
