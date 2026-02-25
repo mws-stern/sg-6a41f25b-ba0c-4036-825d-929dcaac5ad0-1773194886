@@ -11,7 +11,8 @@ import {
   Menu, 
   ChevronLeft,
   ChevronRight,
-  Box
+  Box,
+  DollarSign
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
