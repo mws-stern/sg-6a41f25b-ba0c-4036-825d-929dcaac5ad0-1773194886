@@ -1,4 +1,4 @@
-import type { Product, Customer, Order, Invoice } from "@/types";
+import type { Product, Customer, Order, Invoice, Payment } from "@/types";
 
 export interface InventoryEntry {
   id: string;
@@ -7,6 +7,7 @@ export interface InventoryEntry {
   amount: number;
   date: string;
   notes?: string;
+  createdAt: string;
 }
 
 // LocalStorage keys
@@ -17,6 +18,7 @@ const STORAGE_KEYS = {
   INVOICES: "matzos_invoices",
   INVENTORY: "matzos_inventory",
   SETTINGS: "matzos_settings",
+  PAYMENTS: "matzos_payments",
 };
 
 // Initial products setup
@@ -151,7 +153,7 @@ export const saveOrders = (orders: Order[]): void => {
   localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(orders));
 };
 
-export const addOrder = (order: Omit<Order, "id" | "orderNumber" | "createdAt" | "updatedAt">): Order => {
+export const addOrder = (order: Omit<Order, "id" | "orderNumber" | "createdAt" | "updatedAt" | "paymentStatus" | "amountPaid" | "amountDue" | "inventoryDeducted">): Order => {
   const orders = getOrders();
   const orderNumber = `ORD-${Date.now()}`;
   const now = new Date();
@@ -162,6 +164,10 @@ export const addOrder = (order: Omit<Order, "id" | "orderNumber" | "createdAt" |
     createdAt: now.toISOString(),
     updatedAt: now.toISOString(),
     orderTime: now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
+    paymentStatus: "unpaid",
+    amountPaid: 0,
+    amountDue: order.total,
+    inventoryDeducted: false,
   };
   orders.push(newOrder);
   saveOrders(orders);
@@ -172,7 +178,18 @@ export const updateOrder = (order: Order): void => {
   const orders = getOrders();
   const index = orders.findIndex((o) => o.id === order.id);
   if (index !== -1) {
-    orders[index] = { ...order, updatedAt: new Date().toISOString() };
+    const previousOrder = orders[index];
+    const updatedOrder = { ...order, updatedAt: new Date().toISOString() };
+    
+    // Deduct inventory when order is marked as delivered (only once)
+    if (order.status === "delivered" && !previousOrder.inventoryDeducted) {
+      order.items.forEach(item => {
+        reduceInventory(item.productId, item.quantity);
+      });
+      updatedOrder.inventoryDeducted = true;
+    }
+    
+    orders[index] = updatedOrder;
     saveOrders(orders);
   }
 };
@@ -211,6 +228,9 @@ export const createInvoiceFromOrder = (order: Order): Invoice => {
     tax: order.tax,
     total: order.total,
     paid: false,
+    paymentStatus: order.paymentStatus,
+    amountPaid: order.amountPaid,
+    amountDue: order.amountDue,
     createdAt: new Date().toISOString(),
     dueDate: dueDate.toISOString(),
   };
@@ -326,4 +346,105 @@ export const getSettings = (): Settings => {
 export const saveSettings = (settings: Settings): void => {
   if (!isClient) return;
   localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+};
+
+// Payment Management
+export const getPayments = (): Payment[] => {
+  if (!isClient) return [];
+  const stored = localStorage.getItem(STORAGE_KEYS.PAYMENTS);
+  return stored ? JSON.parse(stored) : [];
+};
+
+export const savePayments = (payments: Payment[]): void => {
+  if (!isClient) return;
+  localStorage.setItem(STORAGE_KEYS.PAYMENTS, JSON.stringify(payments));
+};
+
+export const addPayment = (payment: Omit<Payment, "id" | "createdAt">): Payment => {
+  const payments = getPayments();
+  const newPayment: Payment = {
+    ...payment,
+    id: Date.now().toString(),
+    createdAt: new Date().toISOString(),
+    creditCardLast4: payment.creditCardNumber ? payment.creditCardNumber.slice(-4) : undefined,
+  };
+  
+  payments.push(newPayment);
+  savePayments(payments);
+  
+  // Update order payment status
+  const orders = getOrders();
+  const orderIndex = orders.findIndex(o => o.id === payment.orderId);
+  if (orderIndex !== -1) {
+    const order = orders[orderIndex];
+    order.amountPaid = (order.amountPaid || 0) + payment.amount;
+    order.amountDue = order.total - order.amountPaid;
+    
+    if (order.amountPaid >= order.total) {
+      order.paymentStatus = "paid";
+    } else if (order.amountPaid > 0) {
+      order.paymentStatus = "partial";
+    }
+    
+    orders[orderIndex] = order;
+    saveOrders(orders);
+  }
+  
+  // Update invoice if exists
+  if (payment.invoiceId) {
+    const invoices = getInvoices();
+    const invoiceIndex = invoices.findIndex(i => i.id === payment.invoiceId);
+    if (invoiceIndex !== -1) {
+      const invoice = invoices[invoiceIndex];
+      invoice.amountPaid = (invoice.amountPaid || 0) + payment.amount;
+      invoice.amountDue = invoice.total - invoice.amountPaid;
+      
+      if (invoice.amountPaid >= invoice.total) {
+        invoice.paymentStatus = "paid";
+        invoice.paid = true;
+        invoice.paidAt = new Date().toISOString();
+      } else if (invoice.amountPaid > 0) {
+        invoice.paymentStatus = "partial";
+      }
+      
+      invoices[invoiceIndex] = invoice;
+      saveInvoices(invoices);
+    }
+  }
+  
+  return newPayment;
+};
+
+export const getPaymentsByOrder = (orderId: string): Payment[] => {
+  return getPayments().filter(p => p.orderId === orderId);
+};
+
+export const getPaymentsByInvoice = (invoiceId: string): Payment[] => {
+  return getPayments().filter(p => p.invoiceId === invoiceId);
+};
+
+export const getReceivablesSummary = () => {
+  const orders = getOrders();
+  const payments = getPayments();
+  
+  const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
+  const totalCollected = orders.reduce((sum, order) => sum + (order.amountPaid || 0), 0);
+  const totalPending = totalRevenue - totalCollected;
+  const percentageCollected = totalRevenue > 0 ? (totalCollected / totalRevenue) * 100 : 0;
+  
+  const recentPayments = payments
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 10);
+  
+  const invoices = getInvoices();
+  const unpaidInvoices = invoices.filter(i => i.paymentStatus !== "paid");
+  
+  return {
+    totalRevenue,
+    totalCollected,
+    totalPending,
+    percentageCollected,
+    recentPayments,
+    unpaidInvoices,
+  };
 };

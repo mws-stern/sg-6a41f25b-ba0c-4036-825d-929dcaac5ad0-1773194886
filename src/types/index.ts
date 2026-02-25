@@ -45,6 +45,22 @@ export interface OrderItem {
   finalPrice?: number;
 }
 
+export interface Payment {
+  id: string;
+  orderId: string;
+  invoiceId?: string;
+  amount: number;
+  paymentMethod: "credit_card" | "cash" | "e_transfer" | "check" | "voucher";
+  paymentDate: string;
+  notes?: string;
+  creditCardNumber?: string;
+  creditCardLast4?: string;
+  checkNumber?: string;
+  eTransferReference?: string;
+  voucherCode?: string;
+  createdAt: string;
+}
+
 export interface Order {
   id: string;
   orderNumber: string;
@@ -58,11 +74,15 @@ export interface Order {
   discount?: number;
   discountType?: "percent" | "fixed";
   status: "draft" | "pending" | "confirmed" | "preparing" | "ready" | "delivered" | "cancelled";
+  paymentStatus: "unpaid" | "partial" | "paid";
+  amountPaid: number;
+  amountDue: number;
   notes?: string;
   createdAt: string;
   updatedAt: string;
   deliveryDate?: string;
   orderTime?: string;
+  inventoryDeducted?: boolean;
 }
 
 export interface Invoice {
@@ -77,6 +97,9 @@ export interface Invoice {
   tax: number;
   total: number;
   paid: boolean;
+  paymentStatus: "unpaid" | "partial" | "paid";
+  amountPaid: number;
+  amountDue: number;
   paidAt?: string;
   createdAt: string;
   dueDate: string;
@@ -89,4 +112,13 @@ export interface Report {
   totalCustomers: number;
   productsSold: Record<string, number>;
   topProducts: Array<{ name: string; quantity: number; revenue: number }>;
+}
+
+export interface ReceivablesSummary {
+  totalRevenue: number;
+  totalCollected: number;
+  totalPending: number;
+  percentageCollected: number;
+  recentPayments: Payment[];
+  unpaidInvoices: Invoice[];
 }
