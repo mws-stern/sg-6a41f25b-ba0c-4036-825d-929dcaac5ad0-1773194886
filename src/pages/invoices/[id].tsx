@@ -59,6 +59,7 @@ export default function InvoicePage() {
           <div className="max-w-4xl mx-auto bg-white shadow-lg p-12 rounded-lg print:shadow-none print:rounded-none">
             <div className="flex justify-between items-start mb-12 border-b border-gray-200 pb-8">
               <div>
+                <img src="/logo.png" alt="Satmar Montreal Matzos" className="h-24 w-auto mb-4" />
                 <h1 className="text-4xl font-bold text-gray-900 mb-2">{settings.companyName}</h1>
                 <h2 className="text-2xl font-semibold text-gray-800 mb-4 font-heebo" dir="rtl">{settings.companyNameHebrew}</h2>
                 <div className="text-gray-600 space-y-1">

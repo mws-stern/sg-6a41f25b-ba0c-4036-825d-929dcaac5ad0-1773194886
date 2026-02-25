@@ -265,11 +265,12 @@ export const saveInventory = (inventory: InventoryEntry[]): void => {
   localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inventory));
 };
 
-export const addInventoryEntry = (entry: Omit<InventoryEntry, "id">): InventoryEntry => {
+export const addInventoryEntry = (entry: Omit<InventoryEntry, "id" | "createdAt">): InventoryEntry => {
   const inventory = getInventory();
   const newEntry: InventoryEntry = {
     ...entry,
     id: Date.now().toString(),
+    createdAt: new Date().toISOString(),
   };
   inventory.push(newEntry);
   saveInventory(inventory);
