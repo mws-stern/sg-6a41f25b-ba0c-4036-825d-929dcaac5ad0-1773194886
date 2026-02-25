@@ -67,6 +67,7 @@ export default function CustomerProfile() {
 
   const getStatusBadge = (status: Order["status"]) => {
     const variants: Record<Order["status"], "default" | "secondary" | "destructive" | "outline"> = {
+      draft: "outline",
       pending: "outline",
       confirmed: "secondary",
       preparing: "default",
@@ -280,7 +281,7 @@ export default function CustomerProfile() {
                           <TableCell>
                             {new Date(payment.createdAt).toLocaleDateString()}
                           </TableCell>
-                          <TableCell className="capitalize">{payment.method}</TableCell>
+                          <TableCell className="capitalize">{payment.paymentMethod.replace("_", " ")}</TableCell>
                           <TableCell className="font-semibold">
                             ${payment.amount.toFixed(2)}
                           </TableCell>

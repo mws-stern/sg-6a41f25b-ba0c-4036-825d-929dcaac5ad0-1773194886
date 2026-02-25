@@ -23,6 +23,7 @@ export interface InventoryEntry {
 export interface Customer {
   id: string;
   name: string;
+  nameHebrew?: string;
   email: string;
   phone: string;
   address: string;
