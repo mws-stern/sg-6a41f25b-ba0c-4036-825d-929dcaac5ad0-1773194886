@@ -3,10 +3,20 @@ export interface Product {
   name: string;
   nameHebrew?: string;
   pricePerLb: number;
-  category: "rashi" | "regular" | "spelt" | "wholewheat";
+  category: "rashi" | "regular" | "spelt" | "wholewheat" | "flour" | "shvurim";
   description?: string;
   inStock: boolean;
   minOrder?: number;
+  currentInventory?: number;
+}
+
+export interface InventoryEntry {
+  id: string;
+  productId: string;
+  productName: string;
+  amount: number;
+  date: string;
+  notes?: string;
 }
 
 export interface Customer {
@@ -28,6 +38,9 @@ export interface OrderItem {
   quantity: number;
   pricePerLb: number;
   totalPrice: number;
+  discount?: number;
+  discountType?: "percent" | "fixed";
+  finalPrice?: number;
 }
 
 export interface Order {
@@ -40,7 +53,9 @@ export interface Order {
   subtotal: number;
   tax: number;
   total: number;
-  status: "pending" | "confirmed" | "preparing" | "ready" | "delivered" | "cancelled";
+  discount?: number;
+  discountType?: "percent" | "fixed";
+  status: "draft" | "pending" | "confirmed" | "preparing" | "ready" | "delivered" | "cancelled";
   notes?: string;
   createdAt: string;
   updatedAt: string;
