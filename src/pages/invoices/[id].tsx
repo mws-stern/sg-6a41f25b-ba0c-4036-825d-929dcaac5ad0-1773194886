@@ -60,7 +60,7 @@ export default function InvoicePage() {
             <div className="flex justify-between items-start mb-12 border-b border-gray-200 pb-8">
               <div>
                 <h1 className="text-4xl font-bold text-gray-900 mb-2">{settings.companyName}</h1>
-                <h2 className="text-2xl font-semibold text-gray-800 mb-4" style={{ fontFamily: "'Heebo', sans-serif" }}>{settings.companyNameHebrew}</h2>
+                <h2 className="text-2xl font-semibold text-gray-800 mb-4 font-heebo" dir="rtl">{settings.companyNameHebrew}</h2>
                 <div className="text-gray-600 space-y-1">
                   <p>{settings.address}</p>
                   <p>{settings.phone}</p>
@@ -79,7 +79,7 @@ export default function InvoicePage() {
 
             <div className="mb-12">
               <h3 className="text-lg font-bold text-gray-900 mb-4 uppercase tracking-wider border-b border-gray-200 pb-2">
-                Bill To / <span style={{ fontFamily: "'Heebo', sans-serif" }}>לכבוד</span>
+                Bill To / <span className="font-heebo" dir="rtl">לכבוד</span>
               </h3>
               <div className="text-gray-800">
                 <p className="text-xl font-semibold mb-2">{invoice.customerName}</p>
@@ -102,7 +102,7 @@ export default function InvoicePage() {
                     <tr key={index}>
                       <td className="py-4 text-gray-800">
                         <div className="font-medium">{item.productName}</div>
-                        <div className="text-sm" style={{ fontFamily: "'Heebo', sans-serif" }} dir="rtl">
+                        <div className="text-sm font-heebo" dir="rtl">
                           {item.productNameHebrew}
                         </div>
                       </td>
