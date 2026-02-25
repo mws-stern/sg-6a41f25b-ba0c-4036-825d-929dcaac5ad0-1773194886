@@ -26,7 +26,7 @@ const INITIAL_PRODUCTS: Product[] = [
   {
     id: "1",
     name: "Rashi Matzoh",
-    nameHebrew: "רש\"י",
+    nameHebrew: "מצה רש\"י",
     pricePerLb: 0,
     category: "rashi",
     description: "Traditional Rashi style matzoh",
@@ -36,7 +36,7 @@ const INITIAL_PRODUCTS: Product[] = [
   {
     id: "2",
     name: "Regular Matzoh",
-    nameHebrew: "רעגולער מצה",
+    nameHebrew: "מצה רעגולער",
     pricePerLb: 0,
     category: "regular",
     description: "Standard matzoh",
@@ -46,7 +46,7 @@ const INITIAL_PRODUCTS: Product[] = [
   {
     id: "3",
     name: "Spelt Matzoh",
-    nameHebrew: "ספעלט מצה",
+    nameHebrew: "מצה ספעלט",
     pricePerLb: 0,
     category: "spelt",
     description: "Made with spelt flour",
@@ -56,7 +56,7 @@ const INITIAL_PRODUCTS: Product[] = [
   {
     id: "4",
     name: "Whole Wheat Matzoh",
-    nameHebrew: "האל וויט מצה",
+    nameHebrew: "מצה האל וויט",
     pricePerLb: 0,
     category: "wholewheat",
     description: "Whole wheat matzoh",
@@ -76,7 +76,7 @@ const INITIAL_PRODUCTS: Product[] = [
   {
     id: "6",
     name: "Shvurim Matzoh",
-    nameHebrew: "שברים מצה",
+    nameHebrew: "מצה שברים",
     pricePerLb: 0,
     category: "shvurim",
     description: "Broken matzoh pieces",
