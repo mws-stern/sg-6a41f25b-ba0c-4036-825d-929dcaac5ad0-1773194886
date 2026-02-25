@@ -68,7 +68,7 @@ export default function ProductsPage() {
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                   <span>{product.name}</span>
-                  <span className="text-xl font-hebrew">{product.nameHebrew}</span>
+                  <span className="text-xl font-heebo" dir="rtl">{product.nameHebrew}</span>
                 </CardTitle>
                 <CardDescription>{product.description}</CardDescription>
               </CardHeader>
