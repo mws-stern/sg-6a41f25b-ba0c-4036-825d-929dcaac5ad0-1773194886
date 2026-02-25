@@ -58,7 +58,7 @@ export default function NewOrderPage() {
       newItems[index].quantity = parseFloat(value) || 0;
       newItems[index].totalPrice = newItems[index].pricePerLb * newItems[index].quantity;
     } else {
-      newItems[index][field] = value;
+      (newItems[index] as any)[field] = value;
     }
     setItems(newItems);
   };
