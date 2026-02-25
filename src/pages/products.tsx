@@ -53,7 +53,7 @@ export default function ProductsPage() {
                 </Button>
               </Link>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Product Management</h1>
+                <h1 className="text-3xl font-bold text-gray-900" style={{ fontFamily: "'Frank Ruhl Libre', serif" }}>Product Management</h1>
                 <p className="text-gray-600">Configure pricing and product details</p>
               </div>
             </div>
@@ -81,7 +81,7 @@ export default function ProductsPage() {
                       type="number"
                       step="0.01"
                       min="0"
-                      value={product.pricePerLb}
+                      value={product.pricePerLb || ""}
                       onChange={(e) =>
                         updateProduct(product.id, "pricePerLb", parseFloat(e.target.value) || 0)
                       }
