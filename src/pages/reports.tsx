@@ -1,12 +1,15 @@
 import { SEO } from "@/components/SEO";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, TrendingUp, DollarSign, ShoppingCart, Users, Calendar } from "lucide-react";
+import { ArrowLeft, TrendingUp, DollarSign, ShoppingCart, Users, Calendar, Download, FileText } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getOrders, getCustomers, getProducts } from "@/lib/store";
 import type { Order, Product } from "@/types";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import Papa from "papaparse";
 
 export default function ReportsPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -43,7 +46,6 @@ export default function ReportsPage() {
       sum + o.items.reduce((itemSum, item) => itemSum + item.quantity, 0), 0
     );
 
-    // Product breakdown
     const productSales: Record<string, { name: string; quantity: number; revenue: number }> = {};
     
     filteredOrders.forEach(order => {
@@ -66,11 +68,144 @@ export default function ReportsPage() {
       totalRevenue,
       totalOrders,
       totalWeight,
-      topProducts
+      topProducts,
+      filteredOrders
     };
   };
 
   const stats = calculateStats();
+
+  const exportToCSV = () => {
+    const csvData = stats.filteredOrders.map(order => ({
+      "Order Number": order.orderNumber,
+      "Customer": order.customerName,
+      "Date": new Date(order.createdAt).toLocaleDateString(),
+      "Status": order.status,
+      "Items": order.items.map(item => `${item.productName} (${item.quantity} lbs)`).join("; "),
+      "Subtotal": order.subtotal.toFixed(2),
+      "Tax": order.tax.toFixed(2),
+      "Total": order.total.toFixed(2)
+    }));
+
+    const productData = stats.topProducts.map(product => ({
+      "Product": product.name,
+      "Quantity Sold (lbs)": product.quantity.toFixed(1),
+      "Revenue": product.revenue.toFixed(2),
+      "Percentage": ((product.revenue / (stats.totalRevenue || 1)) * 100).toFixed(1) + "%"
+    }));
+
+    const summaryData = [{
+      "Metric": "Total Revenue",
+      "Value": `$${stats.totalRevenue.toFixed(2)}`
+    }, {
+      "Metric": "Total Orders",
+      "Value": stats.totalOrders
+    }, {
+      "Metric": "Total Weight Sold",
+      "Value": `${stats.totalWeight.toFixed(1)} lbs`
+    }, {
+      "Metric": "Active Customers",
+      "Value": customerCount
+    }];
+
+    const csv1 = Papa.unparse(summaryData);
+    const csv2 = Papa.unparse(productData);
+    const csv3 = Papa.unparse(csvData);
+
+    const combinedCSV = `SUMMARY REPORT\n${csv1}\n\n\nPRODUCT SALES\n${csv2}\n\n\nORDER DETAILS\n${csv3}`;
+
+    const blob = new Blob([combinedCSV], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `satmar-matzos-report-${period}-${new Date().toISOString().split("T")[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  };
+
+  const exportToPDF = () => {
+    const doc = new jsPDF();
+    
+    doc.setFontSize(20);
+    doc.text("Satmar Montreal Matzos", 105, 20, { align: "center" });
+    doc.setFontSize(14);
+    doc.text("Financial Report", 105, 28, { align: "center" });
+    doc.setFontSize(10);
+    doc.text(`Period: ${period.charAt(0).toUpperCase() + period.slice(1)}`, 105, 35, { align: "center" });
+    doc.text(`Generated: ${new Date().toLocaleDateString()}`, 105, 41, { align: "center" });
+
+    doc.setFontSize(12);
+    doc.text("Summary", 14, 52);
+    
+    autoTable(doc, {
+      startY: 56,
+      head: [["Metric", "Value"]],
+      body: [
+        ["Total Revenue", `$${stats.totalRevenue.toFixed(2)}`],
+        ["Total Orders", stats.totalOrders.toString()],
+        ["Total Weight Sold", `${stats.totalWeight.toFixed(1)} lbs`],
+        ["Active Customers", customerCount.toString()]
+      ],
+      theme: "striped",
+      headStyles: { fillColor: [251, 191, 36] }
+    });
+
+    const finalY1 = (doc as any).lastAutoTable.finalY || 90;
+    
+    doc.text("Sales by Product", 14, finalY1 + 10);
+    
+    autoTable(doc, {
+      startY: finalY1 + 14,
+      head: [["Product", "Quantity (lbs)", "Revenue", "% of Total"]],
+      body: stats.topProducts.map(p => [
+        p.name,
+        p.quantity.toFixed(1),
+        `$${p.revenue.toFixed(2)}`,
+        `${((p.revenue / (stats.totalRevenue || 1)) * 100).toFixed(1)}%`
+      ]),
+      theme: "striped",
+      headStyles: { fillColor: [251, 191, 36] }
+    });
+
+    const finalY2 = (doc as any).lastAutoTable.finalY || 140;
+
+    if (finalY2 > 240) {
+      doc.addPage();
+      doc.text("Order Details", 14, 20);
+      autoTable(doc, {
+        startY: 24,
+        head: [["Order #", "Customer", "Date", "Status", "Total"]],
+        body: stats.filteredOrders.map(o => [
+          o.orderNumber,
+          o.customerName,
+          new Date(o.createdAt).toLocaleDateString(),
+          o.status,
+          `$${o.total.toFixed(2)}`
+        ]),
+        theme: "striped",
+        headStyles: { fillColor: [251, 191, 36] }
+      });
+    } else {
+      doc.text("Order Details", 14, finalY2 + 10);
+      autoTable(doc, {
+        startY: finalY2 + 14,
+        head: [["Order #", "Customer", "Date", "Status", "Total"]],
+        body: stats.filteredOrders.map(o => [
+          o.orderNumber,
+          o.customerName,
+          new Date(o.createdAt).toLocaleDateString(),
+          o.status,
+          `$${o.total.toFixed(2)}`
+        ]),
+        theme: "striped",
+        headStyles: { fillColor: [251, 191, 36] }
+      });
+    }
+
+    doc.save(`satmar-matzos-report-${period}-${new Date().toISOString().split("T")[0]}.pdf`);
+  };
 
   if (!mounted) return null;
 
@@ -92,19 +227,29 @@ export default function ReportsPage() {
                 <p className="text-gray-600">Financial overview and sales performance</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-gray-500" />
-              <Select value={period} onValueChange={setPeriod}>
-                <SelectTrigger className="w-40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Time</SelectItem>
-                  <SelectItem value="month">This Month</SelectItem>
-                  <SelectItem value="week">This Week</SelectItem>
-                  <SelectItem value="today">Today</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-gray-500" />
+                <Select value={period} onValueChange={setPeriod}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Time</SelectItem>
+                    <SelectItem value="month">This Month</SelectItem>
+                    <SelectItem value="week">This Week</SelectItem>
+                    <SelectItem value="today">Today</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button onClick={exportToCSV} variant="outline" className="gap-2">
+                <Download className="w-4 h-4" />
+                Export CSV
+              </Button>
+              <Button onClick={exportToPDF} className="gap-2 bg-amber-600 hover:bg-amber-700">
+                <FileText className="w-4 h-4" />
+                Export PDF
+              </Button>
             </div>
           </div>
 
@@ -193,7 +338,7 @@ export default function ReportsPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {orders.slice(0, 5).map((order) => (
+                  {stats.filteredOrders.slice(0, 5).map((order) => (
                     <div key={order.id} className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
@@ -214,7 +359,7 @@ export default function ReportsPage() {
                       </div>
                     </div>
                   ))}
-                  {orders.length === 0 && (
+                  {stats.filteredOrders.length === 0 && (
                     <p className="text-center text-gray-500 py-8">No recent activity</p>
                   )}
                 </div>
