@@ -318,32 +318,35 @@ export interface Settings {
 }
 
 export const getSettings = (): Settings => {
-  if (!isClient) {
+  if (typeof window === "undefined") {
     return {
       companyName: "Satmar Montreal Matzos",
       companyNameHebrew: "סאטמאר מאנטרעאל מצות",
-      email: "info@satmarmatzos.com",
-      phone: "(514) 555-0100",
-      address: "Montreal, QC",
-      taxRate: 0,
+      email: "matzoh@satmarmtl.com",
+      phone: "(438) 300-8425",
+      address: "2765 Chemin de la Côte-Sainte-Catherine, Montreal, QC H3T 1B6",
+      taxRate: 14.975,
       currency: "USD",
     };
   }
-  const stored = localStorage.getItem(STORAGE_KEYS.SETTINGS);
-  if (!stored) {
-    const defaultSettings: Settings = {
-      companyName: "Satmar Montreal Matzos",
-      companyNameHebrew: "סאטמאר מאנטרעאל מצות",
-      email: "info@satmarmatzos.com",
-      phone: "(514) 555-0100",
-      address: "Montreal, QC",
-      taxRate: 0,
-      currency: "USD",
-    };
-    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(defaultSettings));
-    return defaultSettings;
+  
+  const stored = localStorage.getItem("settings");
+  if (stored) {
+    return JSON.parse(stored);
   }
-  return JSON.parse(stored);
+  
+  const defaultSettings: Settings = {
+    companyName: "Satmar Montreal Matzos",
+    companyNameHebrew: "סאטמאר מאנטרעאל מצות",
+    email: "matzoh@satmarmtl.com",
+    phone: "(438) 300-8425",
+    address: "2765 Chemin de la Côte-Sainte-Catherine, Montreal, QC H3T 1B6",
+    taxRate: 14.975,
+    currency: "USD",
+  };
+  
+  saveSettings(defaultSettings);
+  return defaultSettings;
 };
 
 export const saveSettings = (settings: Settings): void => {

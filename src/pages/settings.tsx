@@ -25,7 +25,18 @@ export default function SettingsPage() {
 
   useEffect(() => {
     setMounted(true);
-    setSettingsState(getSettings());
+    const currentSettings = getSettings();
+    // Set defaults if not already set
+    if (!currentSettings.email) {
+      currentSettings.email = "matzoh@satmarmtl.com";
+    }
+    if (!currentSettings.phone) {
+      currentSettings.phone = "(438) 300-8425";
+    }
+    if (!currentSettings.address) {
+      currentSettings.address = "2765 Chemin de la Côte-Sainte-Catherine, Montreal, QC H3T 1B6";
+    }
+    setSettingsState(currentSettings);
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
