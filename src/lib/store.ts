@@ -101,7 +101,9 @@ export const getProducts = (): Product[] => {
 
 export const saveProducts = (products: Product[]): void => {
   if (!isClient) return;
+  console.log("saveProducts called with:", products);
   localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
+  console.log("Saved to localStorage:", localStorage.getItem(STORAGE_KEYS.PRODUCTS));
 };
 
 export const updateProduct = (product: Product): void => {
