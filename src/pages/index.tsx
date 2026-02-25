@@ -4,16 +4,55 @@ import Image from "next/image";
 import { Package, FileText, DollarSign, Users, ShoppingCart, Settings, Warehouse } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
+import { getProducts, getOrders, getCustomers } from "@/lib/store";
+import type { Product } from "@/types";
 
 export default function HomePage() {
-  const stats = [
-    { title: "Total Orders", value: "0", icon: ShoppingCart, color: "text-blue-600" },
-    { title: "Revenue", value: "$0.00", icon: DollarSign, color: "text-green-600" },
-    { title: "Customers", value: "0", icon: Users, color: "text-purple-600" },
-    { title: "Products", value: "6", icon: Package, color: "text-orange-600" },
+  const [products, setProducts] = useState<Product[]>([]);
+  const [stats, setStats] = useState({
+    totalOrders: 0,
+    revenue: 0,
+    customers: 0,
+    products: 0,
+  });
+
+  useEffect(() => {
+    const loadedProducts = getProducts();
+    const orders = getOrders();
+    const customers = getCustomers();
+    
+    const revenue = orders.reduce((sum, order) => sum + order.total, 0);
+    
+    setProducts(loadedProducts);
+    setStats({
+      totalOrders: orders.length,
+      revenue,
+      customers: customers.length,
+      products: loadedProducts.length,
+    });
+  }, []);
+
+  const statsDisplay = [
+    { title: "Total Orders", value: stats.totalOrders.toString(), icon: ShoppingCart, color: "text-blue-600" },
+    { title: "Revenue", value: `$${stats.revenue.toFixed(2)}`, icon: DollarSign, color: "text-green-600" },
+    { title: "Customers", value: stats.customers.toString(), icon: Users, color: "text-purple-600" },
+    { title: "Products", value: stats.products.toString(), icon: Package, color: "text-orange-600" },
   ];
 
   const recentOrders = [];
+
+  const getProductColor = (category: string) => {
+    const colors: Record<string, { bg: string; border: string; text: string }> = {
+      rashi: { bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-700" },
+      regular: { bg: "bg-orange-50", border: "border-orange-200", text: "text-orange-700" },
+      spelt: { bg: "bg-yellow-50", border: "border-yellow-200", text: "text-yellow-700" },
+      wholewheat: { bg: "bg-green-50", border: "border-green-200", text: "text-green-700" },
+      flour: { bg: "bg-blue-50", border: "border-blue-200", text: "text-blue-700" },
+      shvurim: { bg: "bg-purple-50", border: "border-purple-200", text: "text-purple-700" },
+    };
+    return colors[category] || colors.regular;
+  };
 
   return (
     <>
@@ -47,7 +86,7 @@ export default function HomePage() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {stats.map((stat) => (
+          {statsDisplay.map((stat) => (
             <Card key={stat.title} className="border-amber-200 hover:shadow-lg transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-gray-600">
@@ -130,76 +169,41 @@ export default function HomePage() {
             <CardTitle className="text-xl" style={{ fontFamily: "'Frank Ruhl Libre', serif" }}>
               Matzah Products
             </CardTitle>
-            <CardDescription>Available products and pricing</CardDescription>
+            <CardDescription>Available products, pricing, and inventory</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
-                <h3 className="font-semibold text-gray-900 mb-1" style={{ fontFamily: "'Frank Ruhl Libre', serif" }}>
-                  Rashi Matzoh
-                </h3>
-                <p className="text-sm text-gray-600 mb-2" style={{ fontFamily: "'Heebo', sans-serif" }} dir="rtl">
-                  רש"י
-                </p>
-                <p className="text-2xl font-bold text-amber-700">$0.00/lb</p>
-                <p className="text-xs text-gray-600 mt-1">Not configured</p>
-              </div>
-              <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
-                <h3 className="font-semibold text-gray-900 mb-1" style={{ fontFamily: "'Frank Ruhl Libre', serif" }}>
-                  Regular Matzoh
-                </h3>
-                <p className="text-sm text-gray-600 mb-2" style={{ fontFamily: "'Heebo', sans-serif" }} dir="rtl">
-                  רעגולער מצה
-                </p>
-                <p className="text-2xl font-bold text-orange-700">$0.00/lb</p>
-                <p className="text-xs text-gray-600 mt-1">Not configured</p>
-              </div>
-              <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                <h3 className="font-semibold text-gray-900 mb-1" style={{ fontFamily: "'Frank Ruhl Libre', serif" }}>
-                  Spelt Matzoh
-                </h3>
-                <p className="text-sm text-gray-600 mb-2" style={{ fontFamily: "'Heebo', sans-serif" }} dir="rtl">
-                  ספעלט מצה
-                </p>
-                <p className="text-2xl font-bold text-yellow-700">$0.00/lb</p>
-                <p className="text-xs text-gray-600 mt-1">Not configured</p>
-              </div>
-              <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                <h3 className="font-semibold text-gray-900 mb-1" style={{ fontFamily: "'Frank Ruhl Libre', serif" }}>
-                  Whole Wheat Matzoh
-                </h3>
-                <p className="text-sm text-gray-600 mb-2" style={{ fontFamily: "'Heebo', sans-serif" }} dir="rtl">
-                  האל וויט מצה
-                </p>
-                <p className="text-2xl font-bold text-green-700">$0.00/lb</p>
-                <p className="text-xs text-gray-600 mt-1">Not configured</p>
-              </div>
-              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <h3 className="font-semibold text-gray-900 mb-1" style={{ fontFamily: "'Frank Ruhl Libre', serif" }}>
-                  Matzoh Flour
-                </h3>
-                <p className="text-sm text-gray-600 mb-2" style={{ fontFamily: "'Heebo', sans-serif" }} dir="rtl">
-                  מצה מעהל
-                </p>
-                <p className="text-2xl font-bold text-blue-700">$0.00/lb</p>
-                <p className="text-xs text-gray-600 mt-1">Not configured</p>
-              </div>
-              <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
-                <h3 className="font-semibold text-gray-900 mb-1" style={{ fontFamily: "'Frank Ruhl Libre', serif" }}>
-                  Shvurim Matzoh
-                </h3>
-                <p className="text-sm text-gray-600 mb-2" style={{ fontFamily: "'Heebo', sans-serif" }} dir="rtl">
-                  שברים מצה
-                </p>
-                <p className="text-2xl font-bold text-purple-700">$0.00/lb</p>
-                <p className="text-xs text-gray-600 mt-1">Not configured</p>
-              </div>
+              {products.map((product) => {
+                const colors = getProductColor(product.category);
+                return (
+                  <div key={product.id} className={`p-4 ${colors.bg} rounded-lg border ${colors.border}`}>
+                    <h3 className="font-semibold text-gray-900 mb-1" style={{ fontFamily: "'Frank Ruhl Libre', serif" }}>
+                      {product.name}
+                    </h3>
+                    <p className="text-sm text-gray-600 mb-2" style={{ fontFamily: "'Heebo', sans-serif" }} dir="rtl">
+                      {product.nameHebrew}
+                    </p>
+                    <p className={`text-2xl font-bold ${colors.text}`}>
+                      {product.pricePerLb > 0 ? `$${product.pricePerLb.toFixed(2)}/lb` : "Not configured"}
+                    </p>
+                    <div className="mt-2 flex items-center gap-2">
+                      <Warehouse className="w-4 h-4 text-gray-500" />
+                      <p className="text-sm text-gray-700">
+                        <span className="font-semibold">{product.currentInventory || 0} lbs</span> in stock
+                      </p>
+                    </div>
+                    {product.pricePerLb === 0 && (
+                      <p className="text-xs text-red-600 mt-1">⚠️ Price not set</p>
+                    )}
+                  </div>
+                );
+              })}
             </div>
             <div className="mt-6 text-center">
               <Link href="/products">
                 <Button variant="outline" className="gap-2">
                   <Settings className="w-4 h-4" />
-                  Configure Pricing
+                  Configure Pricing & Inventory
                 </Button>
               </Link>
             </div>
