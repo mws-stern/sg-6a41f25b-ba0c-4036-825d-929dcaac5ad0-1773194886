@@ -1,11 +1,21 @@
 import type { Product, Customer, Order, Invoice } from "@/types";
 
+export interface InventoryEntry {
+  id: string;
+  productId: string;
+  productName: string;
+  amount: number;
+  date: string;
+  notes?: string;
+}
+
 // LocalStorage keys
 const STORAGE_KEYS = {
   PRODUCTS: "matzos_products",
   CUSTOMERS: "matzos_customers",
   ORDERS: "matzos_orders",
   INVOICES: "matzos_invoices",
+  INVENTORY: "matzos_inventory",
   SETTINGS: "matzos_settings",
 };
 
@@ -14,38 +24,62 @@ const INITIAL_PRODUCTS: Product[] = [
   {
     id: "1",
     name: "Rashi Matzoh",
-    nameHebrew: "מצה רש\"י",
+    nameHebrew: "רש\"י",
     pricePerLb: 0,
     category: "rashi",
     description: "Traditional Rashi style matzoh",
     inStock: true,
+    currentInventory: 0,
   },
   {
     id: "2",
     name: "Regular Matzoh",
-    nameHebrew: "מצה רגילה",
+    nameHebrew: "רעגולער מצה",
     pricePerLb: 0,
     category: "regular",
     description: "Standard matzoh",
     inStock: true,
+    currentInventory: 0,
   },
   {
     id: "3",
     name: "Spelt Matzoh",
-    nameHebrew: "מצה כוסמין",
+    nameHebrew: "ספעלט מצה",
     pricePerLb: 0,
     category: "spelt",
     description: "Made with spelt flour",
     inStock: true,
+    currentInventory: 0,
   },
   {
     id: "4",
     name: "Whole Wheat Matzoh",
-    nameHebrew: "מצה חיטה מלאה",
+    nameHebrew: "האל וויט מצה",
     pricePerLb: 0,
     category: "wholewheat",
     description: "Whole wheat matzoh",
     inStock: true,
+    currentInventory: 0,
+  },
+  {
+    id: "5",
+    name: "Matzoh Flour",
+    nameHebrew: "מצה מעהל",
+    pricePerLb: 0,
+    category: "flour",
+    description: "Fine matzoh flour",
+    inStock: true,
+    currentInventory: 0,
+  },
+  {
+    id: "6",
+    name: "Shvurim Matzoh",
+    nameHebrew: "שברים מצה",
+    pricePerLb: 0,
+    category: "shvurim",
+    description: "Broken matzoh pieces",
+    inStock: true,
+    currentInventory: 0,
   },
 ];
 
@@ -194,6 +228,56 @@ export const updateInvoice = (invoice: Invoice): void => {
   if (index !== -1) {
     invoices[index] = invoice;
     saveInvoices(invoices);
+  }
+};
+
+// Inventory Management
+export const getInventory = (): InventoryEntry[] => {
+  if (!isClient) return [];
+  const stored = localStorage.getItem(STORAGE_KEYS.INVENTORY);
+  return stored ? JSON.parse(stored) : [];
+};
+
+export const saveInventory = (inventory: InventoryEntry[]): void => {
+  if (!isClient) return;
+  localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inventory));
+};
+
+export const addInventoryEntry = (entry: Omit<InventoryEntry, "id">): InventoryEntry => {
+  const inventory = getInventory();
+  const newEntry: InventoryEntry = {
+    ...entry,
+    id: Date.now().toString(),
+  };
+  inventory.push(newEntry);
+  saveInventory(inventory);
+  
+  // Update product inventory
+  const products = getProducts();
+  const productIndex = products.findIndex(p => p.id === entry.productId);
+  if (productIndex !== -1) {
+    products[productIndex].currentInventory = (products[productIndex].currentInventory || 0) + entry.amount;
+    saveProducts(products);
+  }
+  
+  return newEntry;
+};
+
+export const getInventoryByProduct = (productId: string): InventoryEntry[] => {
+  return getInventory().filter(entry => entry.productId === productId);
+};
+
+export const getTotalInventoryForProduct = (productId: string): number => {
+  const product = getProducts().find(p => p.id === productId);
+  return product?.currentInventory || 0;
+};
+
+export const reduceInventory = (productId: string, amount: number): void => {
+  const products = getProducts();
+  const productIndex = products.findIndex(p => p.id === productId);
+  if (productIndex !== -1) {
+    products[productIndex].currentInventory = Math.max(0, (products[productIndex].currentInventory || 0) - amount);
+    saveProducts(products);
   }
 };
 
