@@ -511,7 +511,7 @@ export default function OrderDetailsPage() {
               {editMode ? "Cancel Editing" : "Edit Order"}
             </Button>
             {editMode && (
-              <Button onClick={handleSave} className="gap-2">
+              <Button onClick={handleSaveEdit} className="gap-2">
                 <Save className="w-4 h-4" />
                 Save Changes
               </Button>
