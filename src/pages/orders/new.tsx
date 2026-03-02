@@ -60,20 +60,6 @@ export default function NewOrderPage() {
     }]);
   };
 
-  const addQuickItem = (productId: string, quantity: number) => {
-    const product = products.find(p => p.id === productId);
-    if (!product) return;
-
-    setItems([...items, {
-      productId: product.id,
-      productName: product.name,
-      productNameHebrew: product.nameHebrew,
-      quantity,
-      pricePerLb: product.pricePerLb,
-      totalPrice: product.pricePerLb * quantity,
-    }]);
-  };
-
   const duplicateLastOrder = () => {
     if (customerOrders.length === 0) return;
     
@@ -348,44 +334,6 @@ export default function NewOrderPage() {
                     </span>
                   </div>
                 )}
-              </CardContent>
-            </Card>
-
-            {/* Quick Add Items */}
-            <Card className="border-amber-200">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Zap className="w-5 h-5" />
-                  Quick Add Items
-                </CardTitle>
-                <CardDescription>Click to instantly add popular quantities</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {products.slice(0, 6).map((product) => (
-                    <div key={product.id} className="space-y-2">
-                      <p className="text-sm font-semibold">{product.name}</p>
-                      <div className="flex gap-2">
-                        <Button
-                          onClick={() => addQuickItem(product.id, 5)}
-                          size="sm"
-                          variant="outline"
-                          className="flex-1"
-                        >
-                          5 lbs
-                        </Button>
-                        <Button
-                          onClick={() => addQuickItem(product.id, 10)}
-                          size="sm"
-                          variant="outline"
-                          className="flex-1"
-                        >
-                          10 lbs
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
               </CardContent>
             </Card>
 
