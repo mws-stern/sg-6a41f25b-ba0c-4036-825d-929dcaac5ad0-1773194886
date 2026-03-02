@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Package, AlertTriangle, TrendingDown, Zap } from "lucide-react";
-import { getProducts, addInventoryEntry, getInventory, bulkUpdateInventory, type InventoryEntry } from "@/lib/store";
+import { getProducts, addInventoryEntry, getInventory, type InventoryEntry } from "@/lib/store";
 import { bulkUpdateInventory as batchBulkUpdateInventory } from "@/lib/batch";
 import { useToast } from "@/hooks/use-toast";
 import type { Product } from "@/types";
