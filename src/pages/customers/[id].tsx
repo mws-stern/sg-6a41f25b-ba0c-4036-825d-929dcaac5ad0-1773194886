@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ArrowLeft, Mail, Phone, MapPin, Package, DollarSign, Calendar } from "lucide-react";
-import { getCustomer, getOrders, getPayments } from "@/lib/store";
+import { supabaseService } from "@/services/supabaseService";
 import type { Customer, Order, Payment } from "@/types";
 
 export default function CustomerProfile() {
@@ -20,22 +20,27 @@ export default function CustomerProfile() {
 
   useEffect(() => {
     if (id && typeof id === "string") {
-      const customerData = getCustomer(id);
-      if (customerData) {
-        setCustomer(customerData);
+      const loadData = async () => {
+        setLoading(true);
+        const customerData = await supabaseService.getCustomer(id);
         
-        // Get all orders for this customer
-        const allOrders = getOrders();
-        const customerOrders = allOrders.filter(order => order.customerId === id);
-        setOrders(customerOrders);
-        
-        // Get all payments for this customer's orders
-        const allPayments = getPayments();
-        const orderIds = customerOrders.map(o => o.id);
-        const customerPayments = allPayments.filter(p => orderIds.includes(p.orderId));
-        setPayments(customerPayments);
-      }
-      setLoading(false);
+        if (customerData) {
+          setCustomer(customerData);
+          
+          // Get all orders for this customer
+          const allOrders = await supabaseService.getOrders();
+          const customerOrders = allOrders.filter(order => order.customerId === id);
+          setOrders(customerOrders);
+          
+          // Get all payments for this customer's orders
+          const allPayments = await supabaseService.getAllPayments();
+          const orderIds = customerOrders.map(o => o.id);
+          const customerPayments = allPayments.filter(p => orderIds.includes(p.orderId));
+          setPayments(customerPayments);
+        }
+        setLoading(false);
+      };
+      loadData();
     }
   }, [id]);
 

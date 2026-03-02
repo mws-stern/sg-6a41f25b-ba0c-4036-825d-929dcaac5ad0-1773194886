@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { getProducts, saveProducts } from "@/lib/store";
+import { supabaseService } from "@/services/supabaseService";
 import type { Product } from "@/types";
 
 export default function ProductsPage() {
@@ -22,17 +22,29 @@ export default function ProductsPage() {
 
   useEffect(() => {
     setMounted(true);
-    setProducts(getProducts());
+    const loadProducts = async () => {
+      const data = await supabaseService.getProducts();
+      setProducts(data);
+    };
+    loadProducts();
   }, []);
 
-  const handleSave = () => {
-    saveProducts(products);
-    setIsDirty(false);
-    setEditingId(null);
-    toast({
-      title: "Products Updated",
-      description: "Product pricing and details have been saved successfully.",
-    });
+  const handleSave = async () => {
+    try {
+      await Promise.all(products.map(p => supabaseService.updateProduct(p)));
+      setIsDirty(false);
+      setEditingId(null);
+      toast({
+        title: "Products Updated",
+        description: "Product pricing and details have been saved successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save products.",
+        variant: "destructive"
+      });
+    }
   };
 
   const updateProduct = (id: string, field: keyof Product, value: any) => {
