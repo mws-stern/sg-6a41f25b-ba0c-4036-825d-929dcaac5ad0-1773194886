@@ -12,6 +12,10 @@ export interface Alert {
   severity: "info" | "warning" | "critical";
   date: string;
   link?: string;
+  read?: boolean;
+  productId?: string;
+  orderId?: string;
+  invoiceId?: string;
 }
 
 export type AutomationAlert = Alert;
@@ -32,7 +36,9 @@ export const checkLowInventory = (): Alert[] => {
         message: `${product.name} is running low (${product.currentInventory?.toFixed(1)} lbs remaining)`,
         severity: "warning",
         date: new Date().toISOString(),
-        link: "/inventory"
+        link: "/inventory",
+        read: false,
+        productId: product.id
       });
     }
   });
@@ -59,7 +65,9 @@ export const generateOverdueReminders = (): Alert[] => {
         message: `Invoice #${invoice.invoiceNumber} for ${invoice.customerName} is ${daysOverdue} days overdue`,
         severity: "critical",
         date: new Date().toISOString(),
-        link: `/invoices/${invoice.id}`
+        link: `/invoices/${invoice.id}`,
+        read: false,
+        invoiceId: invoice.id
       });
     }
   });

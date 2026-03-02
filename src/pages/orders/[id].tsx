@@ -2,7 +2,7 @@ import { SEO } from "@/components/SEO";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { ArrowLeft, FileText, Mail, Printer, DollarSign, CreditCard, Receipt, Edit, Save, X, CheckCircle } from "lucide-react";
+import { ArrowLeft, FileText, Mail, Printer, DollarSign, CreditCard, Receipt, Edit, Save, X, CheckCircle, Trash2, Send } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { getOrder, updateOrder, createInvoiceFromOrder, addPayment, getPaymentsByOrder, updatePaymentConfirmation, getProducts } from "@/lib/store";
+import { emailService } from "@/services/emailService";
 import type { Order, Payment, Product } from "@/types";
 
 export default function OrderDetailsPage() {
@@ -27,6 +28,8 @@ export default function OrderDetailsPage() {
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editedOrder, setEditedOrder] = useState<Order | undefined>(undefined);
+  const [customer, setCustomer] = useState<Customer | null>(null);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
   
   const [paymentData, setPaymentData] = useState({
     amount: "",
@@ -310,6 +313,36 @@ export default function OrderDetailsPage() {
         {labels[status]}
       </Badge>
     );
+  };
+
+  const handleSendEmail = async () => {
+    if (!order || !customer) return;
+    
+    setIsSendingEmail(true);
+    try {
+      const result = await emailService.sendOrderConfirmation(order, customer);
+      
+      if (result.success) {
+        toast({
+          title: "Email Sent",
+          description: result.message,
+        });
+      } else {
+        toast({
+          title: "Email Failed",
+          description: result.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to send email. Check console for details.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSendingEmail(false);
+    }
   };
 
   if (!mounted) return null;
