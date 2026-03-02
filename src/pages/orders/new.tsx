@@ -281,16 +281,18 @@ export default function NewOrderPage() {
                     <PopoverContent className="w-[600px] p-0" align="start">
                       <Command>
                         <CommandInput placeholder="Search customers..." />
+                        <div className="p-1 border-b bg-blue-50/50">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full justify-start text-blue-600 font-medium h-9 hover:text-blue-700 hover:bg-blue-100"
+                            onClick={() => router.push('/customers/new')}
+                          >
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add New Customer
+                          </Button>
+                        </div>
                         <CommandList>
-                          <CommandGroup>
-                            <CommandItem
-                              onSelect={() => router.push('/customers/new')}
-                              className="cursor-pointer font-medium text-blue-600 bg-blue-50 mb-1"
-                            >
-                              <Plus className="mr-2 h-4 w-4" />
-                              + Add New Customer
-                            </CommandItem>
-                          </CommandGroup>
                           <CommandEmpty>No customer found.</CommandEmpty>
                           <CommandGroup heading="Existing Customers">
                             {customers.map((customer) => (
