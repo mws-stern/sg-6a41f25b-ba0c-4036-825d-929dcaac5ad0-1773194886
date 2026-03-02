@@ -19,6 +19,7 @@ export default function NewCustomerPage() {
     nameHebrew: "",
     email: "",
     phone: "",
+    mobile: "",
     address: "",
     city: "Montreal",
     state: "QC",
@@ -43,11 +44,10 @@ export default function NewCustomerPage() {
       return;
     }
 
-    // Email is required for NEW customers via form, even if optional in DB
     if (!formData.email) {
       toast({
         title: "Error",
-        description: "Email address is required",
+        description: "Email is required for new customers",
         variant: "destructive",
       });
       return;
@@ -123,17 +123,31 @@ export default function NewCustomerPage() {
                     placeholder="email@example.com"
                     required
                   />
+                  <p className="text-xs text-gray-500">Required for new customers</p>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone" className="flex items-center gap-2">
-                    <Phone className="w-4 h-4" /> Phone
-                  </Label>
-                  <Input
-                    id="phone"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    placeholder="(514) 555-0123"
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="phone" className="flex items-center gap-2">
+                      <Phone className="w-4 h-4" /> Home Phone
+                    </Label>
+                    <Input
+                      id="phone"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      placeholder="(514) 555-0123"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="mobile" className="flex items-center gap-2">
+                      <Phone className="w-4 h-4" /> Mobile Phone
+                    </Label>
+                    <Input
+                      id="mobile"
+                      value={formData.mobile}
+                      onChange={handleChange}
+                      placeholder="(514) 555-0123"
+                    />
+                  </div>
                 </div>
               </div>
 
