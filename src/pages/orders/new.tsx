@@ -282,8 +282,17 @@ export default function NewOrderPage() {
                       <Command>
                         <CommandInput placeholder="Search customers..." />
                         <CommandList>
-                          <CommandEmpty>No customer found.</CommandEmpty>
                           <CommandGroup>
+                            <CommandItem
+                              onSelect={() => router.push('/customers/new')}
+                              className="cursor-pointer font-medium text-blue-600 bg-blue-50 mb-1"
+                            >
+                              <Plus className="mr-2 h-4 w-4" />
+                              + Add New Customer
+                            </CommandItem>
+                          </CommandGroup>
+                          <CommandEmpty>No customer found.</CommandEmpty>
+                          <CommandGroup heading="Existing Customers">
                             {customers.map((customer) => (
                               <CommandItem
                                 key={customer.id}

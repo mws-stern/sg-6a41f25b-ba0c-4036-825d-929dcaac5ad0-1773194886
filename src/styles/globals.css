@@ -98,3 +98,47 @@
     @apply mx-auto px-4 md:px-6 lg:px-8 max-w-7xl w-full;
   }
 }
+
+@media print {
+  /* Hide everything by default */
+  body * {
+    visibility: hidden;
+  }
+
+  /* Only show the printable content */
+  #printable-content, #printable-content * {
+    visibility: visible;
+  }
+
+  /* Position the printable content at the top left */
+  #printable-content {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 20px;
+    background: white;
+  }
+
+  /* Specific print adjustments */
+  .print-hidden {
+    display: none !important;
+  }
+  
+  .print-show {
+    display: block !important;
+  }
+
+  /* Remove shadows and borders for cleaner print */
+  .card-print-clean {
+    border: none !important;
+    box-shadow: none !important;
+  }
+  
+  /* Ensure background colors print */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}

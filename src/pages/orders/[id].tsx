@@ -486,8 +486,8 @@ export default function OrderDetailsPage() {
     <>
       <SEO title={`Order ${order.orderNumber} - Satmar Montreal Matzos`} />
       
-      <div className="container mx-auto px-6 py-8">
-        <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="container mx-auto px-6 py-8 print:p-0">
+        <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 print-hidden">
           <div className="flex items-center gap-4">
             <Link href="/orders">
               <Button variant="ghost" size="icon">
@@ -592,10 +592,32 @@ export default function OrderDetailsPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div id="printable-content" className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Print-only Header */}
+          <div className="hidden print-show col-span-full mb-8 text-center border-b pb-6">
+            <h1 className="text-3xl font-bold text-gray-900" style={{ fontFamily: "'Frank Ruhl Libre', serif" }}>
+              Satmar Montreal Matzos
+            </h1>
+            <p className="text-gray-600">Montreal, QC</p>
+            <div className="mt-4 flex justify-between items-end">
+              <div className="text-left">
+                <p className="text-sm text-gray-500">Bill To:</p>
+                <p className="font-bold text-lg">{order.customerName}</p>
+                <p>{order.customerEmail}</p>
+                {customer?.phone && <p>Tel: {customer.phone}</p>}
+                {customer?.address && <p>{customer.address}</p>}
+              </div>
+              <div className="text-right">
+                <h2 className="text-2xl font-bold text-gray-900">INVOICE</h2>
+                <p className="font-medium">#{order.orderNumber}</p>
+                <p className="text-sm text-gray-500">{new Date(order.createdAt).toLocaleDateString()}</p>
+              </div>
+            </div>
+          </div>
+
           <div className="lg:col-span-2 space-y-6">
-            <Card className="border-amber-200">
-              <CardHeader>
+            <Card className="border-amber-200 card-print-clean">
+              <CardHeader className="print-hidden">
                 <div className="flex items-center justify-between">
                   <CardTitle>Order Items</CardTitle>
                   <div className="flex items-center gap-2">
@@ -721,7 +743,7 @@ export default function OrderDetailsPage() {
             </Card>
 
             {payments.length > 0 && (
-              <Card className="border-green-200">
+              <Card className="border-green-200 card-print-clean">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Receipt className="w-5 h-5" />
@@ -779,7 +801,7 @@ export default function OrderDetailsPage() {
             )}
 
             {order.notes && (
-              <Card className="border-amber-200">
+              <Card className="border-amber-200 card-print-clean">
                 <CardHeader>
                   <CardTitle>Notes</CardTitle>
                 </CardHeader>
@@ -796,10 +818,23 @@ export default function OrderDetailsPage() {
                 </CardContent>
               </Card>
             )}
+            
+            {/* Print Signature Line */}
+            <div className="hidden print-show mt-12 pt-8 border-t border-gray-300">
+              <div className="flex justify-between text-sm text-gray-500">
+                <div>
+                  <p>Signature: __________________________</p>
+                </div>
+                <div>
+                  <p>Date: __________________________</p>
+                </div>
+              </div>
+              <p className="text-center mt-8 text-xs">Thank you for your business!</p>
+            </div>
           </div>
 
           <div className="space-y-6">
-            <Card className="border-amber-200">
+            <Card className="border-amber-200 card-print-clean print-hidden">
               <CardHeader>
                 <CardTitle>Order Status</CardTitle>
               </CardHeader>
@@ -825,8 +860,8 @@ export default function OrderDetailsPage() {
               </CardContent>
             </Card>
 
-            <Card className="border-green-200">
-              <CardHeader>
+            <Card className="border-green-200 card-print-clean">
+              <CardHeader className="print-hidden">
                 <CardTitle className="flex items-center justify-between">
                   Payment Status
                   {getPaymentStatusBadge(order.paymentStatus)}
@@ -849,6 +884,7 @@ export default function OrderDetailsPage() {
                 </div>
 
                 {order.amountDue > 0 && !editMode && (
+                  <div className="print-hidden">
                   <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
                     <DialogTrigger asChild>
                       <Button className="w-full gap-2 bg-green-600 hover:bg-green-700">
@@ -1019,11 +1055,12 @@ export default function OrderDetailsPage() {
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
+                  </div>
                 )}
               </CardContent>
             </Card>
 
-            <Card className="border-amber-200">
+            <Card className="border-amber-200 card-print-clean print-hidden">
               <CardHeader>
                 <CardTitle>Customer Details</CardTitle>
               </CardHeader>
