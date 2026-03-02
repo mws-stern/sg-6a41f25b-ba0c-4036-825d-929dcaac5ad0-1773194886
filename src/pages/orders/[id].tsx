@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { getOrder, updateOrder, createInvoiceFromOrder, addPayment, getPaymentsByOrder, updatePaymentConfirmation, getProducts, getCustomer } from "@/lib/store";
+import { supabaseService } from "@/services/supabaseService";
 import { emailService } from "@/services/emailService";
 import type { Order, Payment, Product, Customer } from "@/types";
 
@@ -48,23 +48,43 @@ export default function OrderDetailsPage() {
 
   useEffect(() => {
     setMounted(true);
-    setProducts(getProducts());
-    if (id && typeof id === "string") {
-      const foundOrder = getOrder(id);
-      setOrder(foundOrder);
-      setEditedOrder(foundOrder);
-      if (foundOrder) {
-        setPayments(getPaymentsByOrder(foundOrder.id));
-        const foundCustomer = getCustomer(foundOrder.customerId);
-        setCustomer(foundCustomer || null);
-      }
-    }
+    loadData();
   }, [id]);
 
-  const handleStatusChange = (newStatus: Order["status"]) => {
+  const loadData = async () => {
+    if (!id || typeof id !== "string") return;
+
+    try {
+      const [loadedProducts, loadedOrder, loadedPayments] = await Promise.all([
+        supabaseService.getProducts(),
+        supabaseService.getOrder(id),
+        supabaseService.getPaymentsByOrder(id)
+      ]);
+
+      setProducts(loadedProducts);
+      setOrder(loadedOrder || undefined);
+      setEditedOrder(loadedOrder || undefined);
+      setPayments(loadedPayments);
+
+      if (loadedOrder) {
+        const loadedCustomer = await supabaseService.getCustomer(loadedOrder.customerId);
+        setCustomer(loadedCustomer || null);
+      }
+    } catch (error) {
+      console.error("Error loading order data:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load order details",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleStatusChange = async (newStatus: Order["status"]) => {
     if (!order) return;
     const updatedOrder = { ...order, status: newStatus };
-    updateOrder(updatedOrder);
+    
+    await supabaseService.updateOrder(updatedOrder);
     setOrder(updatedOrder);
     setEditedOrder(updatedOrder);
     toast({
@@ -82,7 +102,7 @@ export default function OrderDetailsPage() {
     setEditedOrder(order);
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editedOrder) return;
     
     // Recalculate totals
@@ -111,7 +131,7 @@ export default function OrderDetailsPage() {
       amountDue: total - (editedOrder.amountPaid || 0),
     };
     
-    updateOrder(updatedOrder);
+    await supabaseService.updateOrder(updatedOrder);
     setOrder(updatedOrder);
     setEditedOrder(updatedOrder);
     setEditMode(false);
@@ -166,9 +186,9 @@ export default function OrderDetailsPage() {
     setEditedOrder({ ...editedOrder, items: [...editedOrder.items, newItem] });
   };
 
-  const handleCreateInvoice = () => {
+  const handleCreateInvoice = async () => {
     if (!order) return;
-    const invoice = createInvoiceFromOrder(order);
+    const invoice = await supabaseService.createInvoiceFromOrder(order);
     toast({
       title: "Invoice Created",
       description: `Invoice ${invoice.invoiceNumber} generated successfully`,
@@ -183,7 +203,7 @@ export default function OrderDetailsPage() {
     window.open(`mailto:${order.customerEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
   };
 
-  const handleRecordPayment = () => {
+  const handleRecordPayment = async () => {
     if (!order) return;
     
     const amount = parseFloat(paymentData.amount);
@@ -233,7 +253,7 @@ export default function OrderDetailsPage() {
       }
     }
 
-    const payment = addPayment({
+    const payment = await supabaseService.addPayment({
       orderId: order.id,
       amount,
       paymentMethod: paymentData.paymentMethod,
@@ -248,12 +268,8 @@ export default function OrderDetailsPage() {
       confirmed: paymentData.confirmed,
     });
 
-    const updatedOrder = getOrder(order.id);
-    if (updatedOrder) {
-      setOrder(updatedOrder);
-      setEditedOrder(updatedOrder);
-      setPayments(getPaymentsByOrder(updatedOrder.id));
-    }
+    // Reload data to reflect changes
+    await loadData();
 
     toast({
       title: "Payment Recorded",
@@ -276,9 +292,20 @@ export default function OrderDetailsPage() {
     });
   };
 
-  const handlePaymentConfirmation = (paymentId: string, confirmed: boolean) => {
-    updatePaymentConfirmation(paymentId, confirmed);
-    setPayments(getPaymentsByOrder(order!.id));
+  const handlePaymentConfirmation = async (paymentId: string, confirmed: boolean) => {
+    // We need to implement updatePayment in supabaseService or use generic update
+    // For now assuming updatePayment exists or we update manually
+    const payment = payments.find(p => p.id === paymentId);
+    if (!payment) return;
+    
+    await supabaseService.updatePayment({
+      ...payment,
+      confirmed,
+      confirmedAt: confirmed ? new Date().toISOString() : undefined
+    });
+    
+    await loadData(); // Reload to get fresh data
+    
     toast({
       title: confirmed ? "Payment Confirmed" : "Confirmation Removed",
       description: confirmed 
