@@ -187,15 +187,11 @@ export default function NewOrderPage() {
     return parseFloat(orderDiscount);
   };
 
-  const calculateTax = () => {
-    const settings = getSettings();
-    const afterDiscount = calculateSubtotal() - calculateDiscount();
-    return afterDiscount * (settings.taxRate / 100);
-  };
-
   const calculateTotal = () => {
-    const taxRate = 14.975; // Hardcoded for now, or fetch settings async
-    return calculateSubtotal() - calculateDiscount() + calculateTax();
+    const taxRate = 14.975; // Default tax rate, will be fetched from settings when saving
+    const afterDiscount = calculateSubtotal() - calculateDiscount();
+    const tax = afterDiscount * (taxRate / 100);
+    return afterDiscount + tax;
   };
 
   const getProductStock = (productId: string) => {
@@ -589,7 +585,7 @@ export default function NewOrderPage() {
                   
                   <div className="flex justify-between text-gray-600">
                     <span>Tax:</span>
-                    <span>${calculateTax().toFixed(2)}</span>
+                    <span>${((calculateSubtotal() - calculateDiscount()) * 0.14975).toFixed(2)}</span>
                   </div>
                   <div className="border-t border-amber-200 pt-2">
                     <div className="flex justify-between text-lg font-bold">
