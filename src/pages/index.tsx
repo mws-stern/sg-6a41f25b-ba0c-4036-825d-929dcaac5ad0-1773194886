@@ -12,6 +12,7 @@ import { AlertsPanel } from "@/components/AlertsPanel";
 import { KeyboardShortcutsHelp } from "@/components/KeyboardShortcutsHelp";
 import { useGlobalShortcuts } from "@/hooks/useKeyboardShortcuts";
 import type { Product, Customer, Order } from "@/types";
+import { format } from "date-fns";
 
 export default function HomePage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -262,7 +263,7 @@ export default function HomePage() {
                             ) : (
                               <div className="flex items-center gap-2 text-gray-400 bg-gray-50 px-4 py-2 rounded-md">
                                 <AlertCircle className="w-4 h-4" />
-                                <span>No orders found</span>
+                                <span>No records to show</span>
                               </div>
                             )}
                           </div>
