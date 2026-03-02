@@ -26,6 +26,7 @@ export interface Customer {
   nameHebrew?: string;
   email?: string;
   phone?: string;
+  mobile?: string;
   address?: string;
   city?: string;
   state?: string;
