@@ -13,9 +13,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { getOrder, updateOrder, createInvoiceFromOrder, addPayment, getPaymentsByOrder, updatePaymentConfirmation, getProducts } from "@/lib/store";
+import { getOrder, updateOrder, createInvoiceFromOrder, addPayment, getPaymentsByOrder, updatePaymentConfirmation, getProducts, getCustomer } from "@/lib/store";
 import { emailService } from "@/services/emailService";
-import type { Order, Payment, Product } from "@/types";
+import type { Order, Payment, Product, Customer } from "@/types";
 
 export default function OrderDetailsPage() {
   const router = useRouter();
@@ -54,6 +54,8 @@ export default function OrderDetailsPage() {
       setEditedOrder(foundOrder);
       if (foundOrder) {
         setPayments(getPaymentsByOrder(foundOrder.id));
+        const foundCustomer = getCustomer(foundOrder.customerId);
+        setCustomer(foundCustomer || null);
       }
     }
   }, [id]);
