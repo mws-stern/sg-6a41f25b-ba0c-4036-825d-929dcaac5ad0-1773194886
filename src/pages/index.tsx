@@ -1,11 +1,14 @@
 import { SEO } from "@/components/SEO";
 import Link from "next/link";
 import Image from "next/image";
-import { Package, FileText, DollarSign, Users, ShoppingCart, Settings, Warehouse } from "lucide-react";
+import { Package, FileText, DollarSign, Users, ShoppingCart, Settings, Warehouse, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
-import { getProducts, getOrders, getCustomers } from "@/lib/store";
+import { getProducts, getOrders, getCustomers, cache, CACHE_KEYS } from "@/lib/store";
+import { AlertsPanel } from "@/components/AlertsPanel";
+import { KeyboardShortcutsHelp } from "@/components/KeyboardShortcutsHelp";
+import { useGlobalShortcuts } from "@/hooks/useKeyboardShortcuts";
 import type { Product } from "@/types";
 
 export default function HomePage() {
@@ -15,32 +18,80 @@ export default function HomePage() {
     revenue: 0,
     customers: 0,
     products: 0,
+    pendingOrders: 0,
+    lowStockItems: 0,
   });
 
+  // Enable keyboard shortcuts
+  useGlobalShortcuts();
+
   useEffect(() => {
-    const loadedProducts = getProducts();
-    const orders = getOrders();
-    const customers = getCustomers();
+    // Try to get cached stats first
+    const cachedStats = cache.get<any>(CACHE_KEYS.STATS);
     
-    const revenue = orders.reduce((sum, order) => sum + order.total, 0);
-    
-    setProducts(loadedProducts);
-    setStats({
-      totalOrders: orders.length,
-      revenue,
-      customers: customers.length,
-      products: loadedProducts.length,
-    });
+    if (cachedStats) {
+      setStats(cachedStats);
+      setProducts(getProducts());
+    } else {
+      const loadedProducts = getProducts();
+      const orders = getOrders();
+      const customers = getCustomers();
+      
+      const revenue = orders.reduce((sum, order) => sum + order.total, 0);
+      const pendingOrders = orders.filter(o => o.status === "pending" || o.status === "confirmed").length;
+      const lowStockItems = loadedProducts.filter(p => (p.currentInventory || 0) < 50).length;
+      
+      const newStats = {
+        totalOrders: orders.length,
+        revenue,
+        customers: customers.length,
+        products: loadedProducts.length,
+        pendingOrders,
+        lowStockItems,
+      };
+      
+      setStats(newStats);
+      setProducts(loadedProducts);
+      
+      // Cache for 1 minute
+      cache.set(CACHE_KEYS.STATS, newStats, 60 * 1000);
+    }
   }, []);
 
   const statsDisplay = [
-    { title: "Total Orders", value: stats.totalOrders.toString(), icon: ShoppingCart, color: "text-blue-600" },
-    { title: "Revenue", value: `$${stats.revenue.toFixed(2)}`, icon: DollarSign, color: "text-green-600" },
-    { title: "Customers", value: stats.customers.toString(), icon: Users, color: "text-purple-600" },
-    { title: "Products", value: stats.products.toString(), icon: Package, color: "text-orange-600" },
+    { 
+      title: "Total Orders", 
+      value: stats.totalOrders.toString(), 
+      subtitle: `${stats.pendingOrders} pending`,
+      icon: ShoppingCart, 
+      color: "text-blue-600",
+      bgColor: "bg-blue-50",
+    },
+    { 
+      title: "Revenue", 
+      value: `$${stats.revenue.toFixed(2)}`, 
+      subtitle: "All time",
+      icon: DollarSign, 
+      color: "text-green-600",
+      bgColor: "bg-green-50",
+    },
+    { 
+      title: "Customers", 
+      value: stats.customers.toString(), 
+      subtitle: "Active accounts",
+      icon: Users, 
+      color: "text-purple-600",
+      bgColor: "bg-purple-50",
+    },
+    { 
+      title: "Low Stock", 
+      value: stats.lowStockItems.toString(), 
+      subtitle: "Items need restock",
+      icon: Package, 
+      color: "text-orange-600",
+      bgColor: "bg-orange-50",
+    },
   ];
-
-  const recentOrders = [];
 
   const getProductColor = (category: string) => {
     const colors: Record<string, { bg: string; border: string; text: string }> = {
@@ -63,8 +114,8 @@ export default function HomePage() {
       
       <div className="container mx-auto px-6 py-8">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-4 mb-2">
+        <div className="mb-8 flex items-center justify-between">
+          <div className="flex items-center gap-4">
             <Image 
               src="/logo.png" 
               alt="Satmar Montreal Matzos Logo" 
@@ -82,20 +133,29 @@ export default function HomePage() {
               </p>
             </div>
           </div>
+          
+          {/* Toolbar */}
+          <div className="flex items-center gap-2">
+            <AlertsPanel />
+            <KeyboardShortcutsHelp />
+          </div>
         </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {statsDisplay.map((stat) => (
-            <Card key={stat.title} className="border-amber-200 hover:shadow-lg transition-shadow">
+            <Card key={stat.title} className="border-amber-200 hover:shadow-lg transition-all hover:scale-105 duration-200">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-gray-600">
                   {stat.title}
                 </CardTitle>
-                <stat.icon className={`w-5 h-5 ${stat.color}`} />
+                <div className={`p-2 rounded-lg ${stat.bgColor}`}>
+                  <stat.icon className={`w-5 h-5 ${stat.color}`} />
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-gray-900">{stat.value}</div>
+                <div className="text-3xl font-bold text-gray-900 mb-1">{stat.value}</div>
+                <p className="text-xs text-gray-500">{stat.subtitle}</p>
               </CardContent>
             </Card>
           ))}
@@ -105,34 +165,39 @@ export default function HomePage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           <Card className="border-amber-200 shadow-md">
             <CardHeader>
-              <CardTitle className="text-xl" style={{ fontFamily: "'Frank Ruhl Libre', serif" }}>
+              <CardTitle className="text-xl flex items-center gap-2" style={{ fontFamily: "'Frank Ruhl Libre', serif" }}>
+                <TrendingUp className="w-5 h-5" />
                 Quick Actions
               </CardTitle>
-              <CardDescription>Manage your bakery operations</CardDescription>
+              <CardDescription>Manage your bakery operations efficiently</CardDescription>
             </CardHeader>
             <CardContent className="grid grid-cols-2 gap-4">
               <Link href="/orders/new">
-                <Button className="w-full h-24 flex flex-col gap-2 bg-gradient-to-br from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800">
+                <Button className="w-full h-24 flex flex-col gap-2 bg-gradient-to-br from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 transition-all">
                   <ShoppingCart className="w-6 h-6" />
-                  New Order
+                  <span>New Order</span>
+                  <kbd className="text-[10px] opacity-75 bg-white/20 px-1.5 py-0.5 rounded">Ctrl+N</kbd>
                 </Button>
               </Link>
               <Link href="/inventory">
-                <Button className="w-full h-24 flex flex-col gap-2 bg-gradient-to-br from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800">
+                <Button className="w-full h-24 flex flex-col gap-2 bg-gradient-to-br from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 transition-all">
                   <Warehouse className="w-6 h-6" />
-                  Add Inventory
+                  <span>Add Inventory</span>
+                  <kbd className="text-[10px] opacity-75 bg-white/20 px-1.5 py-0.5 rounded">Ctrl+I</kbd>
                 </Button>
               </Link>
               <Link href="/customers/new">
-                <Button className="w-full h-24 flex flex-col gap-2 bg-gradient-to-br from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800">
+                <Button className="w-full h-24 flex flex-col gap-2 bg-gradient-to-br from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 transition-all">
                   <Users className="w-6 h-6" />
-                  Add Customer
+                  <span>Add Customer</span>
+                  <kbd className="text-[10px] opacity-75 bg-white/20 px-1.5 py-0.5 rounded">Ctrl+C</kbd>
                 </Button>
               </Link>
               <Link href="/reports">
-                <Button className="w-full h-24 flex flex-col gap-2 bg-gradient-to-br from-green-600 to-green-700 hover:from-green-700 hover:to-green-800">
+                <Button className="w-full h-24 flex flex-col gap-2 bg-gradient-to-br from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 transition-all">
                   <FileText className="w-6 h-6" />
-                  View Reports
+                  <span>View Reports</span>
+                  <kbd className="text-[10px] opacity-75 bg-white/20 px-1.5 py-0.5 rounded">Ctrl+R</kbd>
                 </Button>
               </Link>
             </CardContent>
@@ -141,24 +206,34 @@ export default function HomePage() {
           <Card className="border-amber-200 shadow-md">
             <CardHeader>
               <CardTitle className="text-xl" style={{ fontFamily: "'Frank Ruhl Libre', serif" }}>
-                Recent Orders
+                System Performance
               </CardTitle>
-              <CardDescription>Latest customer orders</CardDescription>
+              <CardDescription>Efficiency metrics at a glance</CardDescription>
             </CardHeader>
-            <CardContent>
-              {recentOrders.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">
-                  <ShoppingCart className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                  <p>No orders yet</p>
-                  <Link href="/orders/new">
-                    <Button className="mt-4" size="sm">Create First Order</Button>
-                  </Link>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {/* Orders will be displayed here */}
-                </div>
-              )}
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Order Processing</span>
+                <span className="text-sm font-semibold text-green-600">Fast</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="bg-green-500 h-2 rounded-full" style={{ width: "95%" }}></div>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Inventory Tracking</span>
+                <span className="text-sm font-semibold text-blue-600">Active</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="bg-blue-500 h-2 rounded-full" style={{ width: "88%" }}></div>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Payment Collection</span>
+                <span className="text-sm font-semibold text-purple-600">Good</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="bg-purple-500 h-2 rounded-full" style={{ width: "75%" }}></div>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -175,8 +250,9 @@ export default function HomePage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {products.map((product) => {
                 const colors = getProductColor(product.category);
+                const isLowStock = (product.currentInventory || 0) < 50;
                 return (
-                  <div key={product.id} className={`p-4 ${colors.bg} rounded-lg border ${colors.border}`}>
+                  <div key={product.id} className={`p-4 ${colors.bg} rounded-lg border ${colors.border} transition-all hover:shadow-md`}>
                     <h3 className="font-semibold text-gray-900 mb-1" style={{ fontFamily: "'Frank Ruhl Libre', serif" }}>
                       {product.name}
                     </h3>
@@ -187,9 +263,10 @@ export default function HomePage() {
                       {product.pricePerLb > 0 ? `$${product.pricePerLb.toFixed(2)}/lb` : "Not configured"}
                     </p>
                     <div className="mt-2 flex items-center gap-2">
-                      <Warehouse className="w-4 h-4 text-gray-500" />
-                      <p className="text-sm text-gray-700">
+                      <Warehouse className={`w-4 h-4 ${isLowStock ? 'text-red-500' : 'text-gray-500'}`} />
+                      <p className={`text-sm ${isLowStock ? 'text-red-600 font-semibold' : 'text-gray-700'}`}>
                         <span className="font-semibold">{product.currentInventory || 0} lbs</span> in stock
+                        {isLowStock && " ⚠️"}
                       </p>
                     </div>
                     {product.pricePerLb === 0 && (

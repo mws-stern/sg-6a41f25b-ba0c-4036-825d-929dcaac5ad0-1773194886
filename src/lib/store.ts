@@ -1,4 +1,5 @@
 import type { Product, Customer, Order, Invoice, Payment } from "@/types";
+import { cache, CACHE_KEYS } from "./cache";
 
 export interface InventoryEntry {
   id: string;
@@ -88,22 +89,31 @@ const INITIAL_PRODUCTS: Product[] = [
 // Helper to check if we're on the client
 const isClient = typeof window !== "undefined";
 
-// Products
+// Products with caching
 export const getProducts = (): Product[] => {
+  const cached = cache.get<Product[]>(CACHE_KEYS.PRODUCTS);
+  if (cached) return cached;
+
   if (!isClient) return INITIAL_PRODUCTS;
   const stored = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
+  let products: Product[];
+  
   if (!stored) {
     localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(INITIAL_PRODUCTS));
-    return INITIAL_PRODUCTS;
+    products = INITIAL_PRODUCTS;
+  } else {
+    products = JSON.parse(stored);
   }
-  return JSON.parse(stored);
+  
+  cache.set(CACHE_KEYS.PRODUCTS, products);
+  return products;
 };
 
 export const saveProducts = (products: Product[]): void => {
   if (!isClient) return;
-  console.log("saveProducts called with:", products);
   localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
-  console.log("Saved to localStorage:", localStorage.getItem(STORAGE_KEYS.PRODUCTS));
+  cache.invalidate(CACHE_KEYS.PRODUCTS);
+  cache.invalidate(CACHE_KEYS.STATS);
 };
 
 export const updateProduct = (product: Product): void => {
@@ -115,16 +125,24 @@ export const updateProduct = (product: Product): void => {
   }
 };
 
-// Customers
+// Customers with caching
 export const getCustomers = (): Customer[] => {
+  const cached = cache.get<Customer[]>(CACHE_KEYS.CUSTOMERS);
+  if (cached) return cached;
+
   if (!isClient) return [];
   const stored = localStorage.getItem(STORAGE_KEYS.CUSTOMERS);
-  return stored ? JSON.parse(stored) : [];
+  const customers = stored ? JSON.parse(stored) : [];
+  
+  cache.set(CACHE_KEYS.CUSTOMERS, customers);
+  return customers;
 };
 
 export const saveCustomers = (customers: Customer[]): void => {
   if (!isClient) return;
   localStorage.setItem(STORAGE_KEYS.CUSTOMERS, JSON.stringify(customers));
+  cache.invalidate(CACHE_KEYS.CUSTOMERS);
+  cache.invalidate(CACHE_KEYS.STATS);
 };
 
 export const addCustomer = (customer: Omit<Customer, "id" | "createdAt">): Customer => {
@@ -143,16 +161,25 @@ export const getCustomer = (id: string): Customer | undefined => {
   return getCustomers().find((c) => c.id === id);
 };
 
-// Orders
+// Orders with caching
 export const getOrders = (): Order[] => {
+  const cached = cache.get<Order[]>(CACHE_KEYS.ORDERS);
+  if (cached) return cached;
+
   if (!isClient) return [];
   const stored = localStorage.getItem(STORAGE_KEYS.ORDERS);
-  return stored ? JSON.parse(stored) : [];
+  const orders = stored ? JSON.parse(stored) : [];
+  
+  cache.set(CACHE_KEYS.ORDERS, orders);
+  return orders;
 };
 
 export const saveOrders = (orders: Order[]): void => {
   if (!isClient) return;
   localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(orders));
+  cache.invalidate(CACHE_KEYS.ORDERS);
+  cache.invalidate(CACHE_KEYS.STATS);
+  cache.invalidate(CACHE_KEYS.RECEIVABLES);
 };
 
 export const addOrder = (order: Omit<Order, "id" | "orderNumber" | "createdAt" | "updatedAt" | "paymentStatus" | "amountPaid" | "amountDue" | "inventoryDeducted">): Order => {
@@ -200,16 +227,24 @@ export const getOrder = (id: string): Order | undefined => {
   return getOrders().find((o) => o.id === id);
 };
 
-// Invoices
+// Invoices with caching
 export const getInvoices = (): Invoice[] => {
+  const cached = cache.get<Invoice[]>(CACHE_KEYS.INVOICES);
+  if (cached) return cached;
+
   if (!isClient) return [];
   const stored = localStorage.getItem(STORAGE_KEYS.INVOICES);
-  return stored ? JSON.parse(stored) : [];
+  const invoices = stored ? JSON.parse(stored) : [];
+  
+  cache.set(CACHE_KEYS.INVOICES, invoices);
+  return invoices;
 };
 
 export const saveInvoices = (invoices: Invoice[]): void => {
   if (!isClient) return;
   localStorage.setItem(STORAGE_KEYS.INVOICES, JSON.stringify(invoices));
+  cache.invalidate(CACHE_KEYS.INVOICES);
+  cache.invalidate(CACHE_KEYS.RECEIVABLES);
 };
 
 export const createInvoiceFromOrder = (order: Order): Invoice => {
@@ -257,14 +292,22 @@ export const updateInvoice = (invoice: Invoice): void => {
 
 // Inventory Management
 export const getInventory = (): InventoryEntry[] => {
+  const cached = cache.get<InventoryEntry[]>(CACHE_KEYS.INVENTORY);
+  if (cached) return cached;
+
   if (!isClient) return [];
   const stored = localStorage.getItem(STORAGE_KEYS.INVENTORY);
-  return stored ? JSON.parse(stored) : [];
+  const inventory = stored ? JSON.parse(stored) : [];
+  
+  cache.set(CACHE_KEYS.INVENTORY, inventory);
+  return inventory;
 };
 
 export const saveInventory = (inventory: InventoryEntry[]): void => {
   if (!isClient) return;
   localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inventory));
+  cache.invalidate(CACHE_KEYS.INVENTORY);
+  cache.invalidate(CACHE_KEYS.PRODUCTS);
 };
 
 export const addInventoryEntry = (entry: Omit<InventoryEntry, "id" | "createdAt">): InventoryEntry => {
@@ -354,16 +397,24 @@ export const saveSettings = (settings: Settings): void => {
   localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
 };
 
-// Payment Management
+// Payment Management with caching
 export const getPayments = (): Payment[] => {
+  const cached = cache.get<Payment[]>(CACHE_KEYS.PAYMENTS);
+  if (cached) return cached;
+
   if (!isClient) return [];
   const stored = localStorage.getItem(STORAGE_KEYS.PAYMENTS);
-  return stored ? JSON.parse(stored) : [];
+  const payments = stored ? JSON.parse(stored) : [];
+  
+  cache.set(CACHE_KEYS.PAYMENTS, payments);
+  return payments;
 };
 
 export const savePayments = (payments: Payment[]): void => {
   if (!isClient) return;
   localStorage.setItem(STORAGE_KEYS.PAYMENTS, JSON.stringify(payments));
+  cache.invalidate(CACHE_KEYS.PAYMENTS);
+  cache.invalidate(CACHE_KEYS.RECEIVABLES);
 };
 
 export const addPayment = (payment: Omit<Payment, "id" | "createdAt">): Payment => {
@@ -432,6 +483,9 @@ export const getPaymentsByInvoice = (invoiceId: string): Payment[] => {
 };
 
 export const getReceivablesSummary = () => {
+  const cached = cache.get<any>(CACHE_KEYS.RECEIVABLES);
+  if (cached) return cached;
+
   const orders = getOrders();
   const payments = getPayments();
   
@@ -447,7 +501,7 @@ export const getReceivablesSummary = () => {
   const invoices = getInvoices();
   const unpaidInvoices = invoices.filter(i => i.paymentStatus !== "paid");
   
-  return {
+  const summary = {
     totalRevenue,
     totalCollected,
     totalPending,
@@ -455,6 +509,9 @@ export const getReceivablesSummary = () => {
     recentPayments,
     unpaidInvoices,
   };
+
+  cache.set(CACHE_KEYS.RECEIVABLES, summary, 2 * 60 * 1000); // 2 minutes TTL
+  return summary;
 };
 
 export const updatePaymentConfirmation = (paymentId: string, confirmed: boolean): void => {
@@ -466,3 +523,6 @@ export const updatePaymentConfirmation = (paymentId: string, confirmed: boolean)
     savePayments(payments);
   }
 };
+
+// Export cache for external use
+export { cache, CACHE_KEYS };
