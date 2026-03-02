@@ -128,3 +128,13 @@ export interface ReceivablesSummary {
   recentPayments: Payment[];
   unpaidInvoices: Invoice[];
 }
+
+export interface Settings {
+  companyName: string;
+  companyNameHebrew: string;
+  email: string;
+  phone: string;
+  address: string;
+  taxRate: number;
+  currency: string;
+}
