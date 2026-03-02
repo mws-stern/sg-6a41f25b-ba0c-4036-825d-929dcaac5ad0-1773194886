@@ -24,12 +24,12 @@ export interface Customer {
   id: string;
   name: string;
   nameHebrew?: string;
-  email: string;
-  phone: string;
-  address: string;
-  city: string;
-  state: string;
-  zip: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
   notes?: string;
   createdAt: string;
 }
