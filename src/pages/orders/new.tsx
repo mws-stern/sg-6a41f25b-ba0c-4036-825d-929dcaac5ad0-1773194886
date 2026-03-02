@@ -2,7 +2,7 @@ import { SEO } from "@/components/SEO";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { ArrowLeft, Plus, Trash2, Send, Save, Copy, Zap, Check, ChevronsUpDown, Search } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Send, Save, Copy, Zap, Check, ChevronsUpDown, Search, UserPlus } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

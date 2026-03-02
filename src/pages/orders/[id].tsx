@@ -478,16 +478,16 @@ export default function OrderDetailsPage() {
   };
 
   if (!mounted) return null;
-  if (!order) return <div>Order not found</div>;
+  if (!order) return <div>Loading...</div>;
 
   const displayOrder = editMode ? editedOrder! : order;
 
   return (
     <>
-      <SEO title={`Order ${order.orderNumber} - Satmar Montreal Matzos`} />
+      <SEO title={`Order ${displayOrder.orderNumber} - Satmar Montreal Matzos`} />
       
-      <div className="container mx-auto px-6 py-8 print:p-0">
-        <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 print-hidden">
+      <div className="container mx-auto px-6 py-8">
+        <div className="mb-6 flex items-center justify-between no-print">
           <div className="flex items-center gap-4">
             <Link href="/orders">
               <Button variant="ghost" size="icon">
@@ -495,127 +495,78 @@ export default function OrderDetailsPage() {
               </Button>
             </Link>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">{order.orderNumber}</h1>
+              <h1 className="text-3xl font-bold text-gray-900">Order {displayOrder.orderNumber}</h1>
               <p className="text-gray-600">
-                Placed on {new Date(order.createdAt).toLocaleDateString()} at {order.orderTime}
+                Placed on {new Date(displayOrder.createdAt).toLocaleDateString()} at {displayOrder.orderTime}
               </p>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {!editMode ? (
-              <>
-                <Button variant="outline" onClick={handleEditOrder} className="gap-2">
-                  <Edit className="w-4 h-4" />
-                  Edit Order
-                </Button>
-                
-                <Dialog open={emailPreviewOpen} onOpenChange={setEmailPreviewOpen}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" className="gap-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600">
-                      <Send className="w-4 h-4" />
-                      Send Email
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-                    <DialogHeader>
-                      <DialogTitle className="flex items-center gap-2">
-                        <Mail className="w-5 h-5 text-amber-600" />
-                        Email Preview - Order Confirmation
-                      </DialogTitle>
-                      <DialogDescription>
-                        Preview the email that will be sent to {customer?.email || order.customerEmail}
-                      </DialogDescription>
-                    </DialogHeader>
-                    
-                    <div className="flex-1 overflow-y-auto border rounded-lg p-4 bg-gray-50">
-                      <div dangerouslySetInnerHTML={{ __html: generateEmailPreview() }} />
-                    </div>
-                    
-                    <DialogFooter className="flex items-center justify-between border-t pt-4">
-                      <div className="text-sm text-gray-500">
-                        {customer?.email ? (
-                          <span className="flex items-center gap-2">
-                            <Mail className="w-4 h-4" />
-                            Sending to: <strong>{customer.email}</strong>
-                          </span>
-                        ) : (
-                          <span className="text-red-600">⚠️ No email address on file</span>
-                        )}
-                      </div>
-                      <div className="flex gap-2">
-                        <Button variant="outline" onClick={() => setEmailPreviewOpen(false)}>
-                          Cancel
-                        </Button>
-                        <Button 
-                          onClick={handleSendEmail} 
-                          disabled={isSendingEmail || !customer?.email}
-                          className="gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
-                        >
-                          {isSendingEmail ? (
-                            <>
-                              <span className="animate-spin">⏳</span>
-                              Sending...
-                            </>
-                          ) : (
-                            <>
-                              <Send className="w-4 h-4" />
-                              Send Email
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-
-                <Button variant="outline" onClick={() => window.print()} className="gap-2">
-                  <Printer className="w-4 h-4" />
-                  Print
-                </Button>
-                <Button onClick={handleCreateInvoice} className="gap-2 bg-gradient-to-r from-blue-600 to-blue-700">
-                  <FileText className="w-4 h-4" />
-                  Generate Invoice
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button variant="outline" onClick={handleCancelEdit} className="gap-2">
-                  <X className="w-4 h-4" />
-                  Cancel
-                </Button>
-                <Button onClick={handleSaveEdit} className="gap-2 bg-green-600 hover:bg-green-700">
-                  <Save className="w-4 h-4" />
-                  Save Changes
-                </Button>
-              </>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => window.print()} className="gap-2">
+              <Printer className="w-4 h-4" />
+              Print Invoice
+            </Button>
+            <Button variant="outline" onClick={() => setEditMode(!editMode)} className="gap-2">
+              <Edit className="w-4 h-4" />
+              {editMode ? "Cancel Editing" : "Edit Order"}
+            </Button>
+            {editMode && (
+              <Button onClick={handleSave} className="gap-2">
+                <Save className="w-4 h-4" />
+                Save Changes
+              </Button>
             )}
           </div>
         </div>
 
-        <div id="printable-content" className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Print-only Header */}
-          <div className="hidden print-show col-span-full mb-8 text-center border-b pb-6">
-            <h1 className="text-3xl font-bold text-gray-900" style={{ fontFamily: "'Frank Ruhl Libre', serif" }}>
-              Satmar Montreal Matzos
-            </h1>
-            <p className="text-gray-600">Montreal, QC</p>
-            <div className="mt-4 flex justify-between items-end">
-              <div className="text-left">
-                <p className="text-sm text-gray-500">Bill To:</p>
-                <p className="font-bold text-lg">{order.customerName}</p>
-                <p>{order.customerEmail}</p>
-                {customer?.phone && <p>Tel: {customer.phone}</p>}
-                {customer?.address && <p>{customer.address}</p>}
+        <div id="printable-content" className="bg-white p-0 md:p-6 rounded-lg">
+          {/* Print Only Header */}
+          <div className="hidden print:block mb-8 border-b pb-4">
+            <div className="flex justify-between items-start">
+              <div>
+                <h1 className="text-2xl font-bold">Satmar Montreal Matzos</h1>
+                <p className="text-sm">סאטמאר מאנטרעאל מצות</p>
+                <p className="text-sm text-gray-600 mt-1">2765 Chemin de la Côte-Sainte-Catherine</p>
+                <p className="text-sm text-gray-600">Montreal, QC H3T 1B6</p>
+                <p className="text-sm text-gray-600">Phone: (438) 300-8425</p>
+                <p className="text-sm text-gray-600">Email: matzoh@satmarmtl.com</p>
               </div>
               <div className="text-right">
-                <h2 className="text-2xl font-bold text-gray-900">INVOICE</h2>
-                <p className="font-medium">#{order.orderNumber}</p>
-                <p className="text-sm text-gray-500">{new Date(order.createdAt).toLocaleDateString()}</p>
+                <h2 className="text-xl font-bold">INVOICE</h2>
+                <p className="text-gray-600">#{displayOrder.orderNumber}</p>
+                <p className="text-gray-600">Date: {new Date(displayOrder.createdAt).toLocaleDateString()}</p>
               </div>
             </div>
           </div>
 
-          <div className="lg:col-span-2 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <Card className="md:col-span-2 border-amber-200 shadow-sm print:border-none print:shadow-none">
+              <CardHeader className="print:px-0">
+                <CardTitle>Customer Details</CardTitle>
+              </CardHeader>
+              <CardContent className="print:px-0">
+                <div>
+                  <p className="text-sm text-gray-500">Name</p>
+                  <p className="font-medium">{order.customerName}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Email</p>
+                  <p className="font-medium">{order.customerEmail}</p>
+                </div>
+                {order.deliveryDate && (
+                  <div>
+                    <p className="text-sm text-gray-500">Requested Delivery</p>
+                    <p className="font-medium">{new Date(order.deliveryDate).toLocaleDateString()}</p>
+                  </div>
+                )}
+                <Link href={`/customers/${order.customerId}`}>
+                  <Button variant="link" className="px-0 text-blue-600">
+                    View Customer Profile
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+
             <Card className="border-amber-200 card-print-clean">
               <CardHeader className="print-hidden">
                 <div className="flex items-center justify-between">
@@ -831,261 +782,6 @@ export default function OrderDetailsPage() {
               </div>
               <p className="text-center mt-8 text-xs">Thank you for your business!</p>
             </div>
-          </div>
-
-          <div className="space-y-6">
-            <Card className="border-amber-200 card-print-clean print-hidden">
-              <CardHeader>
-                <CardTitle>Order Status</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Select
-                  value={order.status}
-                  onValueChange={(val: any) => handleStatusChange(val)}
-                  disabled={editMode}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="draft">Draft</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="confirmed">Confirmed</SelectItem>
-                    <SelectItem value="preparing">Preparing</SelectItem>
-                    <SelectItem value="ready">Ready for Pickup</SelectItem>
-                    <SelectItem value="delivered">Delivered</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                  </SelectContent>
-                </Select>
-              </CardContent>
-            </Card>
-
-            <Card className="border-green-200 card-print-clean">
-              <CardHeader className="print-hidden">
-                <CardTitle className="flex items-center justify-between">
-                  Payment Status
-                  {getPaymentStatusBadge(order.paymentStatus)}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Total Amount</span>
-                    <span className="font-semibold">${order.total.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Amount Paid</span>
-                    <span className="font-semibold text-green-600">${order.amountPaid.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-lg border-t pt-2">
-                    <span className="font-bold">Amount Due</span>
-                    <span className="font-bold text-red-600">${order.amountDue.toFixed(2)}</span>
-                  </div>
-                </div>
-
-                {order.amountDue > 0 && !editMode && (
-                  <div className="print-hidden">
-                  <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button className="w-full gap-2 bg-green-600 hover:bg-green-700">
-                        <DollarSign className="w-4 h-4" />
-                        Record Payment
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-                      <DialogHeader>
-                        <DialogTitle>Record Payment</DialogTitle>
-                        <DialogDescription>
-                          Enter payment details for order {order.orderNumber}
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="amount">Payment Amount</Label>
-                          <Input
-                            id="amount"
-                            type="number"
-                            step="0.01"
-                            placeholder="0.00"
-                            value={paymentData.amount}
-                            onChange={(e) => setPaymentData({ ...paymentData, amount: e.target.value })}
-                          />
-                          <p className="text-sm text-gray-500">
-                            Amount due: ${order.amountDue.toFixed(2)}
-                          </p>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="paymentMethod">Payment Method</Label>
-                          <Select
-                            value={paymentData.paymentMethod}
-                            onValueChange={(val: any) => setPaymentData({ ...paymentData, paymentMethod: val })}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="cash">Cash</SelectItem>
-                              <SelectItem value="credit_card">Credit Card</SelectItem>
-                              <SelectItem value="check">Check</SelectItem>
-                              <SelectItem value="e_transfer">E-Transfer</SelectItem>
-                              <SelectItem value="voucher">Voucher</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        {paymentData.paymentMethod === "credit_card" && (
-                          <>
-                            <div className="space-y-2">
-                              <Label htmlFor="creditCard">Credit Card Number</Label>
-                              <Input
-                                id="creditCard"
-                                placeholder="1234 5678 9012 3456"
-                                value={paymentData.creditCardNumber}
-                                onChange={(e) => setPaymentData({ ...paymentData, creditCardNumber: e.target.value })}
-                                maxLength={19}
-                              />
-                            </div>
-                            <div className="grid grid-cols-2 gap-2">
-                              <div className="space-y-2">
-                                <Label htmlFor="expiry">Expiration (MM/YY)</Label>
-                                <Input
-                                  id="expiry"
-                                  placeholder="12/25"
-                                  value={paymentData.creditCardExpiry}
-                                  onChange={(e) => {
-                                    let value = e.target.value.replace(/\D/g, "");
-                                    if (value.length >= 2) {
-                                      value = value.slice(0, 2) + "/" + value.slice(2, 4);
-                                    }
-                                    setPaymentData({ ...paymentData, creditCardExpiry: value });
-                                  }}
-                                  maxLength={5}
-                                />
-                              </div>
-                              <div className="space-y-2">
-                                <Label htmlFor="cvv">CVV</Label>
-                                <Input
-                                  id="cvv"
-                                  placeholder="123"
-                                  value={paymentData.creditCardCVV}
-                                  onChange={(e) => setPaymentData({ ...paymentData, creditCardCVV: e.target.value.replace(/\D/g, "") })}
-                                  maxLength={4}
-                                />
-                              </div>
-                            </div>
-                          </>
-                        )}
-
-                        {paymentData.paymentMethod === "check" && (
-                          <div className="space-y-2">
-                            <Label htmlFor="checkNumber">Check Number</Label>
-                            <Input
-                              id="checkNumber"
-                              placeholder="Check #"
-                              value={paymentData.checkNumber}
-                              onChange={(e) => setPaymentData({ ...paymentData, checkNumber: e.target.value })}
-                            />
-                          </div>
-                        )}
-
-                        {paymentData.paymentMethod === "e_transfer" && (
-                          <div className="space-y-2">
-                            <Label htmlFor="eTransfer">E-Transfer Reference</Label>
-                            <Input
-                              id="eTransfer"
-                              placeholder="Reference/Confirmation #"
-                              value={paymentData.eTransferReference}
-                              onChange={(e) => setPaymentData({ ...paymentData, eTransferReference: e.target.value })}
-                            />
-                          </div>
-                        )}
-
-                        {paymentData.paymentMethod === "voucher" && (
-                          <div className="space-y-2">
-                            <Label htmlFor="voucher">Voucher Code</Label>
-                            <Input
-                              id="voucher"
-                              placeholder="Voucher Code"
-                              value={paymentData.voucherCode}
-                              onChange={(e) => setPaymentData({ ...paymentData, voucherCode: e.target.value })}
-                            />
-                          </div>
-                        )}
-
-                        <div className="space-y-2">
-                          <Label htmlFor="paymentDate">Payment Date</Label>
-                          <Input
-                            id="paymentDate"
-                            type="date"
-                            value={paymentData.paymentDate}
-                            onChange={(e) => setPaymentData({ ...paymentData, paymentDate: e.target.value })}
-                          />
-                        </div>
-
-                        <div className="flex items-center space-x-2 p-3 bg-green-50 rounded-lg border border-green-200">
-                          <Checkbox
-                            id="confirmed"
-                            checked={paymentData.confirmed}
-                            onCheckedChange={(checked) => setPaymentData({ ...paymentData, confirmed: checked as boolean })}
-                          />
-                          <Label htmlFor="confirmed" className="cursor-pointer">
-                            Mark as charged (records timestamp)
-                          </Label>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="notes">Notes (Optional)</Label>
-                          <Textarea
-                            id="notes"
-                            placeholder="Additional notes..."
-                            value={paymentData.notes}
-                            onChange={(e) => setPaymentData({ ...paymentData, notes: e.target.value })}
-                            rows={3}
-                          />
-                        </div>
-                      </div>
-                      <DialogFooter>
-                        <Button variant="outline" onClick={() => setPaymentDialogOpen(false)}>
-                          Cancel
-                        </Button>
-                        <Button onClick={handleRecordPayment} className="bg-green-600 hover:bg-green-700">
-                          Record Payment
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="border-amber-200 card-print-clean print-hidden">
-              <CardHeader>
-                <CardTitle>Customer Details</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <p className="text-sm text-gray-500">Name</p>
-                  <p className="font-medium">{order.customerName}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Email</p>
-                  <p className="font-medium">{order.customerEmail}</p>
-                </div>
-                {order.deliveryDate && (
-                  <div>
-                    <p className="text-sm text-gray-500">Requested Delivery</p>
-                    <p className="font-medium">{new Date(order.deliveryDate).toLocaleDateString()}</p>
-                  </div>
-                )}
-                <Link href={`/customers/${order.customerId}`}>
-                  <Button variant="link" className="px-0 text-blue-600">
-                    View Customer Profile
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
           </div>
         </div>
       </div>
