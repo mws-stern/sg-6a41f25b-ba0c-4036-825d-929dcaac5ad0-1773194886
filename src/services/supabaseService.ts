@@ -34,6 +34,34 @@ export const supabaseService = {
     }));
   },
 
+  async getCustomer(id: string): Promise<Customer | null> {
+    const { data, error } = await supabase
+      .from('customers')
+      .select('*')
+      .eq('id', id)
+      .single();
+      
+    if (error || !data) {
+      console.error('Error fetching customer:', error);
+      return null;
+    }
+    
+    return {
+      id: data.id,
+      name: data.name,
+      nameHebrew: data.name_hebrew,
+      email: data.email,
+      phone: data.phone,
+      mobile: data.mobile,
+      address: data.address,
+      city: data.city,
+      state: data.state,
+      zip: data.zip,
+      notes: data.notes,
+      createdAt: data.created_at
+    };
+  },
+
   async addCustomer(customer: Omit<Customer, "id" | "createdAt">): Promise<Customer | null> {
     const { data, error } = await supabase
       .from('customers')
@@ -495,6 +523,20 @@ export const supabaseService = {
       confirmed: payData.confirmed,
       confirmedAt: payData.confirmed_at
     };
+  },
+
+  async updatePayment(payment: Payment): Promise<void> {
+    const { error } = await supabase
+      .from('payments')
+      .update({
+        confirmed: payment.confirmed,
+        confirmed_at: payment.confirmedAt
+      })
+      .eq('id', payment.id);
+
+    if (error) {
+      console.error('Error updating payment:', error);
+    }
   },
 
   // --- Inventory ---
