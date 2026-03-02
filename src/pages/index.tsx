@@ -1,18 +1,23 @@
 import { SEO } from "@/components/SEO";
 import Link from "next/link";
 import Image from "next/image";
-import { Package, FileText, DollarSign, Users, ShoppingCart, Settings, Warehouse, TrendingUp } from "lucide-react";
+import { Package, FileText, DollarSign, Users, ShoppingCart, Settings, Warehouse, TrendingUp, Search, Phone, Check, Clock, Truck, AlertCircle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { useEffect, useState } from "react";
 import { getProducts, getOrders, getCustomers, cache, CACHE_KEYS } from "@/lib/store";
 import { AlertsPanel } from "@/components/AlertsPanel";
 import { KeyboardShortcutsHelp } from "@/components/KeyboardShortcutsHelp";
 import { useGlobalShortcuts } from "@/hooks/useKeyboardShortcuts";
-import type { Product } from "@/types";
+import type { Product, Customer, Order } from "@/types";
 
 export default function HomePage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [stats, setStats] = useState({
     totalOrders: 0,
     revenue: 0,
@@ -29,34 +34,77 @@ export default function HomePage() {
     // Try to get cached stats first
     const cachedStats = cache.get<any>(CACHE_KEYS.STATS);
     
+    // Always load fresh data for search
+    const loadedProducts = getProducts();
+    const loadedOrders = getOrders();
+    const loadedCustomers = getCustomers();
+    setProducts(loadedProducts);
+    setOrders(loadedOrders);
+    setCustomers(loadedCustomers);
+
     if (cachedStats) {
       setStats(cachedStats);
-      setProducts(getProducts());
     } else {
-      const loadedProducts = getProducts();
-      const orders = getOrders();
-      const customers = getCustomers();
-      
-      const revenue = orders.reduce((sum, order) => sum + order.total, 0);
-      const pendingOrders = orders.filter(o => o.status === "pending" || o.status === "confirmed").length;
+      const revenue = loadedOrders.reduce((sum, order) => sum + order.total, 0);
+      const pendingOrders = loadedOrders.filter(o => o.status === "pending" || o.status === "confirmed").length;
       const lowStockItems = loadedProducts.filter(p => (p.currentInventory || 0) < 50).length;
       
       const newStats = {
-        totalOrders: orders.length,
+        totalOrders: loadedOrders.length,
         revenue,
-        customers: customers.length,
+        customers: loadedCustomers.length,
         products: loadedProducts.length,
         pendingOrders,
         lowStockItems,
       };
       
       setStats(newStats);
-      setProducts(loadedProducts);
       
       // Cache for 1 minute
       cache.set(CACHE_KEYS.STATS, newStats, 60 * 1000);
     }
   }, []);
+
+  const getFilteredCustomers = () => {
+    if (!searchQuery) return [];
+    const query = searchQuery.toLowerCase();
+    return customers.filter(c => 
+      c.name.toLowerCase().includes(query) ||
+      (c.nameHebrew && c.nameHebrew.includes(query)) ||
+      (c.email && c.email.toLowerCase().includes(query)) ||
+      (c.phone && c.phone.includes(query)) ||
+      (c.mobile && c.mobile.includes(query))
+    ).slice(0, 5);
+  };
+
+  const getCustomerStatus = (customerId: string) => {
+    const customerOrders = orders
+      .filter(o => o.customerId === customerId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    
+    if (customerOrders.length === 0) return null;
+    return customerOrders[0];
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "delivered": return "bg-green-100 text-green-800 border-green-200";
+      case "ready": return "bg-blue-100 text-blue-800 border-blue-200";
+      case "preparing": return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      case "confirmed": return "bg-purple-100 text-purple-800 border-purple-200";
+      case "pending": return "bg-orange-100 text-orange-800 border-orange-200";
+      case "cancelled": return "bg-red-100 text-red-800 border-red-200";
+      default: return "bg-gray-100 text-gray-800 border-gray-200";
+    }
+  };
+
+  const getPaymentStatusColor = (status: string) => {
+    switch (status) {
+      case "paid": return "bg-green-100 text-green-800";
+      case "partial": return "bg-yellow-100 text-yellow-800";
+      default: return "bg-red-100 text-red-800";
+    }
+  };
 
   const statsDisplay = [
     { 
@@ -140,6 +188,93 @@ export default function HomePage() {
             <KeyboardShortcutsHelp />
           </div>
         </div>
+
+        {/* Customer Status Lookup */}
+        <Card className="border-amber-200 shadow-md mb-8 bg-gradient-to-r from-white to-amber-50/30">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Search className="w-5 h-5 text-amber-600" />
+              Customer Status Lookup
+            </CardTitle>
+            <CardDescription>Search by name, phone, or email to check order status</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="relative mb-6">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Type customer name, phone number, or email..."
+                className="pl-9 text-lg h-12 border-amber-200 focus:border-amber-400 focus:ring-amber-200"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+
+            {searchQuery && (
+              <div className="space-y-4">
+                {getFilteredCustomers().length === 0 ? (
+                  <div className="text-center py-8 text-gray-500 bg-white rounded-lg border border-gray-100">
+                    <p>No customers found matching "{searchQuery}"</p>
+                  </div>
+                ) : (
+                  <div className="grid gap-4">
+                    {getFilteredCustomers().map(customer => {
+                      const lastOrder = getCustomerStatus(customer.id);
+                      return (
+                        <div key={customer.id} className="bg-white p-4 rounded-lg border border-amber-100 shadow-sm flex flex-col md:flex-row justify-between gap-4 items-start md:items-center">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-bold text-lg">{customer.name}</h3>
+                              {customer.nameHebrew && (
+                                <span className="text-gray-500 font-hebrew text-sm" dir="rtl">{customer.nameHebrew}</span>
+                              )}
+                            </div>
+                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600 mt-1">
+                              {customer.phone && (
+                                <span className="flex items-center gap-1"><Phone className="w-3 h-3" /> {customer.phone}</span>
+                              )}
+                              {customer.mobile && (
+                                <span className="flex items-center gap-1"><Phone className="w-3 h-3" /> {customer.mobile}</span>
+                              )}
+                              {customer.email && (
+                                <span>{customer.email}</span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex-shrink-0 w-full md:w-auto">
+                            {lastOrder ? (
+                              <div className="flex items-center gap-4 bg-gray-50 p-3 rounded-md border border-gray-100">
+                                <div className="text-right">
+                                  <div className="text-xs text-gray-500 mb-1">Last Order: {new Date(lastOrder.createdAt).toLocaleDateString()}</div>
+                                  <div className="flex gap-2 justify-end">
+                                    <Badge variant="outline" className={getStatusColor(lastOrder.status)}>
+                                      {lastOrder.status.toUpperCase()}
+                                    </Badge>
+                                    <Badge variant="outline" className={getPaymentStatusColor(lastOrder.paymentStatus)}>
+                                      {lastOrder.paymentStatus.toUpperCase()}
+                                    </Badge>
+                                  </div>
+                                </div>
+                                <Link href={`/orders/${lastOrder.id}`}>
+                                  <Button size="sm" variant="outline">View Order</Button>
+                                </Link>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2 text-gray-400 bg-gray-50 px-4 py-2 rounded-md">
+                                <AlertCircle className="w-4 h-4" />
+                                <span>No orders found</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">

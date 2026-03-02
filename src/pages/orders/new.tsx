@@ -2,7 +2,7 @@ import { SEO } from "@/components/SEO";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { ArrowLeft, Plus, Trash2, Send, Save, Copy, Zap } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Send, Save, Copy, Zap, Check, ChevronsUpDown, Search } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { getProducts, getCustomers, addOrder, getSettings, getOrders } from "@/lib/store";
 import type { Product, Customer, OrderItem, Order } from "@/types";
@@ -21,6 +24,7 @@ export default function NewOrderPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
+  const [openCombobox, setOpenCombobox] = useState(false);
   const [items, setItems] = useState<OrderItem[]>([]);
   const [notes, setNotes] = useState("");
   const [deliveryDate, setDeliveryDate] = useState("");
@@ -258,20 +262,61 @@ export default function NewOrderPage() {
                 <CardTitle>Customer Information</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
+                <div className="flex flex-col space-y-2">
                   <Label>Select Customer</Label>
-                  <Select value={selectedCustomerId} onValueChange={setSelectedCustomerId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose a customer" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {customers.map((customer) => (
-                        <SelectItem key={customer.id} value={customer.id}>
-                          {customer.name} - {customer.email}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={openCombobox}
+                        className="w-full justify-between h-12"
+                      >
+                        {selectedCustomerId
+                          ? customers.find((customer) => customer.id === selectedCustomerId)?.name
+                          : "Search customer by name, phone, or email..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[600px] p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Search customers..." />
+                        <CommandList>
+                          <CommandEmpty>No customer found.</CommandEmpty>
+                          <CommandGroup>
+                            {customers.map((customer) => (
+                              <CommandItem
+                                key={customer.id}
+                                value={`${customer.name} ${customer.nameHebrew || ''} ${customer.phone || ''} ${customer.mobile || ''} ${customer.email || ''}`}
+                                onSelect={() => {
+                                  setSelectedCustomerId(customer.id);
+                                  setOpenCombobox(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    selectedCustomerId === customer.id ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                <div className="flex flex-col">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium">{customer.name}</span>
+                                    {customer.nameHebrew && <span className="text-gray-500 text-sm" dir="rtl">{customer.nameHebrew}</span>}
+                                  </div>
+                                  <div className="text-sm text-gray-500 flex gap-2">
+                                    {customer.phone && <span>{customer.phone}</span>}
+                                    {customer.mobile && <span>{customer.mobile}</span>}
+                                    {customer.email && <span>• {customer.email}</span>}
+                                  </div>
+                                </div>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 {customers.length === 0 && (
                   <div className="text-center py-4">
