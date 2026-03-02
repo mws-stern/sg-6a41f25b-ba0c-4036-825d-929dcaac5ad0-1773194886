@@ -5,7 +5,7 @@ import { ArrowLeft, TrendingUp, DollarSign, ShoppingCart, Users, Calendar, Downl
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { getOrders, getCustomers, getProducts } from "@/lib/store";
+import { supabaseService } from "@/services/supabaseService";
 import type { Order, Product } from "@/types";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -18,12 +18,23 @@ export default function ReportsPage() {
   const [mounted, setMounted] = useState(false);
   const [period, setPeriod] = useState("all");
   const [reportType, setReportType] = useState("summary");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const loadData = async () => {
+      const [fetchedOrders, fetchedProducts, fetchedCustomers] = await Promise.all([
+        supabaseService.getOrders(),
+        supabaseService.getProducts(),
+        supabaseService.getCustomers()
+      ]);
+      setOrders(fetchedOrders);
+      setProducts(fetchedProducts);
+      setCustomerCount(fetchedCustomers.length);
+      setLoading(false);
+    };
+    
     setMounted(true);
-    setOrders(getOrders());
-    setProducts(getProducts());
-    setCustomerCount(getCustomers().length);
+    loadData();
   }, []);
 
   const calculateStats = () => {
