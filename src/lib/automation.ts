@@ -1,63 +1,38 @@
 import type { Product, Order, Invoice } from "@/types";
-import { getProducts, getOrders, getInvoices, createInvoiceFromOrder } from "./store";
+import { getProducts, getOrders, getInvoices } from "./store";
 
-export interface AutomationAlert {
+// Low stock threshold
+const LOW_STOCK_THRESHOLD = 50;
+
+export interface Alert {
   id: string;
-  type: "low_stock" | "overdue_payment" | "order_ready" | "inventory_added";
-  severity: "info" | "warning" | "critical";
+  type: "inventory" | "payment" | "system";
   title: string;
   message: string;
-  productId?: string;
-  orderId?: string;
-  invoiceId?: string;
-  createdAt: string;
-  read: boolean;
+  severity: "info" | "warning" | "critical";
+  date: string;
+  link?: string;
 }
 
-// Low stock threshold (in lbs)
-const LOW_STOCK_THRESHOLD = 50;
-const CRITICAL_STOCK_THRESHOLD = 20;
+export type AutomationAlert = Alert;
 
-// Check for low stock products
-export const checkLowStock = (): AutomationAlert[] => {
+/**
+ * Check for low inventory levels
+ */
+export const checkLowInventory = (): Alert[] => {
   const products = getProducts();
-  const alerts: AutomationAlert[] = [];
+  const alerts: Alert[] = [];
 
   products.forEach(product => {
-    const stock = product.currentInventory || 0;
-    
-    if (stock <= CRITICAL_STOCK_THRESHOLD && stock > 0) {
+    if ((product.currentInventory || 0) < LOW_STOCK_THRESHOLD) {
       alerts.push({
-        id: `low-stock-${product.id}-${Date.now()}`,
-        type: "low_stock",
-        severity: "critical",
-        title: "Critical Stock Alert",
-        message: `${product.name} is critically low (${stock} lbs remaining)`,
-        productId: product.id,
-        createdAt: new Date().toISOString(),
-        read: false,
-      });
-    } else if (stock <= LOW_STOCK_THRESHOLD && stock > CRITICAL_STOCK_THRESHOLD) {
-      alerts.push({
-        id: `low-stock-${product.id}-${Date.now()}`,
-        type: "low_stock",
+        id: `inv-${product.id}-${Date.now()}`,
+        type: "inventory",
+        title: "Low Stock Alert",
+        message: `${product.name} is running low (${product.currentInventory?.toFixed(1)} lbs remaining)`,
         severity: "warning",
-        title: "Low Stock Warning",
-        message: `${product.name} is running low (${stock} lbs remaining)`,
-        productId: product.id,
-        createdAt: new Date().toISOString(),
-        read: false,
-      });
-    } else if (stock === 0) {
-      alerts.push({
-        id: `out-stock-${product.id}-${Date.now()}`,
-        type: "low_stock",
-        severity: "critical",
-        title: "Out of Stock",
-        message: `${product.name} is out of stock!`,
-        productId: product.id,
-        createdAt: new Date().toISOString(),
-        read: false,
+        date: new Date().toISOString(),
+        link: "/inventory"
       });
     }
   });
@@ -65,71 +40,56 @@ export const checkLowStock = (): AutomationAlert[] => {
   return alerts;
 };
 
-// Check for overdue payments
-export const checkOverduePayments = (): AutomationAlert[] => {
+/**
+ * Generate reminders for overdue invoices
+ */
+export const generateOverdueReminders = (): Alert[] => {
   const invoices = getInvoices();
-  const alerts: AutomationAlert[] = [];
   const now = new Date();
+  const alerts: Alert[] = [];
 
   invoices.forEach(invoice => {
-    if (invoice.paymentStatus !== "paid") {
-      const dueDate = new Date(invoice.dueDate);
-      const daysOverdue = Math.floor((now.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
+    if (!invoice.paid && new Date(invoice.dueDate) < now) {
+      const daysOverdue = Math.floor((now.getTime() - new Date(invoice.dueDate).getTime()) / (1000 * 60 * 60 * 24));
       
-      if (daysOverdue > 0) {
-        alerts.push({
-          id: `overdue-${invoice.id}-${Date.now()}`,
-          type: "overdue_payment",
-          severity: daysOverdue > 30 ? "critical" : "warning",
-          title: `Payment Overdue - ${invoice.invoiceNumber}`,
-          message: `${invoice.customerName} payment is ${daysOverdue} days overdue ($${invoice.amountDue.toFixed(2)})`,
-          invoiceId: invoice.id,
-          createdAt: new Date().toISOString(),
-          read: false,
-        });
-      }
+      alerts.push({
+        id: `due-${invoice.id}-${Date.now()}`,
+        type: "payment",
+        title: "Overdue Invoice",
+        message: `Invoice #${invoice.invoiceNumber} for ${invoice.customerName} is ${daysOverdue} days overdue`,
+        severity: "critical",
+        date: new Date().toISOString(),
+        link: `/invoices/${invoice.id}`
+      });
     }
   });
 
   return alerts;
 };
 
-// Auto-generate invoices for delivered orders without invoices
-export const autoGenerateInvoices = (): Invoice[] => {
+/**
+ * Get recent high-value orders
+ */
+export const getRecentHighValueOrders = (threshold: number = 500): Order[] => {
   const orders = getOrders();
-  const invoices = getInvoices();
-  const newInvoices: Invoice[] = [];
+  const weekAgo = new Date();
+  weekAgo.setDate(weekAgo.getDate() - 7);
 
-  const deliveredOrders = orders.filter(
-    order => order.status === "delivered" && 
-    !invoices.some(invoice => invoice.orderId === order.id)
-  );
-
-  deliveredOrders.forEach(order => {
-    const invoice = createInvoiceFromOrder(order);
-    newInvoices.push(invoice);
-  });
-
-  return newInvoices;
+  return orders
+    .filter(order => order.total >= threshold && new Date(order.createdAt) >= weekAgo)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 };
 
-// Calculate profit margin for products
-export const calculateProfitMargin = (costPerLb: number, pricePerLb: number): number => {
-  if (pricePerLb === 0) return 0;
-  return ((pricePerLb - costPerLb) / pricePerLb) * 100;
-};
-
-// Get all active alerts
-export const getAllAlerts = (): AutomationAlert[] => {
+/**
+ * Get all active alerts
+ */
+export const getAllAlerts = (): Alert[] => {
   return [
-    ...checkLowStock(),
-    ...checkOverduePayments(),
+    ...checkLowInventory(),
+    ...generateOverdueReminders()
   ].sort((a, b) => {
-    // Sort by severity first, then by date
-    const severityOrder = { critical: 0, warning: 1, info: 2 };
-    if (severityOrder[a.severity] !== severityOrder[b.severity]) {
-      return severityOrder[a.severity] - severityOrder[b.severity];
-    }
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    // Sort critical first, then warning, then info
+    const severityScore = { critical: 3, warning: 2, info: 1 };
+    return severityScore[b.severity] - severityScore[a.severity];
   });
 };
