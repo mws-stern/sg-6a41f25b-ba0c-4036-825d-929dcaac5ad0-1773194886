@@ -14,7 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { getProducts, getCustomers, addOrder, getSettings, getOrders } from "@/lib/store";
+import { supabaseService } from "@/services/supabaseService";
 import type { Product, Customer, OrderItem, Order } from "@/types";
 
 export default function NewOrderPage() {
@@ -31,20 +31,51 @@ export default function NewOrderPage() {
   const [orderDiscount, setOrderDiscount] = useState("");
   const [orderDiscountType, setOrderDiscountType] = useState<"percent" | "fixed">("percent");
   const [customerOrders, setCustomerOrders] = useState<Order[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     setMounted(true);
-    setProducts(getProducts());
-    setCustomers(getCustomers());
-  }, []);
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        // Seed data if needed
+        await supabaseService.seedInitialDataIfNeeded();
+        
+        const [fetchedProducts, fetchedCustomers] = await Promise.all([
+          supabaseService.getProducts(),
+          supabaseService.getCustomers()
+        ]);
+        
+        setProducts(fetchedProducts);
+        setCustomers(fetchedCustomers);
+      } catch (error) {
+        console.error("Failed to load data", error);
+        toast({
+          title: "Error",
+          description: "Failed to load data from database",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadData();
+  }, [toast]);
 
   useEffect(() => {
+    const loadCustomerOrders = async () => {
+      if (selectedCustomerId) {
+        const allOrders = await supabaseService.getOrders();
+        const custOrders = allOrders.filter(o => o.customerId === selectedCustomerId);
+        setCustomerOrders(custOrders);
+      } else {
+        setCustomerOrders([]);
+      }
+    };
+    
     if (selectedCustomerId) {
-      const allOrders = getOrders();
-      const custOrders = allOrders.filter(o => o.customerId === selectedCustomerId);
-      setCustomerOrders(custOrders);
-    } else {
-      setCustomerOrders([]);
+      loadCustomerOrders();
     }
   }, [selectedCustomerId]);
 
@@ -163,6 +194,7 @@ export default function NewOrderPage() {
   };
 
   const calculateTotal = () => {
+    const taxRate = 14.975; // Hardcoded for now, or fetch settings async
     return calculateSubtotal() - calculateDiscount() + calculateTax();
   };
 
@@ -171,7 +203,7 @@ export default function NewOrderPage() {
     return product?.currentInventory || 0;
   };
 
-  const handleSubmit = (status: "draft" | "pending") => {
+  const handleSubmit = async (status: "draft" | "pending") => {
     if (!selectedCustomerId) {
       toast({
         title: "Error",
@@ -190,36 +222,56 @@ export default function NewOrderPage() {
       return;
     }
 
+    setIsLoading(true);
     const customer = customers.find(c => c.id === selectedCustomerId);
     if (!customer) return;
 
     const discount = parseFloat(orderDiscount) || undefined;
+    const settings = await supabaseService.getSettings(); // Get fresh settings
 
-    const order = addOrder({
-      customerId: customer.id,
-      customerName: customer.name,
-      customerEmail: customer.email,
-      items,
-      subtotal: calculateSubtotal(),
-      tax: calculateTax(),
-      total: calculateTotal(),
-      discount,
-      discountType: discount ? orderDiscountType : undefined,
-      status,
-      notes,
-      deliveryDate: deliveryDate || undefined,
-    });
+    try {
+      const order = await supabaseService.addOrder({
+        customerId: customer.id,
+        customerName: customer.name,
+        customerEmail: customer.email || "", // Handle missing email for old customers
+        items,
+        subtotal: calculateSubtotal(),
+        tax: (calculateSubtotal() - (calculateDiscount() || 0)) * (settings.taxRate / 100),
+        total: calculateTotal(), // Note: total calc in UI should ideally match server/settings
+        discount,
+        discountType: discount ? orderDiscountType : undefined,
+        status,
+        notes,
+        deliveryDate: deliveryDate || undefined,
+      });
 
-    toast({
-      title: status === "draft" ? "Draft Saved" : "Order Created",
-      description: `Order ${order.orderNumber} has been ${status === "draft" ? "saved as draft" : "created successfully"}`,
-    });
+      if (order) {
+        toast({
+          title: status === "draft" ? "Draft Saved" : "Order Created",
+          description: `Order ${order.orderNumber} has been ${status === "draft" ? "saved as draft" : "created successfully"}`,
+        });
 
-    router.push(`/orders/${order.id}`);
+        router.push(`/orders/${order.id}`);
+      } else {
+        throw new Error("Failed to create order");
+      }
+    } catch (error) {
+      console.error("Order creation failed", error);
+      toast({
+        title: "Error",
+        description: "Failed to create order. Please try again.",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+    }
   };
 
   if (!mounted) {
     return null;
+  }
+  
+  if (isLoading && customers.length === 0) {
+     return <div className="p-8 text-center">Loading database...</div>;
   }
 
   return (
