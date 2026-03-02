@@ -323,5 +323,5 @@ export const INITIAL_CUSTOMERS_DATA: Customer[] = [
     phone: "514-277-1522",
     mobile: "514-691-4862",
     createdAt: new Date().toISOString()
-  }
+  },
 ];
