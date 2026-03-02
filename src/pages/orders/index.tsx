@@ -8,8 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { getOrders, saveOrders, createInvoiceFromOrder } from "@/lib/store";
-import { bulkUpdateOrderStatus, bulkCreateInvoices } from "@/lib/batch";
+import { supabaseService } from "@/services/supabaseService";
 import type { Order } from "@/types";
 
 export default function OrdersPage() {
@@ -24,8 +23,9 @@ export default function OrdersPage() {
     loadOrders();
   }, []);
 
-  const loadOrders = () => {
-    setOrders(getOrders());
+  const loadOrders = async () => {
+    const data = await supabaseService.getOrders();
+    setOrders(data);
   };
 
   const filteredOrders = orders.filter(order => {
@@ -50,22 +50,35 @@ export default function OrdersPage() {
   };
 
   const handleBulkStatusUpdate = async (newStatus: Order["status"]) => {
-    const result = bulkUpdateOrderStatus(selectedOrders, newStatus);
-    loadOrders();
+    const ordersToUpdate = orders.filter(o => selectedOrders.includes(o.id));
+    
+    await Promise.all(ordersToUpdate.map(order => {
+      return supabaseService.updateOrder({ ...order, status: newStatus });
+    }));
+
+    await loadOrders();
     setSelectedOrders([]);
     toast({
       title: "Bulk Update Complete",
-      description: `${result.success} orders updated to ${newStatus}`,
+      description: `${ordersToUpdate.length} orders updated to ${newStatus}`,
     });
   };
 
   const handleBulkInvoiceGeneration = async () => {
-    const result = bulkCreateInvoices(selectedOrders);
-    loadOrders();
+    const ordersToProcess = orders.filter(o => selectedOrders.includes(o.id));
+    
+    // Fetch existing invoices to avoid duplicates? 
+    // For now, just generate. Service logic can be improved later to check.
+    
+    await Promise.all(ordersToProcess.map(order => {
+      return supabaseService.createInvoiceFromOrder(order);
+    }));
+
+    await loadOrders();
     setSelectedOrders([]);
     toast({
       title: "Invoices Generated",
-      description: `${result.success} invoices created successfully`,
+      description: `${ordersToProcess.length} invoices created successfully`,
     });
   };
 

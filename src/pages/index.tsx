@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useEffect, useState } from "react";
-import { getProducts, getOrders, getCustomers, cache, CACHE_KEYS } from "@/lib/store";
+import { supabaseService } from "@/services/supabaseService";
 import { AlertsPanel } from "@/components/AlertsPanel";
 import { KeyboardShortcutsHelp } from "@/components/KeyboardShortcutsHelp";
 import { useGlobalShortcuts } from "@/hooks/useKeyboardShortcuts";
@@ -32,38 +32,34 @@ export default function HomePage() {
   useGlobalShortcuts();
 
   useEffect(() => {
-    // Try to get cached stats first
-    const cachedStats = cache.get<any>(CACHE_KEYS.STATS);
-    
-    // Always load fresh data for search
-    const loadedProducts = getProducts();
-    const loadedOrders = getOrders();
-    const loadedCustomers = getCustomers();
-    setProducts(loadedProducts);
-    setOrders(loadedOrders);
-    setCustomers(loadedCustomers);
+    const loadData = async () => {
+      // Load fresh data from Supabase
+      const [loadedProducts, loadedOrders, loadedCustomers] = await Promise.all([
+        supabaseService.getProducts(),
+        supabaseService.getOrders(),
+        supabaseService.getCustomers()
+      ]);
 
-    if (cachedStats) {
-      setStats(cachedStats);
-    } else {
+      setProducts(loadedProducts);
+      setOrders(loadedOrders);
+      setCustomers(loadedCustomers);
+
+      // Calculate stats
       const revenue = loadedOrders.reduce((sum, order) => sum + order.total, 0);
       const pendingOrders = loadedOrders.filter(o => o.status === "pending" || o.status === "confirmed").length;
       const lowStockItems = loadedProducts.filter(p => (p.currentInventory || 0) < 50).length;
       
-      const newStats = {
+      setStats({
         totalOrders: loadedOrders.length,
         revenue,
         customers: loadedCustomers.length,
         products: loadedProducts.length,
         pendingOrders,
         lowStockItems,
-      };
-      
-      setStats(newStats);
-      
-      // Cache for 1 minute
-      cache.set(CACHE_KEYS.STATS, newStats, 60 * 1000);
-    }
+      });
+    };
+
+    loadData();
   }, []);
 
   const getFilteredCustomers = () => {
