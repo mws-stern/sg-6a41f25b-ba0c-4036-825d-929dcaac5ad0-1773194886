@@ -2,7 +2,7 @@ import { SEO } from "@/components/SEO";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { ArrowLeft, Plus, Trash2, Send, Save } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Send, Save, Copy, Zap } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,8 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
-import { getProducts, getCustomers, addOrder, getSettings } from "@/lib/store";
-import type { Product, Customer, OrderItem } from "@/types";
+import { getProducts, getCustomers, addOrder, getSettings, getOrders } from "@/lib/store";
+import type { Product, Customer, OrderItem, Order } from "@/types";
 
 export default function NewOrderPage() {
   const router = useRouter();
@@ -26,12 +26,23 @@ export default function NewOrderPage() {
   const [deliveryDate, setDeliveryDate] = useState("");
   const [orderDiscount, setOrderDiscount] = useState("");
   const [orderDiscountType, setOrderDiscountType] = useState<"percent" | "fixed">("percent");
+  const [customerOrders, setCustomerOrders] = useState<Order[]>([]);
 
   useEffect(() => {
     setMounted(true);
     setProducts(getProducts());
     setCustomers(getCustomers());
   }, []);
+
+  useEffect(() => {
+    if (selectedCustomerId) {
+      const allOrders = getOrders();
+      const custOrders = allOrders.filter(o => o.customerId === selectedCustomerId);
+      setCustomerOrders(custOrders);
+    } else {
+      setCustomerOrders([]);
+    }
+  }, [selectedCustomerId]);
 
   const addItem = () => {
     if (products.length === 0) return;
@@ -43,6 +54,37 @@ export default function NewOrderPage() {
       pricePerLb: products[0].pricePerLb,
       totalPrice: 0,
     }]);
+  };
+
+  const addQuickItem = (productId: string, quantity: number) => {
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
+
+    setItems([...items, {
+      productId: product.id,
+      productName: product.name,
+      productNameHebrew: product.nameHebrew,
+      quantity,
+      pricePerLb: product.pricePerLb,
+      totalPrice: product.pricePerLb * quantity,
+    }]);
+  };
+
+  const duplicateLastOrder = () => {
+    if (customerOrders.length === 0) return;
+    
+    const lastOrder = customerOrders.sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    )[0];
+
+    setItems(lastOrder.items.map(item => ({...item})));
+    setNotes(lastOrder.notes || "");
+    setDeliveryDate(lastOrder.deliveryDate || "");
+    
+    toast({
+      title: "Order Duplicated",
+      description: `Loaded items from ${lastOrder.orderNumber}`,
+    });
   };
 
   const updateItem = (index: number, field: keyof OrderItem, value: any) => {
@@ -239,6 +281,55 @@ export default function NewOrderPage() {
                     </Link>
                   </div>
                 )}
+                {customerOrders.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <Button onClick={duplicateLastOrder} variant="outline" size="sm" className="gap-2">
+                      <Copy className="w-4 h-4" />
+                      Duplicate Last Order
+                    </Button>
+                    <span className="text-sm text-gray-600">
+                      {customerOrders.length} previous order{customerOrders.length > 1 ? 's' : ''}
+                    </span>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Quick Add Items */}
+            <Card className="border-amber-200">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Zap className="w-5 h-5" />
+                  Quick Add Items
+                </CardTitle>
+                <CardDescription>Click to instantly add popular quantities</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {products.slice(0, 6).map((product) => (
+                    <div key={product.id} className="space-y-2">
+                      <p className="text-sm font-semibold">{product.name}</p>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={() => addQuickItem(product.id, 5)}
+                          size="sm"
+                          variant="outline"
+                          className="flex-1"
+                        >
+                          5 lbs
+                        </Button>
+                        <Button
+                          onClick={() => addQuickItem(product.id, 10)}
+                          size="sm"
+                          variant="outline"
+                          className="flex-1"
+                        >
+                          10 lbs
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
 
