@@ -16,6 +16,7 @@ export default function NewCustomerPage() {
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     name: "",
+    nameHebrew: "",
     email: "",
     phone: "",
     address: "",
@@ -37,6 +38,15 @@ export default function NewCustomerPage() {
       toast({
         title: "Error",
         description: "Customer name is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.email) {
+      toast({
+        title: "Error",
+        description: "Email address is required",
         variant: "destructive",
       });
       return;
@@ -78,18 +88,31 @@ export default function NewCustomerPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="name" className="flex items-center gap-2">
-                    <User className="w-4 h-4" /> Name
+                    <User className="w-4 h-4" /> Name (English)
                   </Label>
                   <Input
                     id="name"
                     value={formData.name}
                     onChange={handleChange}
-                    placeholder="Full Name"
+                    placeholder="Full Name (e.g. Mr. John Doe)"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="nameHebrew" className="flex items-center gap-2">
+                    <User className="w-4 h-4" /> Name (Hebrew)
+                  </Label>
+                  <Input
+                    id="nameHebrew"
+                    value={formData.nameHebrew}
+                    onChange={handleChange}
+                    placeholder="שם מלא (לדוגמא: הר״ר יואל כהן)"
+                    className="text-right"
+                    dir="rtl"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email" className="flex items-center gap-2">
-                    <Mail className="w-4 h-4" /> Email
+                    <Mail className="w-4 h-4" /> Email <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="email"
@@ -97,6 +120,7 @@ export default function NewCustomerPage() {
                     value={formData.email}
                     onChange={handleChange}
                     placeholder="email@example.com"
+                    required
                   />
                 </div>
                 <div className="space-y-2">
