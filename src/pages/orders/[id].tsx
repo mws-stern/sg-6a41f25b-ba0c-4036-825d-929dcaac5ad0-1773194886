@@ -30,6 +30,7 @@ export default function OrderDetailsPage() {
   const [editedOrder, setEditedOrder] = useState<Order | undefined>(undefined);
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [emailPreviewOpen, setEmailPreviewOpen] = useState(false);
   
   const [paymentData, setPaymentData] = useState({
     amount: "",
@@ -326,12 +327,14 @@ export default function OrderDetailsPage() {
       
       if (result.success) {
         toast({
-          title: "Email Sent",
+          title: "✅ Email Sent Successfully",
           description: result.message,
+          duration: 5000,
         });
+        setEmailPreviewOpen(false);
       } else {
         toast({
-          title: "Email Failed",
+          title: "❌ Email Failed",
           description: result.message,
           variant: "destructive",
         });
@@ -345,6 +348,133 @@ export default function OrderDetailsPage() {
     } finally {
       setIsSendingEmail(false);
     }
+  };
+
+  const generateEmailPreview = () => {
+    if (!order || !customer) return "";
+    
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Order Confirmation</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(135deg, #d97706 0%, #ea580c 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+            <h1 style="color: white; margin: 0; font-size: 28px;">Order Confirmation</h1>
+            <p style="color: #fef3c7; margin: 10px 0 0 0;">Satmar Montreal Matzos</p>
+          </div>
+          
+          <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px;">
+            <p style="font-size: 16px; margin-bottom: 20px;">Dear <strong>${customer.name}</strong>,</p>
+            
+            <p style="font-size: 14px; color: #6b7280; margin-bottom: 20px;">
+              Thank you for your order! We have received your request and will prepare it with care.
+            </p>
+            
+            <div style="background: #fef3c7; border-left: 4px solid #d97706; padding: 15px; margin: 25px 0; border-radius: 4px;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span style="font-weight: 600;">Order Number:</span>
+                <span style="color: #d97706; font-weight: bold;">#${order.orderNumber}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span style="font-weight: 600;">Order Date:</span>
+                <span>${new Date(order.createdAt).toLocaleDateString()}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between;">
+                <span style="font-weight: 600;">Status:</span>
+                <span style="background: #22c55e; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; text-transform: uppercase;">${order.status}</span>
+              </div>
+            </div>
+
+            <h2 style="color: #1f2937; font-size: 18px; margin: 30px 0 15px 0; border-bottom: 2px solid #d97706; padding-bottom: 10px;">Order Items</h2>
+            
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+              <thead>
+                <tr style="background: #f9fafb; border-bottom: 2px solid #e5e7eb;">
+                  <th style="padding: 12px; text-align: left; font-weight: 600;">Item</th>
+                  <th style="padding: 12px; text-align: center; font-weight: 600;">Qty</th>
+                  <th style="padding: 12px; text-align: right; font-weight: 600;">Price/lb</th>
+                  <th style="padding: 12px; text-align: right; font-weight: 600;">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${order.items.map((item, idx) => `
+                  <tr style="border-bottom: 1px solid #e5e7eb; ${idx % 2 === 1 ? 'background: #f9fafb;' : ''}">
+                    <td style="padding: 12px;">
+                      <strong>${item.productName}</strong>
+                      ${item.productNameHebrew ? `<br><span style="color: #6b7280; font-size: 13px;" dir="rtl">${item.productNameHebrew}</span>` : ''}
+                    </td>
+                    <td style="padding: 12px; text-align: center;">${item.quantity} lbs</td>
+                    <td style="padding: 12px; text-align: right;">$${item.pricePerLb.toFixed(2)}</td>
+                    <td style="padding: 12px; text-align: right; font-weight: 600;">$${item.totalPrice.toFixed(2)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+              <tfoot>
+                <tr style="border-top: 2px solid #e5e7eb;">
+                  <td colspan="3" style="padding: 12px; text-align: right; font-weight: 600;">Subtotal:</td>
+                  <td style="padding: 12px; text-align: right;">$${order.subtotal.toFixed(2)}</td>
+                </tr>
+                ${order.discount ? `
+                  <tr>
+                    <td colspan="3" style="padding: 12px; text-align: right; font-weight: 600; color: #22c55e;">Discount:</td>
+                    <td style="padding: 12px; text-align: right; color: #22c55e;">-$${order.discount.toFixed(2)}</td>
+                  </tr>
+                ` : ''}
+                <tr>
+                  <td colspan="3" style="padding: 12px; text-align: right; font-weight: 600;">Tax:</td>
+                  <td style="padding: 12px; text-align: right;">$${order.tax.toFixed(2)}</td>
+                </tr>
+                <tr style="background: #fef3c7; border-top: 2px solid #d97706;">
+                  <td colspan="3" style="padding: 15px; text-align: right; font-size: 18px; font-weight: bold;">Total:</td>
+                  <td style="padding: 15px; text-align: right; font-size: 18px; font-weight: bold; color: #d97706;">$${order.total.toFixed(2)}</td>
+                </tr>
+              </tfoot>
+            </table>
+
+            ${order.amountDue > 0 ? `
+              <div style="background: #fef2f2; border-left: 4px solid #ef4444; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                <p style="margin: 0; font-weight: 600; color: #991b1b;">
+                  Amount Due: <span style="font-size: 18px;">$${order.amountDue.toFixed(2)}</span>
+                </p>
+              </div>
+            ` : ''}
+
+            ${order.deliveryDate ? `
+              <div style="background: #dbeafe; border-left: 4px solid #3b82f6; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                <p style="margin: 0; font-weight: 600; color: #1e40af;">
+                  Requested Delivery Date: ${new Date(order.deliveryDate).toLocaleDateString()}
+                </p>
+              </div>
+            ` : ''}
+
+            ${order.notes ? `
+              <div style="margin: 25px 0; padding: 15px; background: #f9fafb; border-radius: 4px;">
+                <p style="margin: 0 0 8px 0; font-weight: 600; color: #4b5563;">Order Notes:</p>
+                <p style="margin: 0; color: #6b7280; font-style: italic;">${order.notes}</p>
+              </div>
+            ` : ''}
+
+            <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+              <p style="font-size: 14px; color: #6b7280; margin-bottom: 10px;">
+                If you have any questions about your order, please don't hesitate to contact us.
+              </p>
+              <p style="font-size: 14px; color: #4b5563;">
+                <strong>Satmar Montreal Matzos</strong><br>
+                Email: info@satmarmatzos.com<br>
+                Phone: (514) XXX-XXXX
+              </p>
+            </div>
+          </div>
+          
+          <div style="text-align: center; margin-top: 20px; padding: 20px; color: #9ca3af; font-size: 12px;">
+            <p style="margin: 0;">© ${new Date().getFullYear()} Satmar Montreal Matzos. All rights reserved.</p>
+          </div>
+        </body>
+      </html>
+    `;
   };
 
   if (!mounted) return null;
@@ -378,10 +508,66 @@ export default function OrderDetailsPage() {
                   <Edit className="w-4 h-4" />
                   Edit Order
                 </Button>
-                <Button variant="outline" onClick={handleEmailOrder} className="gap-2">
-                  <Mail className="w-4 h-4" />
-                  Email
-                </Button>
+                
+                <Dialog open={emailPreviewOpen} onOpenChange={setEmailPreviewOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="gap-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600">
+                      <Send className="w-4 h-4" />
+                      Send Email
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2">
+                        <Mail className="w-5 h-5 text-amber-600" />
+                        Email Preview - Order Confirmation
+                      </DialogTitle>
+                      <DialogDescription>
+                        Preview the email that will be sent to {customer?.email || order.customerEmail}
+                      </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="flex-1 overflow-y-auto border rounded-lg p-4 bg-gray-50">
+                      <div dangerouslySetInnerHTML={{ __html: generateEmailPreview() }} />
+                    </div>
+                    
+                    <DialogFooter className="flex items-center justify-between border-t pt-4">
+                      <div className="text-sm text-gray-500">
+                        {customer?.email ? (
+                          <span className="flex items-center gap-2">
+                            <Mail className="w-4 h-4" />
+                            Sending to: <strong>{customer.email}</strong>
+                          </span>
+                        ) : (
+                          <span className="text-red-600">⚠️ No email address on file</span>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="outline" onClick={() => setEmailPreviewOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button 
+                          onClick={handleSendEmail} 
+                          disabled={isSendingEmail || !customer?.email}
+                          className="gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
+                        >
+                          {isSendingEmail ? (
+                            <>
+                              <span className="animate-spin">⏳</span>
+                              Sending...
+                            </>
+                          ) : (
+                            <>
+                              <Send className="w-4 h-4" />
+                              Send Email
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+
                 <Button variant="outline" onClick={() => window.print()} className="gap-2">
                   <Printer className="w-4 h-4" />
                   Print
