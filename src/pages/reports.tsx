@@ -1,7 +1,7 @@
 import { SEO } from "@/components/SEO";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, TrendingUp, DollarSign, ShoppingCart, Users, Calendar, Download, FileText } from "lucide-react";
+import { ArrowLeft, TrendingUp, DollarSign, ShoppingCart, Users, Calendar, Download, FileText, Filter } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -17,6 +17,7 @@ export default function ReportsPage() {
   const [customerCount, setCustomerCount] = useState(0);
   const [mounted, setMounted] = useState(false);
   const [period, setPeriod] = useState("all");
+  const [reportType, setReportType] = useState("summary");
 
   useEffect(() => {
     setMounted(true);
@@ -254,7 +255,7 @@ export default function ReportsPage() {
 
         {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="border-amber-200">
+          <Card className="border-amber-200 hover:shadow-lg transition-shadow cursor-pointer">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-gray-600">Total Revenue</CardTitle>
               <DollarSign className="w-4 h-4 text-green-600" />
@@ -266,7 +267,7 @@ export default function ReportsPage() {
               </p>
             </CardContent>
           </Card>
-          <Card className="border-amber-200">
+          <Card className="border-amber-200 hover:shadow-lg transition-shadow cursor-pointer">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-gray-600">Orders</CardTitle>
               <ShoppingCart className="w-4 h-4 text-blue-600" />
@@ -276,7 +277,7 @@ export default function ReportsPage() {
               <p className="text-xs text-gray-500 mt-1">Total orders processed</p>
             </CardContent>
           </Card>
-          <Card className="border-amber-200">
+          <Card className="border-amber-200 hover:shadow-lg transition-shadow cursor-pointer">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-gray-600">Volume Sold</CardTitle>
               <TrendingUp className="w-4 h-4 text-orange-600" />
@@ -286,7 +287,7 @@ export default function ReportsPage() {
               <p className="text-xs text-gray-500 mt-1">Total weight of matzos</p>
             </CardContent>
           </Card>
-          <Card className="border-amber-200">
+          <Card className="border-amber-200 hover:shadow-lg transition-shadow cursor-pointer">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-gray-600">Active Customers</CardTitle>
               <Users className="w-4 h-4 text-purple-600" />
@@ -338,7 +339,7 @@ export default function ReportsPage() {
             <CardContent>
               <div className="space-y-4">
                 {stats.filteredOrders.slice(0, 5).map((order) => (
-                  <div key={order.id} className="flex items-center justify-between">
+                  <div key={order.id} className="flex items-center justify-between hover:bg-gray-50 p-2 rounded transition-colors">
                     <div className="flex items-center gap-3">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                         order.status === 'confirmed' || order.status === 'delivered' 

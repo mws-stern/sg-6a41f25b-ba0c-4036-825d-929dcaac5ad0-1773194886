@@ -1,13 +1,15 @@
 import { SEO } from "@/components/SEO";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { DollarSign, TrendingUp, TrendingDown, CreditCard, Clock, CheckCircle, Receipt, Search, Filter } from "lucide-react";
+import { DollarSign, TrendingUp, TrendingDown, CreditCard, Clock, CheckCircle, Receipt, Search, Filter, Download } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getReceivablesSummary, getPayments, getInvoices } from "@/lib/store";
+import { generateOverdueReminders } from "@/lib/automation";
+import { useToast } from "@/hooks/use-toast";
 import type { ReceivablesSummary, Payment, Invoice } from "@/types";
 
 export default function ReceivablesPage() {
@@ -15,6 +17,7 @@ export default function ReceivablesPage() {
   const [allPayments, setAllPayments] = useState<Payment[]>([]);
   const [allInvoices, setAllInvoices] = useState<Invoice[]>([]);
   const [mounted, setMounted] = useState(false);
+  const { toast } = useToast();
   
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
@@ -24,10 +27,23 @@ export default function ReceivablesPage() {
 
   useEffect(() => {
     setMounted(true);
+    loadData();
+  }, []);
+
+  const loadData = () => {
     setSummary(getReceivablesSummary());
     setAllPayments(getPayments());
     setAllInvoices(getInvoices());
-  }, []);
+  };
+
+  const handleGenerateReminders = () => {
+    const reminders = generateOverdueReminders();
+    toast({
+      title: "Reminders Generated",
+      description: `${reminders.length} overdue invoices need attention`,
+    });
+    console.log("Overdue reminders:", reminders);
+  };
 
   if (!mounted || !summary) return null;
 
@@ -80,14 +96,24 @@ export default function ReceivablesPage() {
     return matchesSearch && matchesStatus;
   });
 
+  const overdueInvoices = allInvoices.filter(inv => 
+    !inv.paid && new Date(inv.dueDate) < new Date()
+  );
+
   return (
     <>
       <SEO title="Receivables & Payments - Satmar Montreal Matzos" />
       
       <div className="container mx-auto px-6 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Receivables & Payments</h1>
-          <p className="text-gray-600">Track payments and outstanding balances</p>
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Receivables & Payments</h1>
+            <p className="text-gray-600">Track payments and outstanding balances</p>
+          </div>
+          <Button onClick={handleGenerateReminders} variant="outline" className="gap-2">
+            <Clock className="w-4 h-4" />
+            Check Overdue ({overdueInvoices.length})
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -221,7 +247,7 @@ export default function ReceivablesPage() {
               ) : (
                 <div className="space-y-3 max-h-[600px] overflow-y-auto">
                   {filteredPayments.map((payment) => (
-                    <div key={payment.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <div key={payment.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
                       <div className="flex items-center gap-3">
                         {getPaymentMethodIcon(payment.paymentMethod)}
                         <div>
@@ -280,37 +306,46 @@ export default function ReceivablesPage() {
                 <p className="text-gray-500 text-center py-8">No invoices found</p>
               ) : (
                 <div className="space-y-3 max-h-[600px] overflow-y-auto">
-                  {filteredInvoices.map((invoice) => (
-                    <div key={invoice.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
-                      <div>
-                        <p className="font-semibold text-gray-900">{invoice.invoiceNumber}</p>
-                        <p className="text-sm text-gray-600">{invoice.customerName}</p>
-                        <Badge 
-                          variant={
-                            invoice.paymentStatus === "paid" ? "default" :
-                            invoice.paymentStatus === "partial" ? "default" : "destructive"
-                          }
-                          className={invoice.paymentStatus === "paid" ? "bg-green-600 mt-1" : "mt-1"}
-                        >
-                          {invoice.paymentStatus === "unpaid" ? "Unpaid" : 
-                           invoice.paymentStatus === "partial" ? `Partial: $${invoice.amountPaid.toFixed(2)} / $${invoice.total.toFixed(2)}` :
-                           "Paid in Full"}
-                        </Badge>
+                  {filteredInvoices.map((invoice) => {
+                    const isOverdue = !invoice.paid && new Date(invoice.dueDate) < new Date();
+                    return (
+                      <div key={invoice.id} className={`flex items-center justify-between p-4 rounded-lg border transition-shadow hover:shadow-md ${isOverdue ? 'bg-red-50 border-red-300' : 'bg-gray-50 border-gray-200'}`}>
+                        <div>
+                          <p className="font-semibold text-gray-900">{invoice.invoiceNumber}</p>
+                          <p className="text-sm text-gray-600">{invoice.customerName}</p>
+                          <Badge 
+                            variant={
+                              invoice.paymentStatus === "paid" ? "default" :
+                              invoice.paymentStatus === "partial" ? "default" : "destructive"
+                            }
+                            className={invoice.paymentStatus === "paid" ? "bg-green-600 mt-1" : "mt-1"}
+                          >
+                            {invoice.paymentStatus === "unpaid" ? "Unpaid" : 
+                             invoice.paymentStatus === "partial" ? `Partial: $${invoice.amountPaid.toFixed(2)} / $${invoice.total.toFixed(2)}` :
+                             "Paid in Full"}
+                          </Badge>
+                          {isOverdue && (
+                            <Badge variant="destructive" className="mt-1 ml-2">
+                              <Clock className="w-3 h-3 mr-1" />
+                              OVERDUE
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <p className="text-lg font-bold text-gray-900">${invoice.total.toFixed(2)}</p>
+                          {invoice.amountDue > 0 && (
+                            <p className="text-sm font-semibold text-red-600">Due: ${invoice.amountDue.toFixed(2)}</p>
+                          )}
+                          <p className="text-xs text-gray-500">Due: {new Date(invoice.dueDate).toLocaleDateString()}</p>
+                          <Link href={`/invoices/${invoice.id}`}>
+                            <Button variant="link" size="sm" className="h-auto p-0 text-xs mt-1">
+                              View Invoice
+                            </Button>
+                          </Link>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-lg font-bold text-gray-900">${invoice.total.toFixed(2)}</p>
-                        {invoice.amountDue > 0 && (
-                          <p className="text-sm font-semibold text-red-600">Due: ${invoice.amountDue.toFixed(2)}</p>
-                        )}
-                        <p className="text-xs text-gray-500">Due: {new Date(invoice.dueDate).toLocaleDateString()}</p>
-                        <Link href={`/invoices/${invoice.id}`}>
-                          <Button variant="link" size="sm" className="h-auto p-0 text-xs mt-1">
-                            View Invoice
-                          </Button>
-                        </Link>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </CardContent>
