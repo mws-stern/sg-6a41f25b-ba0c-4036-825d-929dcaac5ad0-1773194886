@@ -47,19 +47,19 @@ export default function NewCustomerPage() {
     if (!formData.email) {
       toast({
         title: "Error",
-        description: "Email is required for new customers",
+        description: "Email address is required for new customers",
         variant: "destructive",
       });
       return;
     }
 
     addCustomer(formData);
-
+    
     toast({
-      title: "Customer Created",
-      description: `${formData.name} has been added to your database`,
+      title: "Success",
+      description: "Customer added successfully",
     });
-
+    
     router.push("/customers");
   };
 
@@ -112,18 +112,19 @@ export default function NewCustomerPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="flex items-center gap-2">
-                    <Mail className="w-4 h-4" /> Email <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    placeholder="email@example.com"
-                    required
-                  />
-                  <p className="text-xs text-gray-500">Required for new customers</p>
+                  <Label htmlFor="email">Email <span className="text-red-500">*</span></Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="customer@example.com"
+                      className="pl-9"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      required
+                    />
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
