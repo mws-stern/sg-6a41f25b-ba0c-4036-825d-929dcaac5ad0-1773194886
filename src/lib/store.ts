@@ -86,6 +86,37 @@ const INITIAL_PRODUCTS: Product[] = [
   },
 ];
 
+const INITIAL_CUSTOMERS: Customer[] = [
+  { id: "c1", name: "Mr. Burech Mordche Oberlander", nameHebrew: "הר\"ר ברוך מרדכי אבערלענדער הי\"ו", address: "1160 Lajoie", city: "Montreal", state: "QC", zip: "", phone: "", email: "", createdAt: new Date().toISOString() },
+  { id: "c2", name: "Mr. Shloma Oberlander", nameHebrew: "הר\"ר שלמה אבערלענדער הי\"ו", address: "704 Champagneur", city: "Montreal", state: "QC", zip: "", phone: "", email: "", createdAt: new Date().toISOString() },
+  { id: "c3", name: "Mr. Moshe Oberlander", nameHebrew: "הר\"ר משה אבערלענדער הי\"ו", address: "", city: "Montreal", state: "QC", zip: "", phone: "", email: "", createdAt: new Date().toISOString() },
+  { id: "c4", name: "Mr. Shloma Yitzchok Unger", nameHebrew: "הר\"ר שלמה יצחק אונגאר הי\"ו", address: "5689 Jeanne Mance", city: "Montreal", state: "QC", zip: "", phone: "", email: "", createdAt: new Date().toISOString() },
+  { id: "c5", name: "Mr. Chaim Unger", nameHebrew: "הרב חיים יהושע אשר אונגער הי\"ו", address: "5840 Durocher", city: "Montreal", state: "QC", zip: "", phone: "", email: "", createdAt: new Date().toISOString() },
+  { id: "c6", name: "Mr. Yakov Duvid Eisdorfer", nameHebrew: "הר''ר יעקב דוד אייזדארפער הי\"ו", address: "", city: "Montreal", state: "QC", zip: "", phone: "", email: "", createdAt: new Date().toISOString() },
+  { id: "c7", name: "Mrs. Eizen", nameHebrew: "מרת יעקב אייזען", address: "5880 Durocher", city: "Montreal", state: "QC", zip: "", phone: "", email: "", createdAt: new Date().toISOString() },
+  { id: "c8", name: "Mr. Shimon Altman", nameHebrew: "הר\"ר שמעון אלטמאן הי\"ו", address: "6062 Jeanne Mance", city: "Montreal", state: "QC", zip: "", phone: "", email: "", createdAt: new Date().toISOString() },
+  { id: "c9", name: "Mr. Yoel Itzkowitz", nameHebrew: "הר\"ר יואל איצקאוויטש הי\"ו", address: "747 Bloomfield", city: "Montreal", state: "QC", zip: "", phone: "", email: "", createdAt: new Date().toISOString() },
+  { id: "c10", name: "Mr. Shmiel Yide Itzkowitz", nameHebrew: "הר\"ר שמואל יודא איצקאוויטש הי\"ו", address: "181 De L'epee", city: "Montreal", state: "QC", zip: "", phone: "", email: "", createdAt: new Date().toISOString() },
+  { id: "c11", name: "Mr. Yakov Hersh Appeldorfer", nameHebrew: "הר\"ר יעקב הערש אפעלדארפער הי\"ו", address: "780 Querbes", city: "Montreal", state: "QC", zip: "", phone: "", email: "", createdAt: new Date().toISOString() },
+  { id: "c12", name: "Mr. Cheskel Appel", nameHebrew: "הר\"ר יחזקאל שרגא אפפעל הי\"ו", address: "663 Bloomfield", city: "Montreal", state: "QC", zip: "", phone: "", email: "", createdAt: new Date().toISOString() },
+  { id: "c13", name: "Mr. Yoel Ackerman", nameHebrew: "הר\"ר יואל אקערמאן הי\"ו", address: "304 Querbes", city: "Montreal", state: "QC", zip: "", phone: "", email: "", createdAt: new Date().toISOString() },
+  { id: "c14", name: "Mr. Yisroel Ackerman", nameHebrew: "הר\"ר ישראל אקערמאן הי\"ו", address: "6096 Durocher", city: "Montreal", state: "QC", zip: "", phone: "", email: "", createdAt: new Date().toISOString() },
+  { id: "c15", name: "Mr. Mordechai Orgel", nameHebrew: "הר\"ר מרדכי ארגעל הי\"ו", address: "5192 Durocher", city: "Montreal", state: "QC", zip: "", phone: "", email: "", createdAt: new Date().toISOString() },
+  { id: "c16", name: "Rabbi Chaim Ashkenazi", nameHebrew: "הרב חיים אשכנזי שליט\"א", address: "149 Querbes", city: "Montreal", state: "QC", zip: "", phone: "", email: "", createdAt: new Date().toISOString() },
+  { id: "c17", name: "Mr. Arye Buchinger", nameHebrew: "הר\"ר ארי' בוכינגער הי\"ו", address: "633 Bloomfield", city: "Montreal", state: "QC", zip: "", phone: "", email: "", createdAt: new Date().toISOString() },
+  { id: "c18", name: "Mr. Yakov Bikel", nameHebrew: "הר\"ר יעקב ביקעל הי\"ו", address: "5641 Hutchison", city: "Montreal", state: "QC", zip: "", phone: "", email: "", createdAt: new Date().toISOString() },
+  { id: "c19", name: "Mr. Lipa Blumentahl", nameHebrew: "הר\"ר ליפא בלומענטאל הי\"ו", address: "5379 Durocher", city: "Montreal", state: "QC", zip: "", phone: "", email: "", createdAt: new Date().toISOString() },
+  { id: "c20", name: "Mr. Mordechai Blumentahl", nameHebrew: "הר\"ר מרדכי בלומענטאל הי\"ו", address: "6056 Hutchison", city: "Montreal", state: "QC", zip: "", phone: "", email: "", createdAt: new Date().toISOString() },
+  { id: "c21", name: "Mr. Yisrul Blier", nameHebrew: "הר\"ר ישראל בלייער הי\"ו", address: "5686 Durocher", city: "Montreal", state: "QC", zip: "", phone: "", email: "", createdAt: new Date().toISOString() },
+  { id: "c22", name: "Mr. Yoel Berger", nameHebrew: "הר\"ר יואל ברי\"ט בערגער הי\"ו", address: "760 De L'epee", city: "Montreal", state: "QC", zip: "", phone: "", email: "", createdAt: new Date().toISOString() },
+  { id: "c23", name: "Mr. Yoel Berger", nameHebrew: "הר\"ר יואל בערגער הי\"ו", address: "6128 Jeanne Mance", city: "Montreal", state: "QC", zip: "", phone: "", email: "", createdAt: new Date().toISOString() },
+  { id: "c24", name: "Mr. Yisruel Moshe Brody", nameHebrew: "הר\"ר ישראל משה בראדי הי\"ו", address: "5239 Hutchison", city: "Montreal", state: "QC", zip: "", phone: "", email: "", createdAt: new Date().toISOString() },
+  { id: "c25", name: "Mr. Shlome yide Broder", nameHebrew: "הר\"ר שלמה יודא בראדער הי\"ו", address: "6071 Durocher", city: "Montreal", state: "QC", zip: "", phone: "", email: "", createdAt: new Date().toISOString() },
+  { id: "c26", name: "Mr. Elimilech Brach", nameHebrew: "הר\"ר אלימלך בראך הי\"ו", address: "1371 Lajoie", city: "Montreal", state: "QC", zip: "", phone: "", email: "", createdAt: new Date().toISOString() },
+  { id: "c27", name: "Mr. Eliazer leib Brach", nameHebrew: "הר\"ר אליעזר לייב בראך הי\"ו", address: "21 Duverger", city: "Montreal", state: "QC", zip: "", phone: "", email: "", createdAt: new Date().toISOString() },
+  { id: "c28", name: "Mr. Pinchus Brach", nameHebrew: "הר\"ר פנחס בראך הי\"ו", address: "5724 Hutchison", city: "Montreal", state: "QC", zip: "", phone: "", email: "", createdAt: new Date().toISOString() },
+];
+
 // Helper to check if we're on the client
 const isClient = typeof window !== "undefined";
 
@@ -130,10 +161,15 @@ export const getCustomers = (): Customer[] => {
   const cached = cache.get<Customer[]>(CACHE_KEYS.CUSTOMERS);
   if (cached) return cached;
 
-  if (!isClient) return [];
+  if (!isClient) return INITIAL_CUSTOMERS;
   const stored = localStorage.getItem(STORAGE_KEYS.CUSTOMERS);
-  const customers = stored ? JSON.parse(stored) : [];
   
+  if (!stored) {
+    localStorage.setItem(STORAGE_KEYS.CUSTOMERS, JSON.stringify(INITIAL_CUSTOMERS));
+    return INITIAL_CUSTOMERS;
+  }
+  
+  const customers = JSON.parse(stored);
   cache.set(CACHE_KEYS.CUSTOMERS, customers);
   return customers;
 };

@@ -43,6 +43,7 @@ export default function NewCustomerPage() {
       return;
     }
 
+    // Email is required for NEW customers via form, even if optional in DB
     if (!formData.email) {
       toast({
         title: "Error",
