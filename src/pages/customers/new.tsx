@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { addCustomer } from "@/lib/store";
+import { supabaseService } from "@/services/supabaseService";
+import type { Customer } from "@/types";
 
 export default function NewCustomerPage() {
   const router = useRouter();
@@ -32,35 +33,45 @@ export default function NewCustomerPage() {
     setFormData((prev) => ({ ...prev, [id]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name) {
-      toast({
-        title: "Error",
-        description: "Customer name is required",
-        variant: "destructive",
-      });
-      return;
-    }
-
+    // Email validation
     if (!formData.email) {
       toast({
-        title: "Error",
-        description: "Email address is required for new customers",
+        title: "Validation Error",
+        description: "Email address is required.",
         variant: "destructive",
       });
       return;
     }
 
-    addCustomer(formData);
-    
-    toast({
-      title: "Success",
-      description: "Customer added successfully",
+    const newCustomer = await supabaseService.addCustomer({
+      name: formData.name,
+      nameHebrew: formData.nameHebrew,
+      email: formData.email,
+      phone: formData.phone,
+      mobile: formData.mobile,
+      address: formData.address,
+      city: formData.city,
+      state: formData.state,
+      zip: formData.zip,
+      notes: formData.notes,
     });
-    
-    router.push("/customers");
+
+    if (newCustomer) {
+      toast({
+        title: "Customer Created",
+        description: `${newCustomer.name} has been added to your database.`,
+      });
+      router.push("/customers");
+    } else {
+      toast({
+        title: "Error",
+        description: "Failed to create customer.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (

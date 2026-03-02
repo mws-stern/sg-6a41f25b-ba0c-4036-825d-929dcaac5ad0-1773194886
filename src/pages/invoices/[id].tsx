@@ -1,30 +1,51 @@
 import { SEO } from "@/components/SEO";
-import { useState, useEffect } from "react";
-import Link from "next/link";
 import { useRouter } from "next/router";
-import { ArrowLeft, Printer, Download } from "lucide-react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { getInvoice, getSettings } from "@/lib/store";
-import type { Settings } from "@/lib/store";
-import type { Invoice } from "@/types";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { ArrowLeft, Printer, Mail, Download } from "lucide-react";
+import { supabaseService } from "@/services/supabaseService";
+import type { Invoice, Settings } from "@/types";
 import { useToast } from "@/hooks/use-toast";
 
 export default function InvoicePage() {
   const router = useRouter();
   const { id } = router.query;
+  const [invoice, setInvoice] = useState<Invoice | null>(null);
+  const [settings, setSettings] = useState<Settings | null>(null);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
-  const [invoice, setInvoice] = useState<Invoice | undefined>(undefined);
-  const [settings, setSettings] = useState<Settings | undefined>(undefined);
-  const [mounted, setMounted] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
     if (id && typeof id === "string") {
-      setInvoice(getInvoice(id));
-      setSettings(getSettings());
+      const loadData = async () => {
+        const [inv, sett] = await Promise.all([
+          supabaseService.getInvoice(id),
+          supabaseService.getSettings()
+        ]);
+        setInvoice(inv);
+        setSettings(sett);
+        setLoading(false);
+      };
+      loadData();
     }
   }, [id]);
+
+  if (loading) {
+    return <div className="p-8 text-center">Loading invoice...</div>;
+  }
+
+  if (!invoice || !settings) {
+    return (
+      <div className="p-8 text-center">
+        <h1 className="text-2xl font-bold mb-4">Invoice Not Found</h1>
+        <Button onClick={() => router.push("/orders")}>Back to Orders</Button>
+      </div>
+    );
+  }
 
   const handlePrint = () => {
     window.print();
@@ -86,9 +107,6 @@ export default function InvoicePage() {
       setIsGeneratingPDF(false);
     }
   };
-
-  if (!mounted) return null;
-  if (!invoice || !settings) return <div>Invoice not found</div>;
 
   return (
     <>

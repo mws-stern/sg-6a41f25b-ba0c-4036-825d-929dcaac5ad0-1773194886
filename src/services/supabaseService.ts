@@ -394,6 +394,39 @@ export const supabaseService = {
     }));
   },
 
+  async getInvoice(id: string): Promise<Invoice | null> {
+    const { data, error } = await supabase
+      .from('invoices')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error || !data) {
+      console.error('Error fetching invoice:', error);
+      return null;
+    }
+
+    return {
+      id: data.id,
+      orderId: data.order_id,
+      invoiceNumber: data.invoice_number,
+      customerId: data.customer_id,
+      customerName: data.customer_name,
+      customerEmail: data.customer_email,
+      items: (data as any).items_json ? JSON.parse((data as any).items_json) : [],
+      subtotal: data.subtotal,
+      tax: data.tax,
+      total: data.total,
+      paid: data.paid,
+      paymentStatus: data.payment_status as "unpaid" | "partial" | "paid",
+      amountPaid: data.amount_paid,
+      amountDue: data.amount_due,
+      paidAt: data.paid_at,
+      createdAt: data.created_at,
+      dueDate: data.due_date
+    };
+  },
+
   async createInvoiceFromOrder(order: Order): Promise<Invoice | null> {
     const invoiceNumber = `INV-${Date.now()}`;
     const dueDate = new Date();
@@ -452,6 +485,29 @@ export const supabaseService = {
       .from('payments')
       .select('*')
       .eq('order_id', orderId)
+      .order('created_at', { ascending: false });
+      
+    if (error) return [];
+    
+    return data.map((p: any) => ({
+      id: p.id,
+      orderId: p.order_id,
+      invoiceId: p.invoice_id,
+      amount: p.amount,
+      paymentMethod: p.payment_method,
+      paymentDate: p.payment_date,
+      notes: p.notes,
+      createdAt: p.created_at,
+      creditCardLast4: p.credit_card_last4,
+      confirmed: p.confirmed,
+      confirmedAt: p.confirmed_at
+    }));
+  },
+
+  getAllPayments: async (): Promise<Payment[]> => {
+    const { data, error } = await supabase
+      .from('payments')
+      .select('*')
       .order('created_at', { ascending: false });
       
     if (error) return [];

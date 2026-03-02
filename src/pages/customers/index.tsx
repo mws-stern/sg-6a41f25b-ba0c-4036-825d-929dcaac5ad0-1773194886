@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ArrowLeft, Plus, Mail, Phone, MapPin, Eye } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { getCustomers } from "@/lib/store";
+import { supabaseService } from "@/services/supabaseService";
 import type { Customer } from "@/types";
 
 export default function CustomersPage() {
@@ -13,7 +13,11 @@ export default function CustomersPage() {
 
   useEffect(() => {
     setMounted(true);
-    setCustomers(getCustomers());
+    const loadCustomers = async () => {
+      const data = await supabaseService.getCustomers();
+      setCustomers(data);
+    };
+    loadCustomers();
   }, []);
 
   if (!mounted) {
