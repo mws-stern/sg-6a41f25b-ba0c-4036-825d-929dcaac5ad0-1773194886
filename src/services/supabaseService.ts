@@ -101,6 +101,26 @@ export const supabaseService = {
     };
   },
 
+  async updateCustomer(customer: Customer): Promise<void> {
+    const { error } = await supabase
+      .from('customers')
+      .update({
+        name: customer.name,
+        name_hebrew: customer.nameHebrew,
+        email: customer.email,
+        phone: customer.phone,
+        mobile: customer.mobile,
+        address: customer.address,
+        city: customer.city,
+        state: customer.state,
+        zip: customer.zip,
+        notes: customer.notes
+      })
+      .eq('id', customer.id);
+
+    if (error) console.error('Error updating customer:', error);
+  },
+
   // --- Products ---
   async getProducts(): Promise<Product[]> {
     const { data, error } = await supabase
@@ -274,12 +294,11 @@ export const supabaseService = {
     };
   },
 
-  async addOrder(order: Omit<Order, "id" | "orderNumber" | "createdAt" | "updatedAt" | "paymentStatus" | "amountPaid" | "amountDue" | "inventoryDeducted">): Promise<Order | null> {
-    // 1. Create Order
-    const orderNumber = `ORD-${Date.now()}`;
-    const now = new Date();
+  async addOrder(order: Omit<Order, "id" | "createdAt" | "orderNumber" | "paymentStatus" | "amountPaid" | "amountDue" | "updatedAt" | "inventoryDeducted" | "orderTime">): Promise<Order | null> {
+    const orderNumber = `ORD-${Date.now().toString().slice(-6)}`;
     
-    const { data: orderData, error: orderError } = await supabase
+    // 1. Insert order
+    const { data, error } = await supabase
       .from('orders')
       .insert({
         order_number: orderNumber,
@@ -297,56 +316,44 @@ export const supabaseService = {
         amount_due: order.total,
         notes: order.notes,
         delivery_date: order.deliveryDate,
-        order_time: now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
       })
       .select()
       .single();
 
-    if (orderError || !orderData) {
-      console.error('Error creating order:', orderError);
+    if (error || !data) {
+      console.error('Error adding order:', error);
       return null;
     }
 
-    // 2. Create Order Items
-    const itemsToInsert = order.items.map(item => ({
-      order_id: orderData.id,
-      product_id: item.productId,
-      product_name: item.productName,
-      product_name_hebrew: item.productNameHebrew,
-      quantity: item.quantity,
-      price_per_lb: item.pricePerLb,
-      total_price: item.totalPrice,
-      discount: item.discount,
-      discount_type: item.discountType,
-      final_price: item.finalPrice
-    }));
+    // 2. Insert items
+    if (order.items && order.items.length > 0) {
+      const itemsToInsert = order.items.map(item => ({
+        order_id: data.id,
+        product_id: item.productId,
+        product_name: item.productName,
+        product_name_hebrew: item.productNameHebrew,
+        quantity: item.quantity,
+        price_per_lb: item.pricePerLb,
+        total_price: item.totalPrice,
+        discount: item.discount,
+        discount_type: item.discountType,
+        final_price: item.finalPrice
+      }));
 
-    const { error: itemsError } = await supabase
-      .from('order_items')
-      .insert(itemsToInsert);
-
-    if (itemsError) {
-      console.error('Error creating order items:', itemsError);
-      // Ideally rollback order here, but for now just log
-      return null;
+      const { error: itemsError } = await supabase
+        .from('order_items')
+        .insert(itemsToInsert);
+        
+      if (itemsError) {
+        console.error('Error adding order items:', itemsError);
+      }
     }
 
-    return {
-      ...order,
-      id: orderData.id,
-      orderNumber: orderData.order_number,
-      paymentStatus: "unpaid",
-      amountPaid: 0,
-      amountDue: order.total,
-      inventoryDeducted: false,
-      createdAt: orderData.created_at,
-      updatedAt: orderData.updated_at
-    } as Order;
+    return this.getOrder(data.id);
   },
 
   async updateOrder(order: Order): Promise<void> {
-    // 1. Update Order details
-    const { error: orderError } = await supabase
+    const { error } = await supabase
       .from('orders')
       .update({
         customer_id: order.customerId,
@@ -363,34 +370,85 @@ export const supabaseService = {
         amount_due: order.amountDue,
         notes: order.notes,
         delivery_date: order.deliveryDate,
-        inventory_deducted: order.inventoryDeducted,
-        updated_at: new Date().toISOString()
+        inventory_deducted: order.inventoryDeducted
       })
       .eq('id', order.id);
 
-    if (orderError) {
-      console.error('Error updating order:', orderError);
-      return;
+    if (error) {
+      console.error('Error updating order:', error);
     }
 
-    // 2. Handle items (Delete all and recreate is simplest for now, though not most efficient)
-    // For a robust system, we'd diff items. For now, replace.
-    await supabase.from('order_items').delete().eq('order_id', order.id);
+    if (order.items) {
+      await supabase.from('order_items').delete().eq('order_id', order.id);
+      
+      if (order.items.length > 0) {
+        const itemsToInsert = order.items.map(item => ({
+          order_id: order.id,
+          product_id: item.productId,
+          product_name: item.productName,
+          product_name_hebrew: item.productNameHebrew,
+          quantity: item.quantity,
+          price_per_lb: item.pricePerLb,
+          total_price: item.totalPrice,
+          discount: item.discount,
+          discount_type: item.discountType,
+          final_price: item.finalPrice
+        }));
 
-    const itemsToInsert = order.items.map(item => ({
-      order_id: order.id,
-      product_id: item.productId,
-      product_name: item.productName,
-      product_name_hebrew: item.productNameHebrew,
-      quantity: item.quantity,
-      price_per_lb: item.pricePerLb,
-      total_price: item.totalPrice,
-      discount: item.discount,
-      discount_type: item.discountType,
-      final_price: item.finalPrice
-    }));
+        await supabase.from('order_items').insert(itemsToInsert);
+      }
+    }
+  },
 
-    await supabase.from('order_items').insert(itemsToInsert);
+  // --- Order Items ---
+  async addOrderItem(item: Omit<OrderItem, "id" | "createdAt">): Promise<OrderItem | null> {
+    const { data, error } = await supabase
+      .from('order_items')
+      .insert(item)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error adding order item:', error);
+      return null;
+    }
+
+    return {
+      id: data.id,
+      orderId: data.order_id,
+      productId: data.product_id,
+      productName: data.product_name,
+      productNameHebrew: data.product_name_hebrew,
+      quantity: data.quantity,
+      pricePerLb: data.price_per_lb,
+      totalPrice: data.total_price,
+      discount: data.discount,
+      discountType: data.discount_type,
+      finalPrice: data.final_price,
+      createdAt: data.created_at
+    };
+  },
+
+  async updateOrderItem(item: OrderItem): Promise<void> {
+    const { error } = await supabase
+      .from('order_items')
+      .update(item)
+      .eq('id', item.id);
+
+    if (error) {
+      console.error('Error updating order item:', error);
+    }
+  },
+
+  async deleteOrderItem(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('order_items')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting order item:', error);
+    }
   },
 
   // --- Invoices ---

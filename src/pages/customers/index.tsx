@@ -1,27 +1,50 @@
 import { SEO } from "@/components/SEO";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, Plus, Mail, Phone, MapPin, Eye } from "lucide-react";
+import { ArrowLeft, Plus, Search, Phone, Mail, MapPin } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { supabaseService } from "@/services/supabaseService";
 import type { Customer } from "@/types";
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
-  const [mounted, setMounted] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setMounted(true);
-    const loadCustomers = async () => {
-      const data = await supabaseService.getCustomers();
-      setCustomers(data);
-    };
     loadCustomers();
   }, []);
 
-  if (!mounted) {
-    return null;
+  const loadCustomers = async () => {
+    setLoading(true);
+    const data = await supabaseService.getCustomers();
+    setCustomers(data);
+    setLoading(false);
+  };
+
+  const filteredCustomers = customers.filter((customer) => {
+    const query = searchQuery.toLowerCase();
+    return (
+      customer.name.toLowerCase().includes(query) ||
+      (customer.nameHebrew && customer.nameHebrew.includes(query)) ||
+      (customer.email && customer.email.toLowerCase().includes(query)) ||
+      (customer.phone && customer.phone.includes(query)) ||
+      (customer.mobile && customer.mobile.includes(query))
+    );
+  });
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading customers...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -42,61 +65,86 @@ export default function CustomersPage() {
             </div>
           </div>
           <Link href="/customers/new">
-            <Button className="gap-2 bg-gradient-to-r from-purple-600 to-purple-700">
+            <Button className="gap-2">
               <Plus className="w-4 h-4" />
-              New Customer
+              Add Customer
             </Button>
           </Link>
         </div>
 
-        {customers.length === 0 ? (
-          <Card className="border-amber-200">
-            <CardContent className="flex flex-col items-center justify-center py-16">
-              <Mail className="w-16 h-16 text-gray-400 mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">No customers yet</h3>
-              <p className="text-gray-600 mb-6">Add your first customer to get started</p>
-              <Link href="/customers/new">
-                <Button className="gap-2">
-                  <Plus className="w-4 h-4" />
-                  Add First Customer
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {customers.map((customer) => (
-              <Card key={customer.id} className="border-amber-200 hover:shadow-lg transition-shadow">
+        <Card className="mb-6">
+          <CardContent className="pt-6">
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search customers by name, phone, or email..."
+                className="pl-9"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredCustomers.map((customer) => (
+            <Link key={customer.id} href={`/customers/${customer.id}`}>
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
                 <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span>{customer.name}</span>
-                    <Link href={`/customers/${customer.id}`}>
-                      <Button variant="ghost" size="icon">
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                    </Link>
+                  <CardTitle className="flex items-start justify-between">
+                    <div>
+                      <div className="text-lg font-bold">{customer.name}</div>
+                      {customer.nameHebrew && (
+                        <div className="text-sm text-gray-500 font-hebrew mt-1" dir="rtl">
+                          {customer.nameHebrew}
+                        </div>
+                      )}
+                    </div>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <Mail className="w-4 h-4" />
-                    <span className="text-sm">{customer.email}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <Phone className="w-4 h-4" />
-                    <span className="text-sm">{customer.phone}</span>
-                  </div>
-                  <div className="flex items-start gap-2 text-gray-600">
-                    <MapPin className="w-4 h-4 mt-1" />
-                    <span className="text-sm">
-                      {customer.address}<br />
-                      {customer.city}, {customer.state} {customer.zip}
-                    </span>
+                <CardContent>
+                  <div className="space-y-2 text-sm text-gray-600">
+                    {customer.email && (
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-4 h-4" />
+                        <span className="truncate">{customer.email}</span>
+                      </div>
+                    )}
+                    {customer.phone && (
+                      <div className="flex items-center gap-2">
+                        <Phone className="w-4 h-4" />
+                        <span>{customer.phone}</span>
+                      </div>
+                    )}
+                    {customer.mobile && (
+                      <div className="flex items-center gap-2">
+                        <Phone className="w-4 h-4" />
+                        <span>{customer.mobile}</span>
+                      </div>
+                    )}
+                    {customer.address && (
+                      <div className="flex items-start gap-2">
+                        <MapPin className="w-4 h-4 mt-0.5" />
+                        <span className="line-clamp-2">
+                          {customer.address}
+                          {customer.city && `, ${customer.city}`}
+                          {customer.state && `, ${customer.state}`}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
-            ))}
-          </div>
+            </Link>
+          ))}
+        </div>
+
+        {filteredCustomers.length === 0 && (
+          <Card>
+            <CardContent className="py-12 text-center">
+              <p className="text-gray-500">No customers found</p>
+            </CardContent>
+          </Card>
         )}
       </div>
     </>
