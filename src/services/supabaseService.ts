@@ -770,36 +770,26 @@ export const supabaseService = {
     if (customerCount === 0) {
       console.log('Seeding customers...');
       // Map INITIAL_CUSTOMERS_DATA to DB format
-      const customers = INITIAL_CUSTOMERS_DATA.map(c => ({
+      const customersToInsert = INITIAL_CUSTOMERS_DATA.map(c => ({
         name: c.name,
-        name_hebrew: c.nameHebrew,
-        email: c.email || null, // Allow null for seeded data? schema might require it. checked schema: email is nullable in my create table query? Wait.
-        // My create table query: email TEXT NOT NULL for customers. 
-        // Initial data might NOT have emails.
-        // I should probably check if schema enforces email.
-        // If schema enforces email, I need to provide dummy emails or modify schema.
-        // Let's assume for seeded data we might need dummy emails if strict.
-        // Actually, the user requirement "email required" was for the FORM.
-        // The imported data definitely doesn't have emails.
-        // I should check schema constraints first.
-        phone: c.phone,
-        mobile: c.mobile,
-        address: c.address,
-        city: c.city,
-        state: c.state,
-        zip: c.zip,
-        notes: c.notes
+        name_hebrew: c.nameHebrew || null,
+        email: c.email || null,
+        phone: c.phone || null,
+        mobile: c.mobile || null,
+        address: c.address || null,
+        city: c.city || null,
+        state: c.state || null,
+        zip: c.zip || null,
+        notes: c.notes || null
       }));
       
-      // Batch insert
-      const batchSize = 50;
-      for (let i = 0; i < customers.length; i += batchSize) {
-        const batch = customers.slice(i, i + batchSize);
-        // We need to be careful about the NOT NULL email constraint if it exists.
-        // Let's modify the customers table to ALLOW NULL email if it's strict, 
-        // OR provide placeholder emails.
-        // Given the legacy data, we MUST allow null emails for import.
-        await supabase.from('customers').insert(batch);
+      // Insert all at once to prevent multiple network requests failing
+      const { error } = await supabase.from('customers').insert(customersToInsert);
+      
+      if (error) {
+        console.error("Error seeding customers:", error);
+      } else {
+        console.log(`Successfully seeded ${customersToInsert.length} customers.`);
       }
     }
   }
