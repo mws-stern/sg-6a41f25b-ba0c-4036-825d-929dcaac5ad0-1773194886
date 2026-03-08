@@ -27,42 +27,31 @@ export default function Dashboard() {
     customers,
     orders,
     isLoading,
-    initializeStore,
-    loadCustomersIfNeeded,
-    loadOrdersIfNeeded,
+    isInitialized,
+    initialize,
     getTotalRevenue,
     getPendingOrders,
-    getLowStockProducts,
+    getCompletedOrders,
     getTopCustomers,
+    getLowStockProducts,
     getRecentOrders,
   } = useStore();
 
-  const [dataLoaded, setDataLoaded] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const loadData = async () => {
-      if (!dataLoaded) {
-        await initializeStore();
-        setDataLoaded(true);
-        
-        // Load additional data in background
-        setTimeout(() => {
-          loadCustomersIfNeeded();
-          loadOrdersIfNeeded();
-        }, 100);
-      }
-    };
-    loadData();
-  }, [dataLoaded, initializeStore, loadCustomersIfNeeded, loadOrdersIfNeeded]);
+    setMounted(true);
+    initialize();
+  }, [initialize]);
 
-  // Memoized calculations
-  const totalRevenue = getTotalRevenue();
+  // Use memoized getters
+  const totalRevenue = mounted ? getTotalRevenue() : 0;
   const pendingOrders = getPendingOrders();
   const lowStockProducts = getLowStockProducts();
   const topCustomers = getTopCustomers(5);
   const recentOrders = getRecentOrders(5);
 
-  if (isLoading && !dataLoaded) {
+  if (isLoading && !isInitialized) {
     return (
       <div className="p-8">
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
