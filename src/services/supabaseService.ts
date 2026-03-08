@@ -142,6 +142,38 @@ export const supabaseService = {
     if (error) console.error('Error updating product:', error);
   },
 
+  async addProduct(product: Omit<Product, "id">): Promise<Product | null> {
+    const { data, error } = await supabase
+      .from('products')
+      .insert({
+        name: product.name,
+        name_hebrew: product.nameHebrew,
+        price_per_lb: product.pricePerLb,
+        category: product.category,
+        description: product.description,
+        in_stock: product.inStock,
+        current_inventory: product.currentInventory
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error adding product:', error);
+      return null;
+    }
+
+    return {
+      id: data.id,
+      name: data.name,
+      nameHebrew: data.name_hebrew,
+      pricePerLb: data.price_per_lb,
+      category: data.category,
+      description: data.description,
+      inStock: data.in_stock,
+      currentInventory: data.current_inventory
+    };
+  },
+
   // --- Orders ---
   async getOrders(): Promise<Order[]> {
     const { data, error } = await supabase
