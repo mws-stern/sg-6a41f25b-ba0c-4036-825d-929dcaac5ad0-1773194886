@@ -12,7 +12,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Box,
-  DollarSign
+  DollarSign,
+  Mail
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -86,6 +87,17 @@ export function Sidebar() {
             </Link>
           );
         })}
+        <Link
+          href="/emails"
+          className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+            router.pathname === "/emails"
+              ? "bg-amber-800 text-white"
+              : "text-amber-100 hover:bg-amber-600"
+          }`}
+        >
+          <Mail className="h-5 w-5" />
+          <span>Emails</span>
+        </Link>
       </nav>
 
       {!isCollapsed && (
