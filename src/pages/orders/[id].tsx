@@ -134,28 +134,15 @@ export default function OrderDetailPage() {
 
     setSendingEmail(true);
     try {
-      // Use emailService to generate the HTML
-      const html = emailService.generateOrderConfirmationEmail(order, customer, products);
-      
-      const response = await fetch('/api/send-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: customer.email,
-          subject: `Order Confirmation #${order.orderNumber || order.id.slice(0, 8)}`,
-          html: html
-        })
-      });
+      const result = await emailService.sendOrderConfirmation(order, customer);
 
-      const data = await response.json();
-
-      if (response.ok) {
+      if (result.success) {
         toast({
           title: "Success",
           description: "Order confirmation email sent successfully"
         });
       } else {
-        throw new Error(data.error || 'Failed to send email');
+        throw new Error(result.error || 'Failed to send email');
       }
     } catch (error) {
       console.error('Error sending confirmation:', error);
@@ -181,29 +168,15 @@ export default function OrderDetailPage() {
 
     setSendingInvoice(true);
     try {
-      // Use emailService to generate the HTML
-      const html = emailService.generateInvoiceEmail(order, customer, products);
+      const result = await emailService.sendInvoice(order, customer);
 
-      const response = await fetch('/api/send-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: customer.email,
-          subject: `Invoice for Order #${order.orderNumber || order.id.slice(0, 8)}`,
-          html: html,
-          usebilling: true
-        })
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
+      if (result.success) {
         toast({
           title: "Success",
           description: "Invoice email sent successfully"
         });
       } else {
-        throw new Error(data.error || 'Failed to send email');
+        throw new Error(result.error || 'Failed to send email');
       }
     } catch (error) {
       console.error('Error sending invoice:', error);
