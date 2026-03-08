@@ -16,13 +16,15 @@ export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadCustomers();
   }, []);
 
-  const loadCustomers = async () => {
+  async function loadCustomers() {
     setLoading(true);
+    setError(null);
     try {
       console.log("Loading customers...");
       console.log("Auth user:", user);
@@ -36,7 +38,7 @@ export default function CustomersPage() {
 
       if (error) {
         console.error("Error loading customers:", error);
-        alert(`Error loading customers: ${error.message}`);
+        setError(`Error: ${error.message} (${error.code})`);
         return;
       }
 
@@ -58,11 +60,11 @@ export default function CustomersPage() {
       setCustomers(mappedCustomers);
     } catch (e) {
       console.error("Error loading customers:", e);
-      alert(`Error loading customers: ${e}`);
+      setError(`Network error: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   const filteredCustomers = customers.filter((customer) => {
     const query = searchQuery.toLowerCase();
@@ -81,6 +83,20 @@ export default function CustomersPage() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading customers...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center max-w-md">
+          <div className="text-red-600 text-xl mb-4">⚠️ Error Loading Customers</div>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <Button onClick={loadCustomers} variant="outline">
+            Try Again
+          </Button>
         </div>
       </div>
     );
