@@ -706,18 +706,19 @@ export const supabaseService = {
       .from('settings')
       .select('*')
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (error || !data) {
+      console.log('No settings found, returning defaults');
       // Return defaults if not found
       return {
         companyName: "Satmar Montreal Matzos",
         companyNameHebrew: "סאטמאר מאנטרעאל מצות",
-        email: "matzoh@satmarmtl.com",
-        phone: "(438) 300-8425",
-        address: "2765 Chemin de la Côte-Sainte-Catherine, Montreal, QC H3T 1B6",
-        taxRate: 14.975,
-        currency: "USD",
+        email: "sales@satmarmatzosmtl.ca",
+        phone: "(514) 000-0000",
+        address: "Montreal, QC, Canada",
+        taxRate: 0.14975,
+        currency: "CAD",
       };
     }
 
