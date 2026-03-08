@@ -1,7 +1,7 @@
-import { createContext, useContext, useEffect, useState } from "react";
-import { useRouter } from "next/router";
+import { useEffect, useState, createContext, useContext } from "react";
+import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import type { User } from "@supabase/supabase-js";
+import { useRouter } from "next/router";
 
 interface AuthContextType {
   user: User | null;
@@ -9,13 +9,11 @@ interface AuthContextType {
   signOut: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType>({
-  user: null,
+const AuthContext = createContext<AuthContextType>({ 
+  user: null, 
   loading: true,
-  signOut: async () => {},
+  signOut: async () => {} 
 });
-
-export const useAuth = () => useContext(AuthContext);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -24,40 +22,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Check active session
-    const checkSession = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        setUser(session?.user ?? null);
-        setLoading(false);
-      } catch (error) {
-        console.error("Error checking session:", error);
-        setLoading(false);
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      console.log("Auth session check:", { session: !!session, error });
+      setUser(session?.user ?? null);
+      setLoading(false);
+      
+      // Redirect to login if not authenticated and not already on login page
+      if (!session && router.pathname !== "/login") {
+        console.log("No session, redirecting to login");
+        router.push("/login");
       }
-    };
-
-    checkSession();
+    });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setUser(session?.user ?? null);
-        setLoading(false);
-
-        if (event === "SIGNED_IN") {
-          router.push("/");
-        } else if (event === "SIGNED_OUT") {
-          router.push("/login");
-        }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      console.log("Auth state changed:", { event: _event, session: !!session });
+      setUser(session?.user ?? null);
+      
+      if (!session && router.pathname !== "/login") {
+        router.push("/login");
       }
-    );
+    });
 
-    return () => {
-      subscription.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, [router]);
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    router.push("/login");
   };
 
   return (
@@ -66,3 +58,5 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     </AuthContext.Provider>
   );
 }
+
+export const useAuth = () => useContext(AuthContext);
