@@ -18,6 +18,7 @@ import {
 import Link from "next/link";
 import { Order, Customer, Product } from "@/types";
 import { supabaseService } from "@/services/supabaseService";
+import { emailService } from "@/services/emailService";
 import { toast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -122,37 +123,46 @@ export default function OrderDetailPage() {
   };
 
   const handleSendConfirmation = async () => {
-    if (!order || !customer) return;
-
-    try {
-      setSendingEmail(true);
-      const response = await fetch("/api/send-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "order-confirmation",
-          order,
-          customer,
-          products
-        }),
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        toast({
-          title: "Success",
-          description: "Order confirmation email sent successfully",
-        });
-      } else {
-        throw new Error(result.error || "Failed to send email");
-      }
-    } catch (error) {
-      console.error("Error sending confirmation:", error);
+    if (!customer?.email) {
       toast({
         title: "Error",
-        description: "Failed to send order confirmation email",
-        variant: "destructive",
+        description: "Customer email not found",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setSendingEmail(true);
+    try {
+      // Use emailService to generate the HTML
+      const html = emailService.generateOrderConfirmationEmail(order, customer, products);
+      
+      const response = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: customer.email,
+          subject: `Order Confirmation #${order.orderNumber || order.id.slice(0, 8)}`,
+          html: html
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Order confirmation email sent successfully"
+        });
+      } else {
+        throw new Error(data.error || 'Failed to send email');
+      }
+    } catch (error) {
+      console.error('Error sending confirmation:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to send confirmation email",
+        variant: "destructive"
       });
     } finally {
       setSendingEmail(false);
@@ -160,37 +170,47 @@ export default function OrderDetailPage() {
   };
 
   const handleSendInvoice = async () => {
-    if (!order || !customer) return;
-
-    try {
-      setSendingInvoice(true);
-      const response = await fetch("/api/send-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "invoice",
-          order,
-          customer,
-          products
-        }),
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        toast({
-          title: "Success",
-          description: "Invoice email sent successfully",
-        });
-      } else {
-        throw new Error(result.error || "Failed to send email");
-      }
-    } catch (error) {
-      console.error("Error sending invoice:", error);
+    if (!customer?.email) {
       toast({
         title: "Error",
-        description: "Failed to send invoice email",
-        variant: "destructive",
+        description: "Customer email not found",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setSendingInvoice(true);
+    try {
+      // Use emailService to generate the HTML
+      const html = emailService.generateInvoiceEmail(order, customer, products);
+
+      const response = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: customer.email,
+          subject: `Invoice for Order #${order.orderNumber || order.id.slice(0, 8)}`,
+          html: html,
+          usebilling: true
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Invoice email sent successfully"
+        });
+      } else {
+        throw new Error(data.error || 'Failed to send email');
+      }
+    } catch (error) {
+      console.error('Error sending invoice:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to send invoice email",
+        variant: "destructive"
       });
     } finally {
       setSendingInvoice(false);
