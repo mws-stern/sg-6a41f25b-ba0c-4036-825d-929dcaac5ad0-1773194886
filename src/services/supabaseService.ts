@@ -405,6 +405,11 @@ export const supabaseService = {
     }
   },
 
+  async deleteOrder(id: string): Promise<void> {
+    const { error } = await supabase.from('orders').delete().eq('id', id);
+    if (error) console.error('Error deleting order:', error);
+  },
+
   // --- Invoices ---
   async getInvoices(): Promise<Invoice[]> {
     const { data, error } = await supabase
