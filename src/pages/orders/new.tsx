@@ -15,14 +15,72 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { supabaseService } from "@/services/supabaseService";
+import { supabase } from "@/integrations/supabase/client";
 import type { Product, Customer, OrderItem, Order } from "@/types";
 
-export default function NewOrderPage() {
+export async function getServerSideProps() {
+  try {
+    const [
+      { data: pData },
+      { data: cData },
+      { data: oData }
+    ] = await Promise.all([
+      supabase.from("products").select("*").order("name"),
+      supabase.from("customers").select("*").order("name"),
+      supabase.from("orders").select("*").order("created_at", { ascending: false })
+    ]);
+
+    const products = (pData || []).map((p: any) => ({
+      id: p.id, name: p.name, nameHebrew: p.name_hebrew || null, 
+      pricePerLb: p.price_per_lb, category: p.category || 'regular', 
+      description: p.description || null, inStock: p.in_stock, 
+      currentInventory: p.current_inventory || 0
+    }));
+
+    const customers = (cData || []).map((c: any) => ({
+      id: c.id, name: c.name, nameHebrew: c.name_hebrew || null,
+      email: c.email || null, phone: c.phone || null, mobile: c.mobile || null,
+      address: c.address || null, city: c.city || null, state: c.state || null,
+      zip: c.zip || null, notes: c.notes || null, createdAt: c.created_at
+    }));
+
+    const orders = (oData || []).map((o: any) => ({
+      id: o.id, orderNumber: o.order_number, customerId: o.customer_id,
+      customerName: o.customer_name, customerEmail: o.customer_email || '',
+      status: o.status, items: typeof o.items === 'string' ? JSON.parse(o.items) : o.items,
+      subtotal: o.subtotal, tax: o.tax, total: o.total,
+      discount: o.discount || undefined, discountType: o.discount_type || undefined,
+      notes: o.notes || null, deliveryDate: o.delivery_date || null, createdAt: o.created_at
+    }));
+
+    return { 
+      props: { 
+        initialProducts: products, 
+        initialCustomers: customers, 
+        initialOrders: orders 
+      } 
+    };
+  } catch (error) {
+    console.error("Server fetch error:", error);
+    return { props: { initialProducts: [], initialCustomers: [], initialOrders: [] } };
+  }
+}
+
+export default function NewOrderPage({ 
+  initialProducts, 
+  initialCustomers, 
+  initialOrders 
+}: { 
+  initialProducts: Product[], 
+  initialCustomers: Customer[], 
+  initialOrders: Order[] 
+}) {
   const router = useRouter();
   const { toast } = useToast();
   const [mounted, setMounted] = useState(false);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [products] = useState<Product[]>(initialProducts || []);
+  const [customers] = useState<Customer[]>(initialCustomers || []);
+  const [allOrders] = useState<Order[]>(initialOrders || []);
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
   const [openCombobox, setOpenCombobox] = useState(false);
   const [items, setItems] = useState<OrderItem[]>([]);
@@ -31,65 +89,35 @@ export default function NewOrderPage() {
   const [orderDiscount, setOrderDiscount] = useState("");
   const [orderDiscountType, setOrderDiscountType] = useState<"percent" | "fixed">("percent");
   const [customerOrders, setCustomerOrders] = useState<Order[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [requireEmail, setRequireEmail] = useState(false);
   const [tempEmail, setTempEmail] = useState("");
 
   useEffect(() => {
     setMounted(true);
-    const loadData = async () => {
-      try {
-        setIsLoading(true);
-        // Seed data if needed
-        await supabaseService.seedInitialDataIfNeeded();
-        
-        const [fetchedProducts, fetchedCustomers] = await Promise.all([
-          supabaseService.getProducts(),
-          supabaseService.getCustomers()
-        ]);
-        
-        setProducts(fetchedProducts);
-        setCustomers(fetchedCustomers);
-      } catch (error) {
-        console.error("Failed to load data", error);
-        toast({
-          title: "Error",
-          description: "Failed to load data from database",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    loadData();
-  }, [toast]);
+  }, []);
 
   useEffect(() => {
-    const loadCustomerOrders = async () => {
-      if (selectedCustomerId) {
-        const allOrders = await supabaseService.getOrders();
-        const custOrders = allOrders.filter(o => o.customerId === selectedCustomerId);
-        setCustomerOrders(custOrders);
+    if (selectedCustomerId) {
+      const custOrders = allOrders.filter(o => o.customerId === selectedCustomerId);
+      setCustomerOrders(custOrders);
 
-        const customer = customers.find(c => c.id === selectedCustomerId);
-        if (customer && (!customer.email || !customer.email.includes("@"))) {
-          setRequireEmail(true);
-          setTempEmail("");
-        } else {
-          setRequireEmail(false);
-        }
+      const customer = customers.find(c => c.id === selectedCustomerId);
+      setSelectedCustomer(customer || null);
+      
+      if (customer && (!customer.email || !customer.email.includes("@"))) {
+        setRequireEmail(true);
+        setTempEmail("");
       } else {
-        setCustomerOrders([]);
         setRequireEmail(false);
       }
-    };
-    
-    if (selectedCustomerId) {
-      loadCustomerOrders();
+    } else {
+      setCustomerOrders([]);
+      setSelectedCustomer(null);
+      setRequireEmail(false);
     }
-  }, [selectedCustomerId, customers]);
+  }, [selectedCustomerId, customers, allOrders]);
 
   const addItem = () => {
     if (products.length === 0) return;
@@ -200,7 +228,7 @@ export default function NewOrderPage() {
   };
 
   const calculateTotal = () => {
-    const taxRate = 14.975; // Default tax rate, will be fetched from settings when saving
+    const taxRate = 14.975;
     const afterDiscount = calculateSubtotal() - calculateDiscount();
     const tax = afterDiscount * (taxRate / 100);
     return afterDiscount + tax;
@@ -233,7 +261,6 @@ export default function NewOrderPage() {
         });
         return;
       }
-      // Update customer email in DB
       const updatedCustomer = { ...customer, email: tempEmail };
       await supabaseService.updateCustomer(updatedCustomer);
       customer.email = tempEmail;
@@ -251,17 +278,17 @@ export default function NewOrderPage() {
 
     setIsLoading(true);
     const discount = parseFloat(orderDiscount) || undefined;
-    const settings = await supabaseService.getSettings(); // Get fresh settings
+    const settings = await supabaseService.getSettings();
 
     try {
       const order = await supabaseService.addOrder({
         customerId: customer.id,
         customerName: customer.name,
-        customerEmail: customer.email || "", // Handle missing email for old customers
+        customerEmail: customer.email || "",
         items,
         subtotal: calculateSubtotal(),
         tax: (calculateSubtotal() - (calculateDiscount() || 0)) * (settings.taxRate / 100),
-        total: calculateTotal(), // Note: total calc in UI should ideally match server/settings
+        total: calculateTotal(),
         discount,
         discountType: discount ? orderDiscountType : undefined,
         status,
