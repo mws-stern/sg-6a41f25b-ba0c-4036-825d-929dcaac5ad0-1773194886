@@ -68,16 +68,18 @@ export default function CustomerDetailPage() {
       return;
     }
 
-    const updated = await supabaseService.updateCustomer(customer.id, {
+    const updatedCustomer = {
       ...customer,
       email: tempEmail,
-    });
+    };
+    await supabaseService.updateCustomer(updatedCustomer);
 
-    if (updated) {
-      setCustomer(updated);
-      setIsEditingEmail(false);
-      alert("Email updated successfully!");
-    }
+    setCustomer(updatedCustomer);
+    setIsEditingEmail(false);
+    toast({
+      title: "Email Updated",
+      description: "Email has been saved successfully"
+    });
   }
 
   const handleChange = (field: keyof Customer, value: string) => {

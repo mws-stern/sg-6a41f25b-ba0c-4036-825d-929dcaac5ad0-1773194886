@@ -72,15 +72,24 @@ export default function NewOrderPage() {
         const allOrders = await supabaseService.getOrders();
         const custOrders = allOrders.filter(o => o.customerId === selectedCustomerId);
         setCustomerOrders(custOrders);
+
+        const customer = customers.find(c => c.id === selectedCustomerId);
+        if (customer && (!customer.email || !customer.email.includes("@"))) {
+          setRequireEmail(true);
+          setTempEmail("");
+        } else {
+          setRequireEmail(false);
+        }
       } else {
         setCustomerOrders([]);
+        setRequireEmail(false);
       }
     };
     
     if (selectedCustomerId) {
       loadCustomerOrders();
     }
-  }, [selectedCustomerId]);
+  }, [selectedCustomerId, customers]);
 
   const addItem = () => {
     if (products.length === 0) return;
@@ -212,6 +221,25 @@ export default function NewOrderPage() {
       return;
     }
 
+    const customer = customers.find(c => c.id === selectedCustomerId);
+    if (!customer) return;
+
+    if (requireEmail) {
+      if (!tempEmail || !tempEmail.includes("@")) {
+        toast({
+          title: "Email Required",
+          description: "Please enter a valid email address.",
+          variant: "destructive",
+        });
+        return;
+      }
+      // Update customer email in DB
+      const updatedCustomer = { ...customer, email: tempEmail };
+      await supabaseService.updateCustomer(updatedCustomer);
+      customer.email = tempEmail;
+      setRequireEmail(false);
+    }
+
     if (items.length === 0) {
       toast({
         title: "Error",
@@ -222,9 +250,6 @@ export default function NewOrderPage() {
     }
 
     setIsLoading(true);
-    const customer = customers.find(c => c.id === selectedCustomerId);
-    if (!customer) return;
-
     const discount = parseFloat(orderDiscount) || undefined;
     const settings = await supabaseService.getSettings(); // Get fresh settings
 
@@ -383,6 +408,25 @@ export default function NewOrderPage() {
                     <span className="text-sm text-gray-600">
                       {customerOrders.length} previous order{customerOrders.length > 1 ? 's' : ''}
                     </span>
+                  </div>
+                )}
+                
+                {requireEmail && (
+                  <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg space-y-2">
+                    <Label className="flex items-center gap-2 text-amber-800 font-medium">
+                      <Mail className="w-4 h-4" />
+                      Email Required for Orders
+                    </Label>
+                    <Input
+                      type="email"
+                      placeholder="Enter customer's email address..."
+                      value={tempEmail}
+                      onChange={(e) => setTempEmail(e.target.value)}
+                      className="bg-white"
+                    />
+                    <p className="text-xs text-amber-700">
+                      We need an email address to send the order confirmation and invoice. This will be saved to their profile.
+                    </p>
                   </div>
                 )}
               </CardContent>
