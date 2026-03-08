@@ -1,22 +1,23 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { Product, Customer, Order, AppState } from "@/types";
+import type { Product, Customer, Order, Invoice, AppState } from "@/types";
 import { supabaseService } from "@/services/supabaseService";
+import { supabase } from "@/integrations/supabase/client";
 
-// Memoization cache for expensive computations
-const memoCache = new Map<string, { value: any; timestamp: number }>();
-const CACHE_DURATION = 5000; // 5 seconds
+// Memoization cache
+const cache = new Map<string, { value: any; timestamp: number }>();
+const CACHE_TTL = 5000; // 5 seconds
 
 function memoize<T>(key: string, fn: () => T): T {
-  const cached = memoCache.get(key);
+  const cached = cache.get(key);
   const now = Date.now();
-  
-  if (cached && now - cached.timestamp < CACHE_DURATION) {
+
+  if (cached && now - cached.timestamp < CACHE_TTL) {
     return cached.value;
   }
-  
+
   const value = fn();
-  memoCache.set(key, { value, timestamp: now });
+  cache.set(key, { value, timestamp: now });
   return value;
 }
 
@@ -26,58 +27,72 @@ const useStore = create<AppState>()(
       products: [],
       customers: [],
       orders: [],
+      invoices: [],
       isLoading: false,
       lastSync: null,
-      
-      // Optimized initialization - don't load everything at once
-      initializeStore: async () => {
+      isInitialized: false,
+
+      // Initialize store with authentication check
+      initialize: async () => {
         const state = get();
-        if (state.isLoading) return; // Prevent duplicate loads
-        
-        set({ isLoading: true });
+        if (state.isInitialized) return;
+
         try {
-          // Load only critical data first (products for order creation)
-          const products = await supabaseService.getProducts();
-          set({ products, lastSync: new Date().toISOString() });
+          // Check if user is authenticated
+          const { data: { session } } = await supabase.auth.getSession();
           
-          // Defer loading customers and orders
-          setTimeout(async () => {
-            const [customers, orders] = await Promise.all([
-              supabaseService.getCustomers(),
-              supabaseService.getOrders()
-            ]);
-            set({ customers, orders });
-          }, 100);
+          if (!session) {
+            // User not authenticated, don't try to load data
+            set({ isInitialized: true, isLoading: false });
+            return;
+          }
+
+          // User is authenticated, load data progressively
+          set({ isLoading: true });
+
+          // Load products first (most important for order creation)
+          const products = await supabaseService.getProducts();
+          set({ products, isInitialized: true });
+
+          // Load customers and orders in background
+          Promise.all([
+            supabaseService.getCustomers(),
+            supabaseService.getOrders(),
+          ]).then(([customers, orders]) => {
+            set({ customers, orders, isLoading: false, lastSync: Date.now() });
+          }).catch(error => {
+            console.error("Background data load error:", error);
+            set({ isLoading: false });
+          });
+
         } catch (error) {
-          console.error("Error initializing store:", error);
-        } finally {
+          console.error("Store initialization error:", error);
+          set({ isLoading: false, isInitialized: true });
+        }
+      },
+
+      refreshData: async () => {
+        try {
+          // Check authentication before refreshing
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) return;
+
+          set({ isLoading: true });
+          const [products, customers, orders] = await Promise.all([
+            supabaseService.getProducts(),
+            supabaseService.getCustomers(),
+            supabaseService.getOrders(),
+          ]);
+          set({
+            products,
+            customers,
+            orders,
+            lastSync: Date.now(),
+            isLoading: false,
+          });
+        } catch (error) {
+          console.error("Error refreshing data:", error);
           set({ isLoading: false });
-        }
-      },
-
-      // Lazy load customers only when needed
-      loadCustomersIfNeeded: async () => {
-        const state = get();
-        if (state.customers.length > 0) return;
-        
-        try {
-          const customers = await supabaseService.getCustomers();
-          set({ customers });
-        } catch (error) {
-          console.error("Error loading customers:", error);
-        }
-      },
-
-      // Lazy load orders only when needed
-      loadOrdersIfNeeded: async () => {
-        const state = get();
-        if (state.orders.length > 0) return;
-        
-        try {
-          const orders = await supabaseService.getOrders();
-          set({ orders });
-        } catch (error) {
-          console.error("Error loading orders:", error);
         }
       },
 
@@ -96,13 +111,13 @@ const useStore = create<AppState>()(
 
       updateProduct: async (id: string, updates: Partial<Product>) => {
         try {
-          const productToUpdate = get().products.find(p => p.id === id);
-          if (!productToUpdate) throw new Error("Product not found");
-          
-          const updatedProduct = { ...productToUpdate, ...updates };
-          await supabaseService.updateProduct(updatedProduct);
+          const state = get();
+          const existing = state.products.find((p) => p.id === id);
+          if (!existing) return;
+          const updated = { ...existing, ...updates } as Product;
+          await supabaseService.updateProduct(updated);
           set((state) => ({
-            products: state.products.map((p) => (p.id === id ? updatedProduct : p)),
+            products: state.products.map((p) => (p.id === id ? updated : p)),
           }));
         } catch (error) {
           console.error("Error updating product:", error);
@@ -112,8 +127,7 @@ const useStore = create<AppState>()(
 
       deleteProduct: async (id: string) => {
         try {
-          // Soft delete or handle missing method
-          // await supabaseService.deleteProduct(id);
+          await supabaseService.deleteProduct(id);
           set((state) => ({
             products: state.products.filter((p) => p.id !== id),
           }));
@@ -138,13 +152,13 @@ const useStore = create<AppState>()(
 
       updateCustomer: async (id: string, updates: Partial<Customer>) => {
         try {
-          const customerToUpdate = get().customers.find(c => c.id === id);
-          if (!customerToUpdate) throw new Error("Customer not found");
-          
-          const updatedCustomer = { ...customerToUpdate, ...updates };
-          await supabaseService.updateCustomer(updatedCustomer);
+          const state = get();
+          const existing = state.customers.find((c) => c.id === id);
+          if (!existing) return;
+          const updated = { ...existing, ...updates } as Customer;
+          await supabaseService.updateCustomer(updated);
           set((state) => ({
-            customers: state.customers.map((c) => (c.id === id ? updatedCustomer : c)),
+            customers: state.customers.map((c) => (c.id === id ? updated : c)),
           }));
         } catch (error) {
           console.error("Error updating customer:", error);
@@ -154,8 +168,7 @@ const useStore = create<AppState>()(
 
       deleteCustomer: async (id: string) => {
         try {
-          // Soft delete or handle missing method
-          // await supabaseService.deleteCustomer(id);
+          await supabaseService.deleteCustomer(id);
           set((state) => ({
             customers: state.customers.filter((c) => c.id !== id),
           }));
@@ -169,7 +182,7 @@ const useStore = create<AppState>()(
         try {
           const newOrder = await supabaseService.addOrder(order);
           set((state) => ({
-            orders: [newOrder, ...state.orders],
+            orders: [...state.orders, newOrder],
           }));
           return newOrder;
         } catch (error) {
@@ -180,13 +193,13 @@ const useStore = create<AppState>()(
 
       updateOrder: async (id: string, updates: Partial<Order>) => {
         try {
-          const orderToUpdate = get().orders.find(o => o.id === id);
-          if (!orderToUpdate) throw new Error("Order not found");
-          
-          const updatedOrder = { ...orderToUpdate, ...updates };
-          await supabaseService.updateOrder(updatedOrder);
+          const state = get();
+          const existing = state.orders.find((o) => o.id === id);
+          if (!existing) return;
+          const updated = { ...existing, ...updates } as Order;
+          await supabaseService.updateOrder(updated);
           set((state) => ({
-            orders: state.orders.map((o) => (o.id === id ? updatedOrder : o)),
+            orders: state.orders.map((o) => (o.id === id ? updated : o)),
           }));
         } catch (error) {
           console.error("Error updating order:", error);
@@ -196,7 +209,7 @@ const useStore = create<AppState>()(
 
       deleteOrder: async (id: string) => {
         try {
-          // await supabaseService.deleteOrder(id);
+          // Direct deletion since supabaseService doesn't have deleteOrder
           set((state) => ({
             orders: state.orders.filter((o) => o.id !== id),
           }));
@@ -209,91 +222,73 @@ const useStore = create<AppState>()(
       // Memoized calculations with caching
       getTotalRevenue: () => {
         return memoize("totalRevenue", () => {
-          const orders = get().orders;
-          return orders.reduce((sum, order) => {
-            const orderTotal = order.discount 
-              ? order.subtotal - order.discount 
-              : order.subtotal;
-            return sum + orderTotal;
-          }, 0);
+          const state = get();
+          return state.orders
+            .filter((o) => o.status === "delivered")
+            .reduce((sum, order) => sum + (order.subtotal - (order.discount || 0)), 0);
         });
       },
 
       getPendingOrders: () => {
         return memoize("pendingOrders", () => {
-          return get().orders.filter((order) => order.status === "pending");
+          const state = get();
+          return state.orders.filter((o) => o.status === "pending");
         });
       },
 
       getCompletedOrders: () => {
         return memoize("completedOrders", () => {
-          return get().orders.filter((order) => order.status === "delivered");
-        });
-      },
-
-      getLowStockProducts: () => {
-        return memoize("lowStockProducts", () => {
-          return get().products.filter(
-            (product) => (product.currentInventory || 0) <= 10
+          const state = get();
+          return state.orders.filter(
+            (o) => o.status === "delivered"
           );
         });
       },
 
       getTopCustomers: (limit = 5) => {
-        return memoize(`topCustomers-${limit}`, () => {
-          const { customers, orders } = get();
-          const customerSpending = customers.map((customer) => {
-            const customerOrders = orders.filter((o) => o.customerId === customer.id);
-            const totalSpent = customerOrders.reduce((sum, order) => {
-              const orderTotal = order.discount 
-                ? order.subtotal - order.discount 
-                : order.subtotal;
-              return sum + orderTotal;
-            }, 0);
-            return { ...customer, totalSpent };
-          });
+        return memoize(`topCustomers:${limit}`, () => {
+          const state = get();
+          const customerTotals = state.orders
+            .filter((o) => o.status === "delivered")
+            .reduce((acc, order) => {
+              const customerId = order.customerId;
+              if (!acc[customerId]) {
+                acc[customerId] = 0;
+              }
+              acc[customerId] += order.subtotal - (order.discount || 0);
+              return acc;
+            }, {} as Record<string, number>);
 
-          return customerSpending
-            .sort((a, b) => b.totalSpent - a.totalSpent)
-            .slice(0, limit);
+          return Object.entries(customerTotals)
+            .sort(([, a], [, b]) => b - a)
+            .slice(0, limit)
+            .map(([customerId, total]) => ({
+              ...state.customers.find((c) => c.id === customerId)!,
+              totalSpent: total,
+            }));
+        });
+      },
+
+      getLowStockProducts: () => {
+        return memoize("lowStockProducts", () => {
+          const state = get();
+          return state.products.filter(
+            (p) => (p.currentInventory || 0) < 10
+          );
         });
       },
 
       getRecentOrders: (limit = 5) => {
-        return memoize(`recentOrders-${limit}`, () => {
-          return [...get().orders]
+        return memoize(`recentOrders:${limit}`, () => {
+          const state = get();
+          return [...state.orders]
             .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
             .slice(0, limit);
         });
       },
-
-      refreshData: async () => {
-        set({ isLoading: true });
-        try {
-          const [products, customers, orders] = await Promise.all([
-            supabaseService.getProducts(),
-            supabaseService.getCustomers(),
-            supabaseService.getOrders(),
-          ]);
-          
-          // Clear memoization cache on refresh
-          memoCache.clear();
-          
-          set({
-            products,
-            customers,
-            orders,
-            lastSync: new Date().toISOString(),
-            isLoading: false,
-          });
-        } catch (error) {
-          console.error("Error refreshing data:", error);
-          set({ isLoading: false });
-        }
-      },
     }),
     {
-      name: "bakery-storage",
+      name: "bakery-store",
       partialize: (state) => ({
         products: state.products,
         customers: state.customers,
