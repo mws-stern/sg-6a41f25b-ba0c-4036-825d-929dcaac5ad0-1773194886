@@ -50,6 +50,9 @@ export default function CustomersPage() {
         address: c.address,
         city: c.city,
         state: c.state,
+        zip: c.zip,
+        notes: c.notes,
+        createdAt: c.created_at,
       }));
 
       setCustomers(mappedCustomers);
