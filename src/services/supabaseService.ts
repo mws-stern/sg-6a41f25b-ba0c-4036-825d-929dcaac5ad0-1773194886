@@ -400,57 +400,6 @@ export const supabaseService = {
     }
   },
 
-  // --- Order Items ---
-  async addOrderItem(item: Omit<OrderItem, "id" | "createdAt">): Promise<OrderItem | null> {
-    const { data, error } = await supabase
-      .from('order_items')
-      .insert(item)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error adding order item:', error);
-      return null;
-    }
-
-    return {
-      id: data.id,
-      orderId: data.order_id,
-      productId: data.product_id,
-      productName: data.product_name,
-      productNameHebrew: data.product_name_hebrew,
-      quantity: data.quantity,
-      pricePerLb: data.price_per_lb,
-      totalPrice: data.total_price,
-      discount: data.discount,
-      discountType: data.discount_type,
-      finalPrice: data.final_price,
-      createdAt: data.created_at
-    };
-  },
-
-  async updateOrderItem(item: OrderItem): Promise<void> {
-    const { error } = await supabase
-      .from('order_items')
-      .update(item)
-      .eq('id', item.id);
-
-    if (error) {
-      console.error('Error updating order item:', error);
-    }
-  },
-
-  async deleteOrderItem(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('order_items')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error deleting order item:', error);
-    }
-  },
-
   // --- Invoices ---
   async getInvoices(): Promise<Invoice[]> {
     const { data, error } = await supabase
