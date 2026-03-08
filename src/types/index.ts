@@ -137,6 +137,7 @@ export interface AppState {
   orders: Order[];
   invoices: Invoice[];
   isLoading: boolean;
+  isInitializing: boolean;
   lastSync: number | null;
   isInitialized: boolean;
   

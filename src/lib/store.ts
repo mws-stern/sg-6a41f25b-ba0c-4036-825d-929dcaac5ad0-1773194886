@@ -29,13 +29,18 @@ const useStore = create<AppState>()(
       orders: [],
       invoices: [],
       isLoading: false,
+      isInitializing: false,
       lastSync: null,
       isInitialized: false,
 
       // Initialize store with authentication check
       initialize: async () => {
         const state = get();
+        
+        // Prevent
         if (state.isInitialized) return;
+
+        set({ isInitializing: true });
 
         try {
           // Check if user is authenticated
@@ -69,6 +74,8 @@ const useStore = create<AppState>()(
           console.error("Store initialization error:", error);
           set({ isLoading: false, isInitialized: true });
         }
+
+        set({ isInitializing: false });
       },
 
       refreshData: async () => {
