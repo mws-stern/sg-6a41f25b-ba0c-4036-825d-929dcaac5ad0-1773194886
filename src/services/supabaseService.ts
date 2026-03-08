@@ -7,16 +7,24 @@ import { INITIAL_CUSTOMERS_DATA } from "@/lib/initialCustomers";
 export const supabaseService = {
   // --- Customers ---
   async getCustomers(): Promise<Customer[]> {
+    console.log('🔍 Fetching customers from Supabase...');
     const { data, error } = await supabase
       .from('customers')
       .select('*')
       .order('name');
       
     if (error) {
-      console.error('Error fetching customers:', error);
-      return [];
+      console.error('❌ Error fetching customers:', error);
+      console.error('Error details:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint
+      });
+      throw error;
     }
     
+    console.log('✅ Successfully fetched customers:', data?.length || 0);
     // Map snake_case to camelCase
     return data.map((c: any) => ({
       id: c.id,
