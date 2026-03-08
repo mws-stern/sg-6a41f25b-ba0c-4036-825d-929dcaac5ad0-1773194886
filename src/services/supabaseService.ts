@@ -118,7 +118,7 @@ export const supabaseService = {
       name: p.name,
       nameHebrew: p.name_hebrew,
       pricePerLb: p.price_per_lb,
-      category: p.category,
+      category: p.category as Product["category"],
       description: p.description,
       inStock: p.in_stock,
       currentInventory: p.current_inventory
@@ -754,12 +754,12 @@ export const supabaseService = {
     if (productCount === 0) {
       console.log('Seeding products...');
       const products = [
-        { name: "Rashi Matzoh", name_hebrew: "מצה רש\"י", price_per_lb: 0, category: "rashi", description: "Traditional Rashi style matzoh", in_stock: true, current_inventory: 0 },
-        { name: "Regular Matzoh", name_hebrew: "מצה רעגולער", price_per_lb: 0, category: "regular", description: "Standard matzoh", in_stock: true, current_inventory: 0 },
-        { name: "Spelt Matzoh", name_hebrew: "מצה ספעלט", price_per_lb: 0, category: "spelt", description: "Made with spelt flour", in_stock: true, current_inventory: 0 },
-        { name: "Whole Wheat Matzoh", name_hebrew: "מצה האל וויט", price_per_lb: 0, category: "wholewheat", description: "Whole wheat matzoh", in_stock: true, current_inventory: 0 },
-        { name: "Matzoh Flour", name_hebrew: "מצה מעהל", price_per_lb: 0, category: "flour", description: "Fine matzoh flour", in_stock: true, current_inventory: 0 },
-        { name: "Shvurim Matzoh", name_hebrew: "מצה שברים", price_per_lb: 0, category: "shvurim", description: "Broken matzoh pieces", in_stock: true, current_inventory: 0 },
+        { name: "Rashi Matzoh", name_hebrew: "מצה רש\"י", price_per_lb: 0, category: "rashi" as const, description: "Traditional Rashi style matzoh", in_stock: true, current_inventory: 0 },
+        { name: "Regular Matzoh", name_hebrew: "מצה רעגולער", price_per_lb: 0, category: "regular" as const, description: "Standard matzoh", in_stock: true, current_inventory: 0 },
+        { name: "Spelt Matzoh", name_hebrew: "מצה ספעלט", price_per_lb: 0, category: "spelt" as const, description: "Made with spelt flour", in_stock: true, current_inventory: 0 },
+        { name: "Whole Wheat Matzoh", name_hebrew: "מצה האל וויט", price_per_lb: 0, category: "wholewheat" as const, description: "Whole wheat matzoh", in_stock: true, current_inventory: 0 },
+        { name: "Matzoh Flour", name_hebrew: "מצה מעהל", price_per_lb: 0, category: "flour" as const, description: "Fine matzoh flour", in_stock: true, current_inventory: 0 },
+        { name: "Shvurim Matzoh", name_hebrew: "מצה שברים", price_per_lb: 0, category: "shvurim" as const, description: "Broken matzoh pieces", in_stock: true, current_inventory: 0 },
       ];
       await supabase.from('products').insert(products);
     }
