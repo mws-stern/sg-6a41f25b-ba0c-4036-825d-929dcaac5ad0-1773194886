@@ -2,20 +2,45 @@ import { SEO } from "@/components/SEO";
 import { useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Save, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { supabaseService } from "@/services/supabaseService";
 import type { Customer } from "@/types";
 
-export default function NewCustomerPage() {
+export async function getServerSideProps() {
+  try {
+    const { data, error } = await supabase
+      .from("customers")
+      .select("id, name, email, phone, mobile");
+
+    if (error) throw error;
+
+    return {
+      props: {
+        existingCustomers: data || [],
+      },
+    };
+  } catch (error) {
+    return {
+      props: {
+        existingCustomers: [],
+      },
+    };
+  }
+}
+
+export default function NewCustomerPage({ existingCustomers }: { existingCustomers: { id: string; name: string; email: string | null; phone: string | null; mobile: string | null }[] }) {
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
   
   const [formData, setFormData] = useState({
     name: "",
@@ -32,6 +57,42 @@ export default function NewCustomerPage() {
 
   const handleChange = (field: keyof typeof formData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    
+    // Check for duplicates as user types
+    if (field === "name" || field === "email" || field === "phone") {
+      checkForDuplicates(field, value);
+    }
+  };
+
+  const checkForDuplicates = (field: "name" | "email" | "phone", value: string) => {
+    if (!value || value.length < 3) {
+      setDuplicateWarning(null);
+      return;
+    }
+
+    const normalized = value.toLowerCase().trim();
+    
+    const duplicate = existingCustomers.find(c => {
+      if (field === "name") {
+        return c.name.toLowerCase().trim() === normalized;
+      }
+      if (field === "email" && c.email) {
+        return c.email.toLowerCase().trim() === normalized;
+      }
+      if (field === "phone") {
+        const cleanValue = value.replace(/\D/g, "");
+        const cleanPhone = (c.phone || "").replace(/\D/g, "");
+        const cleanMobile = (c.mobile || "").replace(/\D/g, "");
+        return cleanPhone === cleanValue || cleanMobile === cleanValue;
+      }
+      return false;
+    });
+
+    if (duplicate) {
+      setDuplicateWarning(`A customer with this ${field} already exists: "${duplicate.name}"`);
+    } else {
+      setDuplicateWarning(null);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -41,6 +102,46 @@ export default function NewCustomerPage() {
       toast({
         title: "Validation Error",
         description: "Customer name is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Final duplicate check before submission
+    const nameDuplicate = existingCustomers.find(c => 
+      c.name.toLowerCase().trim() === formData.name.toLowerCase().trim()
+    );
+    const emailDuplicate = formData.email && existingCustomers.find(c => 
+      c.email && c.email.toLowerCase().trim() === formData.email.toLowerCase().trim()
+    );
+    const cleanPhone = formData.phone.replace(/\D/g, "");
+    const phoneDuplicate = cleanPhone && existingCustomers.find(c => 
+      (c.phone && c.phone.replace(/\D/g, "") === cleanPhone) || 
+      (c.mobile && c.mobile.replace(/\D/g, "") === cleanPhone)
+    );
+
+    if (nameDuplicate) {
+      toast({
+        title: "Duplicate Customer",
+        description: `A customer named "${nameDuplicate.name}" already exists`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (emailDuplicate) {
+      toast({
+        title: "Duplicate Email",
+        description: `This email is already used by "${emailDuplicate.name}"`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (phoneDuplicate) {
+      toast({
+        title: "Duplicate Phone",
+        description: `This phone number is already used by "${phoneDuplicate.name}"`,
         variant: "destructive",
       });
       return;
@@ -81,6 +182,14 @@ export default function NewCustomerPage() {
             <p className="text-gray-600">Create a new customer record</p>
           </div>
         </div>
+
+        {duplicateWarning && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Potential Duplicate</AlertTitle>
+            <AlertDescription>{duplicateWarning}</AlertDescription>
+          </Alert>
+        )}
 
         <form onSubmit={handleSubmit}>
           <Card>
@@ -195,7 +304,7 @@ export default function NewCustomerPage() {
             <Link href="/customers">
               <Button type="button" variant="outline">Cancel</Button>
             </Link>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading || !!duplicateWarning}>
               <Save className="w-4 h-4 mr-2" />
               {loading ? "Saving..." : "Save Customer"}
             </Button>
