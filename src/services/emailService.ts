@@ -74,6 +74,7 @@ export const emailService = {
           to: customer.email,
           subject,
           html,
+          useBinding: true, // Use billing SMTP configuration
         }),
       });
 
