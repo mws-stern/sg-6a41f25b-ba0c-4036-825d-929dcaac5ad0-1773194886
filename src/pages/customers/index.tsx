@@ -17,6 +17,7 @@ export async function getServerSideProps() {
       .order("name", { ascending: true });
 
     if (error) {
+      console.error("Supabase error in getServerSideProps:", error);
       return { props: { initialCustomers: [], serverError: error.message } };
     }
 
@@ -42,6 +43,7 @@ export async function getServerSideProps() {
       },
     };
   } catch (e) {
+    console.error("Network error in getServerSideProps:", e);
     return {
       props: {
         initialCustomers: [],

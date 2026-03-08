@@ -154,26 +154,31 @@ export const supabaseService = {
 
   // --- Products ---
   async getProducts(): Promise<Product[]> {
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .order('name');
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .order('name');
 
-    if (error) {
-      console.error('Error fetching products:', error);
+      if (error) {
+        console.error('Error fetching products:', error);
+        return [];
+      }
+
+      return data.map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        nameHebrew: p.name_hebrew,
+        pricePerLb: p.price_per_lb,
+        category: p.category as Product["category"],
+        description: p.description,
+        inStock: p.in_stock,
+        currentInventory: p.current_inventory
+      }));
+    } catch (err) {
+      console.error("Network error fetching products:", err);
       return [];
     }
-
-    return data.map((p: any) => ({
-      id: p.id,
-      name: p.name,
-      nameHebrew: p.name_hebrew,
-      pricePerLb: p.price_per_lb,
-      category: p.category as Product["category"],
-      description: p.description,
-      inStock: p.in_stock,
-      currentInventory: p.current_inventory
-    }));
   },
 
   async updateProduct(product: Product): Promise<void> {
@@ -232,52 +237,57 @@ export const supabaseService = {
 
   // --- Orders ---
   async getOrders(): Promise<Order[]> {
-    const { data, error } = await supabase
-      .from('orders')
-      .select(`
-        *,
-        items:order_items(*)
-      `)
-      .order('created_at', { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          items:order_items(*)
+        `)
+        .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching orders:', error);
+      if (error) {
+        console.error('Error fetching orders:', error);
+        return [];
+      }
+
+      return data.map((o: any) => ({
+        id: o.id,
+        orderNumber: o.order_number,
+        customerId: o.customer_id,
+        customerName: o.customer_name,
+        customerEmail: o.customer_email,
+        items: o.items.map((i: any) => ({
+          productId: i.product_id,
+          productName: i.product_name,
+          productNameHebrew: i.product_name_hebrew,
+          quantity: i.quantity,
+          pricePerLb: i.price_per_lb,
+          totalPrice: i.total_price,
+          discount: i.discount,
+          discountType: i.discount_type,
+          finalPrice: i.final_price
+        })),
+        subtotal: o.subtotal,
+        tax: o.tax,
+        total: o.total,
+        discount: o.discount,
+        discountType: o.discount_type as "percent" | "fixed" | undefined,
+        status: o.status as "draft" | "pending" | "confirmed" | "preparing" | "ready" | "delivered" | "cancelled",
+        paymentStatus: o.payment_status as "unpaid" | "partial" | "paid",
+        amountPaid: o.amount_paid,
+        amountDue: o.amount_due,
+        notes: o.notes,
+        deliveryDate: o.delivery_date,
+        orderTime: o.order_time,
+        inventoryDeducted: o.inventory_deducted,
+        createdAt: o.created_at,
+        updatedAt: o.updated_at
+      }));
+    } catch (err) {
+      console.error("Network error fetching orders:", err);
       return [];
     }
-
-    return data.map((o: any) => ({
-      id: o.id,
-      orderNumber: o.order_number,
-      customerId: o.customer_id,
-      customerName: o.customer_name,
-      customerEmail: o.customer_email,
-      items: o.items.map((i: any) => ({
-        productId: i.product_id,
-        productName: i.product_name,
-        productNameHebrew: i.product_name_hebrew,
-        quantity: i.quantity,
-        pricePerLb: i.price_per_lb,
-        totalPrice: i.total_price,
-        discount: i.discount,
-        discountType: i.discount_type,
-        finalPrice: i.final_price
-      })),
-      subtotal: o.subtotal,
-      tax: o.tax,
-      total: o.total,
-      discount: o.discount,
-      discountType: o.discount_type as "percent" | "fixed" | undefined,
-      status: o.status as "draft" | "pending" | "confirmed" | "preparing" | "ready" | "delivered" | "cancelled",
-      paymentStatus: o.payment_status as "unpaid" | "partial" | "paid",
-      amountPaid: o.amount_paid,
-      amountDue: o.amount_due,
-      notes: o.notes,
-      deliveryDate: o.delivery_date,
-      orderTime: o.order_time,
-      inventoryDeducted: o.inventory_deducted,
-      createdAt: o.created_at,
-      updatedAt: o.updated_at
-    }));
   },
 
   async getOrder(id: string): Promise<Order | null> {
