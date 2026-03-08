@@ -126,6 +126,11 @@ export const supabaseService = {
     if (error) console.error('Error updating customer:', error);
   },
 
+  async deleteCustomer(id: string): Promise<void> {
+    const { error } = await supabase.from('customers').delete().eq('id', id);
+    if (error) console.error('Error deleting customer:', error);
+  },
+
   // --- Products ---
   async getProducts(): Promise<Product[]> {
     const { data, error } = await supabase
@@ -165,6 +170,11 @@ export const supabaseService = {
       .eq('id', product.id);
 
     if (error) console.error('Error updating product:', error);
+  },
+
+  async deleteProduct(id: string): Promise<void> {
+    const { error } = await supabase.from('products').delete().eq('id', id);
+    if (error) console.error('Error deleting product:', error);
   },
 
   async addProduct(product: Omit<Product, "id">): Promise<Product | null> {

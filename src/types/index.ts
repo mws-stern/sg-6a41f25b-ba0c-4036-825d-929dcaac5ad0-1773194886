@@ -135,12 +135,12 @@ export interface AppState {
   products: Product[];
   customers: Customer[];
   orders: Order[];
+  invoices: Invoice[];
   isLoading: boolean;
-  lastSync: string | null;
+  lastSync: number | null;
+  isInitialized: boolean;
   
-  initializeStore: () => Promise<void>;
-  loadCustomersIfNeeded: () => Promise<void>;
-  loadOrdersIfNeeded: () => Promise<void>;
+  initialize: () => Promise<void>;
   
   addProduct: (product: Omit<Product, "id">) => Promise<Product>;
   updateProduct: (id: string, updates: Partial<Product>) => Promise<void>;
