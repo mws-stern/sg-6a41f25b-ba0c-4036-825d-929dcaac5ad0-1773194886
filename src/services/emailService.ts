@@ -363,11 +363,11 @@ export const emailService = {
                           </tr>
                           <tr>
                             <td style="padding: 10px 0; color: #6b7280; font-size: 15px;">Amount Paid:</td>
-                            <td style="padding: 10px 0; text-align: right; font-size: 15px; color: #059669;">$${(order.amountPaid || 0).toFixed(2)}</td>
+                            <td style="padding: 10px 0; font-size: 16px; color: #059669; text-align: right; font-weight: 600;">$${(order.amountPaid || 0).toFixed(2)}</td>
                           </tr>
                           <tr style="border-top: 2px solid #e5e7eb;">
                             <td style="padding: 16px 0 0 0; color: #111827; font-size: 18px; font-weight: 700;">Balance Due:</td>
-                            <td style="padding: 16px 0 0 0; text-align: right; font-size: 18px; font-weight: 700; color: ${balanceDue > 0 ? "#dc2626" : "#059669"};">$${balanceDue.toFixed(2)}</td>
+                            <td style="padding: 16px 0 0 0; font-size: 18px; color: ${balanceDue > 0 ? "#dc2626" : "#059669"}; text-align: right; font-weight: 700;">$${balanceDue.toFixed(2)}</td>
                           </tr>
                         </table>
                       </div>
@@ -669,6 +669,14 @@ export const emailService = {
                           <tr style="border-top: 2px solid #e5e7eb;">
                             <td style="padding: 16px 0 0 0; font-size: 20px; color: #111827; font-weight: bold;">Total:</td>
                             <td style="padding: 16px 0 0 0; font-size: 20px; color: #f59e0b; text-align: right; font-weight: bold;">$${(order.total ?? 0).toFixed(2)}</td>
+                          </tr>
+                          <tr>
+                            <td style="padding: 10px 0; color: #6b7280; font-size: 15px;">Amount Paid:</td>
+                            <td style="padding: 10px 0; font-size: 16px; color: #166534; text-align: right; font-weight: 600;">$${(order.amountPaid ?? 0).toFixed(2)}</td>
+                          </tr>
+                          <tr style="border-top: 2px solid #e5e7eb;">
+                            <td style="padding: 16px 0 0 0; color: #111827; font-size: 18px; font-weight: 700;">Balance Due:</td>
+                            <td style="padding: 16px 0 0 0; font-size: 18px; color: #dc2626; text-align: right; font-weight: 700;">$${((order.total ?? 0) - (order.amountPaid ?? 0)).toFixed(2)}</td>
                           </tr>
                         </table>
                       </div>
