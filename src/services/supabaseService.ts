@@ -65,9 +65,14 @@ export const supabaseService = {
   async addCustomer(customer: Omit<Customer, "id" | "createdAt">): Promise<Customer | null> {
     const customerData = {
       name: customer.name,
-      phone: customer.phone || null,
+      name_hebrew: customer.nameHebrew || null,
       email: customer.email || null,
+      phone: customer.phone || null,
+      mobile: customer.mobile || null,
       address: customer.address || null,
+      city: customer.city || null,
+      state: customer.state || null,
+      zip: customer.zip || null,
       notes: customer.notes || null,
       created_at: new Date().toISOString(),
     };
