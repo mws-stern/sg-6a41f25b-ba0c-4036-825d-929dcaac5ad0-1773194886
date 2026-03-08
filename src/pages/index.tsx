@@ -166,13 +166,9 @@ export default function Dashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {recentOrders.length === 0 ? (
-                <p className="text-muted-foreground text-center py-8">
-                  No orders yet
-                </p>
-              ) : (
-                <div className="space-y-4">
-                  {recentOrders.map((order) => {
+              <div className="space-y-2">
+                {mounted && recentOrders.length > 0 ? (
+                  recentOrders.map((order) => {
                     const customer = customers.find((c) => c.id === order.customerId);
                     const orderTotal = order.discount 
                       ? order.subtotal - order.discount 
@@ -208,9 +204,13 @@ export default function Dashboard() {
                         </div>
                       </Link>
                     );
-                  })}
-                </div>
-              )}
+                  })
+                ) : (
+                  <p className="text-muted-foreground text-center py-8">
+                    No orders yet
+                  </p>
+                )}
+              </div>
             </CardContent>
           </Card>
 
