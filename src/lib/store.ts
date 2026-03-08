@@ -227,14 +227,14 @@ const useStore = create<AppState>()(
 
       getCompletedOrders: () => {
         return memoize("completedOrders", () => {
-          return get().orders.filter((order) => order.status === "completed");
+          return get().orders.filter((order) => order.status === "delivered");
         });
       },
 
       getLowStockProducts: () => {
         return memoize("lowStockProducts", () => {
           return get().products.filter(
-            (product) => product.stock <= (product.minStock || 10)
+            (product) => (product.currentInventory || 0) <= 10
           );
         });
       },

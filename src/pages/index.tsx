@@ -207,7 +207,7 @@ export default function Dashboard() {
                           <p className="font-semibold">${orderTotal.toFixed(2)}</p>
                           <Badge
                             variant={
-                              order.status === "completed"
+                              order.status === "delivered"
                                 ? "default"
                                 : order.status === "pending"
                                 ? "secondary"
@@ -297,7 +297,7 @@ export default function Dashboard() {
                       </p>
                     </div>
                     <Badge variant="destructive">
-                      {product.stock} left
+                      {product.currentInventory || 0} left
                     </Badge>
                   </Link>
                 ))}
