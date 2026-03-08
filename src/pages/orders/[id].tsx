@@ -311,41 +311,49 @@ export default function OrderDetailPage() {
                         <div>
                           <p className="font-semibold">{item.productName || getProductName(item.productId)}</p>
                           <p className="text-sm text-muted-foreground">
-                            Quantity: {item.quantity} × ${item.pricePerLb.toFixed(2)}
+                            Quantity: {item.quantity ?? 0} × ${(item.pricePerLb ?? 0).toFixed(2)}
                           </p>
-                          {item.discount > 0 && (
+                          {(item.discount ?? 0) > 0 && (
                             <p className="text-sm text-green-600">
                               Discount: {item.discount}{item.discountType === 'percent' ? '%' : '$'}
                             </p>
                           )}
                         </div>
-                        <p className="font-bold">${item.finalPrice.toFixed(2)}</p>
+                        <p className="font-bold">${(item.finalPrice ?? 0).toFixed(2)}</p>
                       </div>
                     ))
                   ) : (
                     <p className="text-muted-foreground">No items</p>
                   )}
 
-                  <div className="space-y-2 pt-4 border-t">
-                    <div className="flex justify-between">
-                      <span>Subtotal</span>
-                      <span>${order.subtotal.toFixed(2)}</span>
-                    </div>
-                    {order.discount > 0 && (
-                      <div className="flex justify-between text-green-600">
-                        <span>Discount ({order.discount}%)</span>
-                        <span>-${((order.subtotal * order.discount) / 100).toFixed(2)}</span>
+                  {/* Order Summary */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Order Summary</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span>Subtotal:</span>
+                          <span>${(order.subtotal ?? 0).toFixed(2)}</span>
+                        </div>
+                        {(order.discount ?? 0) > 0 && (
+                          <div className="flex justify-between text-green-600">
+                            <span>Discount:</span>
+                            <span>-${(order.discount ?? 0).toFixed(2)}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between">
+                          <span>Tax:</span>
+                          <span>${(order.tax ?? 0).toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between font-bold text-lg border-t pt-2">
+                          <span>Total:</span>
+                          <span>${(order.total ?? 0).toFixed(2)}</span>
+                        </div>
                       </div>
-                    )}
-                    <div className="flex justify-between">
-                      <span>Tax</span>
-                      <span>${order.tax.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between text-lg font-bold border-t pt-2">
-                      <span>Total</span>
-                      <span>${order.total.toFixed(2)}</span>
-                    </div>
-                  </div>
+                    </CardContent>
+                  </Card>
                 </div>
               </CardContent>
             </Card>
@@ -427,20 +435,29 @@ export default function OrderDetailPage() {
               </Card>
             )}
 
+            {/* Payment Information */}
             <Card>
               <CardHeader>
                 <CardTitle>Payment Information</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Amount Paid</span>
-                  <span className="font-semibold">${(order.amountPaid || 0).toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Balance Due</span>
-                  <span className="font-semibold text-red-600">
-                    ${(order.total - (order.amountPaid || 0)).toFixed(2)}
-                  </span>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span>Payment Status:</span>
+                    <Badge variant={order.paymentStatus === "paid" ? "default" : order.paymentStatus === "partial" ? "secondary" : "destructive"}>
+                      {order.paymentStatus}
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Amount Paid:</span>
+                    <span className="font-semibold">${(order.amountPaid ?? 0).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Balance Due:</span>
+                    <span className={`font-semibold ${((order.total ?? 0) - (order.amountPaid ?? 0)) > 0 ? "text-red-600" : "text-green-600"}`}>
+                      ${((order.total ?? 0) - (order.amountPaid ?? 0)).toFixed(2)}
+                    </span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
