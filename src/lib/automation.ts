@@ -1,5 +1,5 @@
 import type { Product, Order, Invoice } from "@/types";
-import { getProducts, getOrders, getInvoices } from "./store";
+import useStore from "./store";
 
 // Low stock threshold
 const LOW_STOCK_THRESHOLD = 50;
@@ -24,7 +24,7 @@ export type AutomationAlert = Alert;
  * Check for low inventory levels
  */
 export const checkLowInventory = (): Alert[] => {
-  const products = getProducts();
+  const products = useStore.getState().products;
   const alerts: Alert[] = [];
 
   products.forEach(product => {
@@ -50,7 +50,8 @@ export const checkLowInventory = (): Alert[] => {
  * Generate reminders for overdue invoices
  */
 export const generateOverdueReminders = (): Alert[] => {
-  const invoices = getInvoices();
+  // Mock invoices since they aren't in the store yet
+  const invoices: any[] = []; // useStore.getState().invoices if added later
   const now = new Date();
   const alerts: Alert[] = [];
 
@@ -79,7 +80,7 @@ export const generateOverdueReminders = (): Alert[] => {
  * Get recent high-value orders
  */
 export const getRecentHighValueOrders = (threshold: number = 500): Order[] => {
-  const orders = getOrders();
+  const orders = useStore.getState().orders;
   const weekAgo = new Date();
   weekAgo.setDate(weekAgo.getDate() - 7);
 

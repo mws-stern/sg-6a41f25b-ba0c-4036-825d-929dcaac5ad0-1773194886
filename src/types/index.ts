@@ -130,3 +130,35 @@ export interface EmailLog {
   sentAt: string;
   createdAt: string;
 }
+
+export interface AppState {
+  products: Product[];
+  customers: Customer[];
+  orders: Order[];
+  isLoading: boolean;
+  lastSync: string | null;
+  
+  initializeStore: () => Promise<void>;
+  loadCustomersIfNeeded: () => Promise<void>;
+  loadOrdersIfNeeded: () => Promise<void>;
+  
+  addProduct: (product: Omit<Product, "id">) => Promise<Product>;
+  updateProduct: (id: string, updates: Partial<Product>) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
+  
+  addCustomer: (customer: Omit<Customer, "id">) => Promise<Customer>;
+  updateCustomer: (id: string, updates: Partial<Customer>) => Promise<void>;
+  deleteCustomer: (id: string) => Promise<void>;
+  
+  addOrder: (order: Omit<Order, "id">) => Promise<Order>;
+  updateOrder: (id: string, updates: Partial<Order>) => Promise<void>;
+  deleteOrder: (id: string) => Promise<void>;
+  
+  getTotalRevenue: () => number;
+  getPendingOrders: () => Order[];
+  getCompletedOrders: () => Order[];
+  getLowStockProducts: () => Product[];
+  getTopCustomers: (limit?: number) => (Customer & { totalSpent: number })[];
+  getRecentOrders: (limit?: number) => Order[];
+  refreshData: () => Promise<void>;
+}
