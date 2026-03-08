@@ -261,10 +261,7 @@ export default function OrderDetailsPage() {
       notes: paymentData.notes,
       creditCardNumber: paymentData.paymentMethod === "credit_card" ? paymentData.creditCardNumber : undefined,
       creditCardExpiry: paymentData.paymentMethod === "credit_card" ? paymentData.creditCardExpiry : undefined,
-      creditCardCVV: paymentData.paymentMethod === "credit_card" ? paymentData.creditCardCVV : undefined,
       checkNumber: paymentData.paymentMethod === "check" ? paymentData.checkNumber : undefined,
-      eTransferReference: paymentData.paymentMethod === "e_transfer" ? paymentData.eTransferReference : undefined,
-      voucherCode: paymentData.paymentMethod === "voucher" ? paymentData.voucherCode : undefined,
       confirmed: paymentData.confirmed,
     });
 
@@ -746,8 +743,8 @@ export default function OrderDetailsPage() {
                             <p className="text-sm text-gray-600">
                               {getPaymentMethodLabel(payment.paymentMethod)}
                               {payment.creditCardLast4 && ` •••• ${payment.creditCardLast4}`}
-                              {payment.creditCardExpiry && ` Exp: ${payment.creditCardExpiry}`}
-                              {payment.checkNumber && ` #${payment.checkNumber}`}
+                              {payment.creditCardExpiry && payment.creditCardExpiry && ` Exp: ${payment.creditCardExpiry}`}
+                              {payment.checkNumber && payment.checkNumber && ` #${payment.checkNumber}`}
                             </p>
                             {payment.notes && (
                               <p className="text-xs text-gray-500 mt-1">{payment.notes}</p>

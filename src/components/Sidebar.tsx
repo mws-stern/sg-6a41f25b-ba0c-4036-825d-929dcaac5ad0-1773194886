@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useState, useEffect } from "react";
+import { useAuth } from "@/components/AuthProvider";
 import { 
   LayoutDashboard, 
   ShoppingCart, 
@@ -13,13 +14,15 @@ import {
   ChevronRight,
   Box,
   DollarSign,
-  Mail
+  Mail,
+  LogOut
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export function Sidebar() {
   const router = useRouter();
+  const { user, signOut } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -39,6 +42,8 @@ export function Sidebar() {
     { href: "/inventory", label: "Inventory", icon: Box },
     { href: "/products", label: "Products", icon: Package },
     { href: "/customers", label: "Customers", icon: Users },
+    { href: "/receivables", label: "Receivables", icon: DollarSign },
+    { href: "/emails", label: "Emails", icon: Mail },
     { href: "/reports", label: "Reports", icon: FileText },
     { href: "/settings", label: "Settings", icon: Settings },
   ];
@@ -87,24 +92,36 @@ export function Sidebar() {
             </Link>
           );
         })}
-        <Link
-          href="/emails"
-          className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-            router.pathname === "/emails"
-              ? "bg-amber-800 text-white"
-              : "text-amber-100 hover:bg-amber-600"
-          }`}
-        >
-          <Mail className="h-5 w-5" />
-          <span>Emails</span>
-        </Link>
       </nav>
 
-      {!isCollapsed && (
-        <div className="p-4 border-t border-amber-200 bg-amber-100/30">
-          <p className="text-xs text-center text-gray-500 font-heebo">
-            מערכת ניהול הזמנות
-          </p>
+      {!isCollapsed && user && (
+        <div className="p-4 border-t border-amber-200">
+          <div className="mb-2">
+            <p className="text-xs text-gray-500 truncate">{user.email}</p>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={signOut}
+            className="w-full justify-start text-gray-600 hover:text-amber-900 hover:bg-amber-100"
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Sign Out
+          </Button>
+        </div>
+      )}
+
+      {isCollapsed && user && (
+        <div className="p-2 border-t border-amber-200">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={signOut}
+            className="w-full text-gray-600 hover:text-amber-900 hover:bg-amber-100"
+            title="Sign Out"
+          >
+            <LogOut className="h-4 w-4" />
+          </Button>
         </div>
       )}
     </div>

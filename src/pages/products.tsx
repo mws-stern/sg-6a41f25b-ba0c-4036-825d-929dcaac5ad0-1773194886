@@ -329,8 +329,8 @@ export default function ProductsPage() {
                          <Label>Minimum Order</Label>
                          <Input 
                            type="number" 
-                           value={product.minOrder || ""} 
-                           onChange={(e) => updateProduct(product.id, "minOrder", parseFloat(e.target.value))}
+                           value={(product as any).minOrder || ""} 
+                           onChange={(e) => updateProduct(product.id, "minOrder" as any, parseFloat(e.target.value))}
                            placeholder="Optional"
                          />
                        </div>
