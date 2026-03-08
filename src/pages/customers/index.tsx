@@ -20,6 +20,21 @@ export default function CustomersPage() {
 
   useEffect(() => {
     loadCustomers();
+    
+    // Test direct fetch to see what's happening
+    const testFetch = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("customers")
+          .select("*")
+          .order("name", { ascending: true });
+        console.log("Test fetch response:", { data, error });
+      } catch (e) {
+        console.error("Test fetch error:", e);
+      }
+    };
+    
+    testFetch();
   }, []);
 
   async function loadCustomers() {
