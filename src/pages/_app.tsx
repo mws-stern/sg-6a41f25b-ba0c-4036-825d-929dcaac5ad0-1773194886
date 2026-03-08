@@ -1,92 +1,59 @@
 import "@/styles/globals.css";
-import { Sidebar } from "@/components/Sidebar";
-import { AuthProvider, useAuth } from "@/components/AuthProvider";
 import type { AppProps } from "next/app";
-import dynamic from "next/dynamic";
+import { ThemeProvider } from "@/contexts/ThemeProvider";
+import { Toaster } from "@/components/ui/toaster";
+import { AuthProvider } from "@/components/AuthProvider";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { useEffect } from "react";
-import "@fontsource/heebo/400.css";
-import "@fontsource/heebo/700.css";
-import "@fontsource/frank-ruhl-libre/400.css";
-import "@fontsource/frank-ruhl-libre/700.css";
+import dynamic from "next/dynamic";
 
-// Import Toaster dynamically with ssr disabled to prevent hydration issues
-const Toaster = dynamic(
-  () => import("@/components/ui/toaster").then((mod) => mod.Toaster),
-  { ssr: false }
-);
+// Lazy load Sidebar to reduce initial bundle
+const Sidebar = dynamic(() => import("@/components/Sidebar").then(mod => mod.Sidebar), {
+  ssr: false,
+  loading: () => <div className="w-64 bg-background border-r" />
+});
 
-function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
   const isLoginPage = router.pathname === "/login";
+  const is404Page = router.pathname === "/404";
 
   useEffect(() => {
-    if (!loading && !user && !isLoginPage) {
-      router.push("/login");
-    }
-  }, [user, loading, router, isLoginPage]);
+    const handleStart = () => setLoading(true);
+    const handleComplete = () => setLoading(false);
 
-  // Show loading state while checking authentication
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
-  }
+    router.events.on("routeChangeStart", handleStart);
+    router.events.on("routeChangeComplete", handleComplete);
+    router.events.on("routeChangeError", handleComplete);
 
-  // Don't render protected content if not authenticated (unless on login page)
-  if (!user && !isLoginPage) {
-    return null;
-  }
-
-  return <>{children}</>;
-}
-
-function AppContent({ Component, pageProps }: AppProps) {
-  const router = useRouter();
-  const isLoginPage = router.pathname === "/login";
-  const isPrintPage = router.pathname.includes("/invoices/");
-
-  if (isLoginPage) {
-    return (
-      <>
-        <Component {...pageProps} />
-        <Toaster />
-      </>
-    );
-  }
-
-  if (isPrintPage) {
-    return (
-      <div className="min-h-screen bg-white">
-        <Component {...pageProps} />
-        <Toaster />
-      </div>
-    );
-  }
+    return () => {
+      router.events.off("routeChangeStart", handleStart);
+      router.events.off("routeChangeComplete", handleComplete);
+      router.events.off("routeChangeError", handleComplete);
+    };
+  }, [router]);
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <Sidebar />
-      <main className="flex-1 overflow-auto h-screen">
-        <Component {...pageProps} />
-      </main>
-      <Toaster />
-    </div>
-  );
-}
-
-export default function App(props: AppProps) {
-  return (
-    <AuthProvider>
-      <AuthGuard>
-        <AppContent {...props} />
-      </AuthGuard>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        {!isLoginPage && !is404Page ? (
+          <div className="flex h-screen overflow-hidden">
+            <Sidebar />
+            <main className="flex-1 overflow-y-auto bg-background">
+              {loading && (
+                <div className="fixed top-0 left-0 right-0 h-1 bg-primary/20 z-50">
+                  <div className="h-full bg-primary animate-pulse" style={{ width: "30%" }} />
+                </div>
+              )}
+              <Component {...pageProps} />
+            </main>
+          </div>
+        ) : (
+          <Component {...pageProps} />
+        )}
+        <Toaster />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

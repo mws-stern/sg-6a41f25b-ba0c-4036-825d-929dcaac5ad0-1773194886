@@ -1,5 +1,5 @@
 import type { Order, Product, Customer } from "@/types";
-import { getOrders, saveOrders, getProducts, saveProducts, getCustomers, saveCustomers, createInvoiceFromOrder } from "./store";
+import useStore from "./store";
 
 export interface BulkOperationResult {
   success: number;
@@ -15,27 +15,19 @@ export const bulkUpdateOrderStatus = (
   orderIds: string[], 
   status: Order["status"]
 ): BulkOperationResult => {
-  const orders = getOrders();
+  const orders = useStore.getState().orders;
+  const updateOrder = useStore.getState().updateOrder;
   let successCount = 0;
   const failedCount = 0;
   const errors: string[] = [];
 
-  const updatedOrders = orders.map(order => {
-    if (orderIds.includes(order.id)) {
-      // Skip if status is already the same
-      if (order.status === status) {
-        return order;
-      }
-      
+  orderIds.forEach(orderId => {
+    const order = orders.find(o => o.id === orderId);
+    if (order && order.status !== status) {
+      updateOrder(orderId, { status, updatedAt: new Date().toISOString() });
       successCount++;
-      return { ...order, status, updatedAt: new Date().toISOString() };
     }
-    return order;
   });
-
-  if (successCount > 0) {
-    saveOrders(updatedOrders);
-  }
 
   return {
     success: successCount,
@@ -49,7 +41,7 @@ export const bulkUpdateOrderStatus = (
  * Bulk create invoices for orders
  */
 export const bulkCreateInvoices = (orderIds: string[]): BulkOperationResult => {
-  const orders = getOrders();
+  const orders = useStore.getState().orders;
   let successCount = 0;
   let failedCount = 0;
   const errors: string[] = [];
@@ -58,7 +50,7 @@ export const bulkCreateInvoices = (orderIds: string[]): BulkOperationResult => {
     const order = orders.find(o => o.id === orderId);
     if (order) {
       try {
-        createInvoiceFromOrder(order);
+        useStore.getState().createInvoiceFromOrder(order);
         successCount++;
       } catch (error) {
         failedCount++;
@@ -84,22 +76,18 @@ export const bulkCreateInvoices = (orderIds: string[]): BulkOperationResult => {
 export const bulkUpdateProductPrices = (
   updates: { id: string; price: number }[]
 ): BulkOperationResult => {
-  const products = getProducts();
+  const products = useStore.getState().products;
+  const updateProduct = useStore.getState().updateProduct;
   let successCount = 0;
   const failedCount = 0;
 
-  const updatedProducts = products.map(product => {
-    const update = updates.find(u => u.id === product.id);
-    if (update) {
+  updates.forEach(update => {
+    const product = products.find(p => p.id === update.id);
+    if (product) {
+      updateProduct(update.id, { pricePerLb: update.price });
       successCount++;
-      return { ...product, pricePerLb: update.price };
     }
-    return product;
   });
-
-  if (successCount > 0) {
-    saveProducts(updatedProducts);
-  }
 
   return {
     success: successCount,
@@ -114,22 +102,18 @@ export const bulkUpdateProductPrices = (
 export const bulkUpdateInventory = (
   updates: { id: string; amount: number }[]
 ): BulkOperationResult => {
-  const products = getProducts();
+  const products = useStore.getState().products;
+  const updateProduct = useStore.getState().updateProduct;
   let successCount = 0;
   const failedCount = 0;
 
-  const updatedProducts = products.map(product => {
-    const update = updates.find(u => u.id === product.id);
-    if (update) {
+  updates.forEach(update => {
+    const product = products.find(p => p.id === update.id);
+    if (product) {
+      updateProduct(update.id, { currentInventory: (product.currentInventory || 0) + update.amount });
       successCount++;
-      return { ...product, currentInventory: (product.currentInventory || 0) + update.amount };
     }
-    return product;
   });
-
-  if (successCount > 0) {
-    saveProducts(updatedProducts);
-  }
 
   return {
     success: successCount,
