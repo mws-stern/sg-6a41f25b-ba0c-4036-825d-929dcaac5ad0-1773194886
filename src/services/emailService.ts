@@ -234,7 +234,7 @@ function generateInvoiceEmailTemplate(order: Order, customer: Customer): string 
           </tr>`
       : "";
 
-  const paidAmount = order.payments?.reduce((sum, p) => sum + p.amount, 0) || 0;
+  const paidAmount = (order as any).payments?.reduce((sum: number, p: any) => sum + p.amount, 0) || 0;
   const balance = order.total - paidAmount;
 
   return `
