@@ -176,7 +176,7 @@ export default function ProductsPage() {
                       <Label>Category *</Label>
                       <Select 
                         value={newProduct.category} 
-                        onValueChange={v => setNewProduct(p => ({...p, category: v}))}
+                        onValueChange={v => setNewProduct(p => ({...p, category: v as Product["category"]}))}
                       >
                         <SelectTrigger>
                           <SelectValue />
