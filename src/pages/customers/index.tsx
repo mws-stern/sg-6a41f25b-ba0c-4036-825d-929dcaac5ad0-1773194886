@@ -7,9 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { supabaseService } from "@/services/supabaseService";
+import { supabase } from "@/integrations/supabase/client";
 import type { Customer } from "@/types";
+import { useAuth } from "@/components/AuthProvider";
 
 export default function CustomersPage() {
+  const { user } = useAuth();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
@@ -20,9 +23,42 @@ export default function CustomersPage() {
 
   const loadCustomers = async () => {
     setLoading(true);
-    const data = await supabaseService.getCustomers();
-    setCustomers(data);
-    setLoading(false);
+    try {
+      console.log("Loading customers...");
+      console.log("Auth user:", user);
+      
+      const { data, error } = await supabase
+        .from("customers")
+        .select("*")
+        .order("name", { ascending: true });
+
+      console.log("Supabase response:", { data, error });
+
+      if (error) {
+        console.error("Error loading customers:", error);
+        alert(`Error loading customers: ${error.message}`);
+        return;
+      }
+
+      const mappedCustomers: Customer[] = (data || []).map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        nameHebrew: c.name_hebrew,
+        email: c.email,
+        phone: c.phone,
+        mobile: c.mobile,
+        address: c.address,
+        city: c.city,
+        state: c.state,
+      }));
+
+      setCustomers(mappedCustomers);
+    } catch (e) {
+      console.error("Error loading customers:", e);
+      alert(`Error loading customers: ${e}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const filteredCustomers = customers.filter((customer) => {
