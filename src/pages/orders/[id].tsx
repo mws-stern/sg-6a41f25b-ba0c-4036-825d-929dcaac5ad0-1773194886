@@ -325,24 +325,22 @@ export default function OrderDetailPage() {
                       <CardTitle>Order Summary</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="space-y-2">
+                      <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
-                          <span>Subtotal:</span>
+                          <span className="text-muted-foreground">Subtotal:</span>
                           <span>${(order.subtotal ?? 0).toFixed(2)}</span>
                         </div>
-                        {(order.discount ?? 0) > 0 && (
-                          <div className="flex justify-between text-green-600">
+                        {order.discount > 0 && (
+                          <div className="flex justify-between text-red-600">
                             <span>Discount:</span>
                             <span>-${(order.discount ?? 0).toFixed(2)}</span>
                           </div>
                         )}
-                        <div className="flex justify-between">
-                          <span>Tax:</span>
-                          <span>${(order.tax ?? 0).toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between font-bold text-lg border-t pt-2">
+                        <div className="flex justify-between pt-2 border-t font-semibold text-base">
                           <span>Total:</span>
-                          <span>${(order.total ?? 0).toFixed(2)}</span>
+                          <span className="text-orange-600">
+                            ${(order.total ?? 0).toFixed(2)}
+                          </span>
                         </div>
                       </div>
                     </CardContent>

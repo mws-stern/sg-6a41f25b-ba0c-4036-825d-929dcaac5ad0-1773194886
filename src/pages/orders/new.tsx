@@ -227,10 +227,7 @@ export default function NewOrderPage({
   };
 
   const calculateTotal = () => {
-    const taxRate = 14.975;
-    const afterDiscount = calculateSubtotal() - calculateDiscount();
-    const tax = afterDiscount * (taxRate / 100);
-    return afterDiscount + tax;
+    return calculateSubtotal() - calculateDiscount();
   };
 
   const getProductStock = (productId: string) => {
@@ -277,7 +274,6 @@ export default function NewOrderPage({
 
     setIsLoading(true);
     const discount = parseFloat(orderDiscount) || undefined;
-    const settings = await supabaseService.getSettings();
 
     try {
       const order = await supabaseService.addOrder({
@@ -286,7 +282,7 @@ export default function NewOrderPage({
         customerEmail: customer.email || "",
         items,
         subtotal: calculateSubtotal(),
-        tax: (calculateSubtotal() - (calculateDiscount() || 0)) * (settings.taxRate / 100),
+        tax: 0,
         total: calculateTotal(),
         discount,
         discountType: discount ? orderDiscountType : undefined,
@@ -656,10 +652,6 @@ export default function NewOrderPage({
                     </div>
                   )}
                   
-                  <div className="flex justify-between text-gray-600">
-                    <span>Tax:</span>
-                    <span>${((calculateSubtotal() - calculateDiscount()) * 0.14975).toFixed(2)}</span>
-                  </div>
                   <div className="border-t border-amber-200 pt-2">
                     <div className="flex justify-between text-lg font-bold">
                       <span>Total:</span>
