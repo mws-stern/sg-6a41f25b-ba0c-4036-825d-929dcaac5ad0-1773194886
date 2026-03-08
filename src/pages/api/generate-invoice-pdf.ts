@@ -1,6 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import PDFDocument from "pdfkit";
 import { Order, Customer } from "@/types";
+import fs from "fs";
+import path from "path";
 
 export default async function handler(
   req: NextApiRequest,
@@ -10,41 +12,81 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { order, customer } = req.body as { order: Order; customer: Customer };
-
-  if (!order || !customer) {
-    return res.status(400).json({ error: "Missing order or customer data" });
-  }
-
   try {
-    // Create a document
-    const doc = new PDFDocument({ margin: 50, size: "LETTER" });
+    const { order, customer } = req.body as {
+      order: Order;
+      customer: Customer;
+    };
 
-    // Buffer to store PDF
+    if (!order || !customer) {
+      return res.status(400).json({ error: "Missing order or customer data" });
+    }
+
+    // Create PDF document
+    const doc = new PDFDocument({ margin: 50, size: "LETTER" });
     const chunks: Buffer[] = [];
+
     doc.on("data", (chunk) => chunks.push(chunk));
     doc.on("end", () => {
       const pdfBuffer = Buffer.concat(chunks);
-      const pdfBase64 = pdfBuffer.toString("base64");
-      res.status(200).json({ pdf: pdfBase64 });
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="invoice-${order.orderNumber}.pdf"`
+      );
+      res.send(pdfBuffer);
     });
 
-    // Company header with orange gradient background
-    doc.rect(0, 0, doc.page.width, 120).fill("#f59e0b");
+    // Logo path
+    const logoPath = path.join(process.cwd(), "public", "logo.png");
+    let hasLogo = false;
+    
+    try {
+      if (fs.existsSync(logoPath)) {
+        hasLogo = true;
+      }
+    } catch (err) {
+      console.log("Logo not found, continuing without logo");
+    }
 
+    // Header with gradient background and logo
+    doc
+      .rect(0, 0, doc.page.width, 180)
+      .fill("#f59e0b");
+    
+    doc
+      .rect(0, 0, doc.page.width, 180)
+      .fillOpacity(0.8)
+      .fill("#d97706");
+
+    // Add logo if available
+    if (hasLogo) {
+      try {
+        doc.image(logoPath, 50, 30, { width: 100, height: 100 });
+      } catch (err) {
+        console.log("Error loading logo:", err);
+      }
+    }
+
+    // Company name and title
     doc
       .fillColor("#ffffff")
-      .fontSize(28)
+      .fillOpacity(1)
       .font("Helvetica-Bold")
-      .text("INVOICE", 50, 40);
+      .fontSize(32)
+      .text("INVOICE", hasLogo ? 170 : 50, 50, { width: doc.page.width - (hasLogo ? 220 : 100) });
+
+    doc
+      .fontSize(18)
+      .text("Satmar Montreal Matzos", hasLogo ? 170 : 50, 90, { width: doc.page.width - (hasLogo ? 220 : 100) });
 
     doc
       .fillColor("#ffffff")
-      .fontSize(12)
       .font("Helvetica")
-      .text("Satmar Montreal Matzos", 50, 75)
-      .text("2765 Chemin Bates, Montreal, QC", 50, 90)
-      .text("sales@satmarmatzosmtl.ca", 50, 105);
+      .fontSize(11)
+      .text("2765 Chemin Bates, Montreal, QC", hasLogo ? 170 : 50, 115)
+      .text("sales@satmarmatzosmtl.ca", hasLogo ? 170 : 50, 130)
+      .text(`Invoice #${order.orderNumber}`, hasLogo ? 170 : 50, 145);
 
     // Invoice number and date (right aligned)
     doc

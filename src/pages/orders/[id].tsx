@@ -38,6 +38,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function OrderDetailPage() {
   const router = useRouter();
@@ -48,6 +56,9 @@ export default function OrderDetailPage() {
   const [loading, setLoading] = useState(true);
   const [sendingEmail, setSendingEmail] = useState(false);
   const [sendingInvoice, setSendingInvoice] = useState(false);
+  const [showEmailPreview, setShowEmailPreview] = useState(false);
+  const [emailPreviewHtml, setEmailPreviewHtml] = useState("");
+  const [emailPreviewType, setEmailPreviewType] = useState<"confirmation" | "invoice">("confirmation");
 
   useEffect(() => {
     if (id) {
@@ -126,67 +137,83 @@ export default function OrderDetailPage() {
     if (!customer?.email) {
       toast({
         title: "Error",
-        description: "Customer email not found",
-        variant: "destructive"
+        description: "Customer email is required",
+        variant: "destructive",
       });
       return;
     }
 
-    setSendingEmail(true);
-    try {
-      const result = await emailService.sendOrderConfirmation(order, customer);
-
-      if (result.success) {
-        toast({
-          title: "Success",
-          description: "Order confirmation email sent successfully"
-        });
-      } else {
-        throw new Error('Failed to send email');
-      }
-    } catch (error) {
-      console.error('Error sending confirmation:', error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to send confirmation email",
-        variant: "destructive"
-      });
-    } finally {
-      setSendingEmail(false);
-    }
+    // Generate and show preview
+    const html = emailService.generateConfirmationHtml(order, customer);
+    setEmailPreviewHtml(html);
+    setEmailPreviewType("confirmation");
+    setShowEmailPreview(true);
   };
 
   const handleSendInvoice = async () => {
     if (!customer?.email) {
       toast({
         title: "Error",
-        description: "Customer email not found",
-        variant: "destructive"
+        description: "Customer email is required",
+        variant: "destructive",
       });
       return;
     }
 
-    setSendingInvoice(true);
-    try {
-      const result = await emailService.sendInvoice(order, customer);
+    // Generate and show preview
+    const html = emailService.generateInvoiceHtml(order, customer);
+    setEmailPreviewHtml(html);
+    setEmailPreviewType("invoice");
+    setShowEmailPreview(true);
+  };
 
-      if (result.success) {
+  const confirmAndSendEmail = async () => {
+    setShowEmailPreview(false);
+    
+    if (emailPreviewType === "confirmation") {
+      setSendingEmail(true);
+      try {
+        const result = await emailService.sendOrderConfirmation(order, customer!);
+        if (result.success) {
+          toast({
+            title: "Success",
+            description: "Order confirmation email sent successfully",
+          });
+        } else {
+          throw new Error('Failed to send email');
+        }
+      } catch (error) {
+        console.error("Error sending email:", error);
         toast({
-          title: "Success",
-          description: "Invoice email sent successfully"
+          title: "Error",
+          description: "Failed to send confirmation email",
+          variant: "destructive",
         });
-      } else {
-        throw new Error('Failed to send email');
+      } finally {
+        setSendingEmail(false);
       }
-    } catch (error) {
-      console.error('Error sending invoice:', error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to send invoice email",
-        variant: "destructive"
-      });
-    } finally {
-      setSendingInvoice(false);
+    } else {
+      setSendingInvoice(true);
+      try {
+        const result = await emailService.sendInvoice(order, customer!);
+        if (result.success) {
+          toast({
+            title: "Success",
+            description: "Invoice email sent successfully with PDF attachment",
+          });
+        } else {
+          throw new Error('Failed to send email');
+        }
+      } catch (error) {
+        console.error("Error sending invoice:", error);
+        toast({
+          title: "Error",
+          description: "Failed to send invoice email",
+          variant: "destructive",
+        });
+      } finally {
+        setSendingInvoice(false);
+      }
     }
   };
 
@@ -454,6 +481,43 @@ export default function OrderDetailPage() {
             </Card>
           </div>
         </div>
+
+        {/* Email Preview Dialog */}
+        <Dialog open={showEmailPreview} onOpenChange={setShowEmailPreview}>
+          <DialogContent className="max-w-4xl max-h-[90vh]">
+            <DialogHeader>
+              <DialogTitle>
+                {emailPreviewType === "confirmation" ? "Order Confirmation" : "Invoice"} Preview
+              </DialogTitle>
+              <DialogDescription>
+                Review the email content before sending to {customer?.email}
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="border rounded-lg overflow-hidden max-h-[60vh] overflow-y-auto">
+              <iframe
+                srcDoc={emailPreviewHtml}
+                style={{ width: "100%", height: "600px", border: "none" }}
+                title="Email Preview"
+              />
+            </div>
+
+            <DialogFooter className="gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowEmailPreview(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={confirmAndSendEmail}
+                disabled={sendingEmail || sendingInvoice}
+              >
+                {sendingEmail || sendingInvoice ? "Sending..." : "Send Email"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </>
   );
