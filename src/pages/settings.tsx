@@ -1,180 +1,154 @@
 import { SEO } from "@/components/SEO";
 import { useState, useEffect } from "react";
-import Link from "next/link";
-import { ArrowLeft, Save, Building, Mail, Phone, MapPin, Globe } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { getSettings, saveSettings } from "@/lib/store";
-import type { Settings } from "@/lib/store";
+import { Settings } from "lucide-react";
+import { supabaseService } from "@/services/supabaseService";
+import type { Settings as SettingsType } from "@/types";
 
 export default function SettingsPage() {
   const { toast } = useToast();
-  const [mounted, setMounted] = useState(false);
-  const [settings, setSettingsState] = useState<Settings>({
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [settings, setSettings] = useState<SettingsType>({
     companyName: "",
     companyNameHebrew: "",
     email: "",
     phone: "",
     address: "",
-    taxRate: 0,
+    taxRate: 14.975,
     currency: "USD",
   });
 
   useEffect(() => {
-    setMounted(true);
-    const currentSettings = getSettings();
-    // Set defaults if not already set
-    if (!currentSettings.email) {
-      currentSettings.email = "matzoh@satmarmtl.com";
-    }
-    if (!currentSettings.phone) {
-      currentSettings.phone = "(438) 300-8425";
-    }
-    if (!currentSettings.address) {
-      currentSettings.address = "2765 Chemin de la Côte-Sainte-Catherine, Montreal, QC H3T 1B6";
-    }
-    setSettingsState(currentSettings);
+    loadSettings();
   }, []);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target;
-    setSettingsState((prev) => ({
-      ...prev,
-      [id]: id === "taxRate" ? parseFloat(value) || 0 : value,
-    }));
+  const loadSettings = async () => {
+    setLoading(true);
+    const data = await supabaseService.getSettings();
+    setSettings(data);
+    setLoading(false);
   };
 
-  const handleSave = () => {
-    saveSettings(settings);
+  const handleSave = async () => {
+    setSaving(true);
+    await supabaseService.saveSettings(settings);
+    setSaving(false);
+    
     toast({
-      title: "Settings Saved",
-      description: "Company information and preferences updated successfully.",
+      title: "Settings saved",
+      description: "Your settings have been updated successfully.",
     });
   };
 
-  if (!mounted) return null;
+  if (loading) {
+    return (
+      <>
+        <SEO title="Settings - Bakery Sales" />
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading settings...</p>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
-      <SEO title="Settings - Satmar Montreal Matzos" />
-      
-      <div className="container mx-auto px-6 py-8">
-        <div className="mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/">
-              <Button variant="ghost" size="icon">
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-            </Link>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
-              <p className="text-gray-600">Configure company details and system preferences</p>
-            </div>
-          </div>
-          <Button onClick={handleSave} className="gap-2">
-            <Save className="w-4 h-4" />
-            Save Changes
-          </Button>
+      <SEO title="Settings - Bakery Sales" />
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <Settings className="h-8 w-8 text-orange-500" />
+          <h1 className="text-3xl font-bold">Settings</h1>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="border-amber-200">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building className="w-5 h-5" />
-                Company Information
-              </CardTitle>
-              <CardDescription>Details displayed on invoices and emails</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="companyName">Company Name (English)</Label>
+        <Card>
+          <CardHeader>
+            <CardTitle>Company Information</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="companyName">Company Name</Label>
                 <Input
                   id="companyName"
                   value={settings.companyName}
-                  onChange={handleChange}
+                  onChange={(e) => setSettings({ ...settings, companyName: e.target.value })}
                 />
               </div>
-              <div className="space-y-2">
+
+              <div>
                 <Label htmlFor="companyNameHebrew">Company Name (Hebrew)</Label>
                 <Input
                   id="companyNameHebrew"
                   value={settings.companyNameHebrew}
-                  onChange={handleChange}
-                  className="text-right font-hebrew"
+                  onChange={(e) => setSettings({ ...settings, companyNameHebrew: e.target.value })}
+                  dir="rtl"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="address" className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4" /> Address
-                </Label>
-                <Input
-                  id="address"
-                  value={settings.address}
-                  onChange={handleChange}
-                />
-              </div>
-            </CardContent>
-          </Card>
 
-          <Card className="border-amber-200">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Globe className="w-5 h-5" />
-                Contact & Localization
-              </CardTitle>
-              <CardDescription>Contact info and financial settings</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email" className="flex items-center gap-2">
-                  <Mail className="w-4 h-4" /> Email
-                </Label>
+              <div>
+                <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
                   type="email"
                   value={settings.email}
-                  onChange={handleChange}
+                  onChange={(e) => setSettings({ ...settings, email: e.target.value })}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone" className="flex items-center gap-2">
-                  <Phone className="w-4 h-4" /> Phone
-                </Label>
+
+              <div>
+                <Label htmlFor="phone">Phone</Label>
                 <Input
                   id="phone"
                   value={settings.phone}
-                  onChange={handleChange}
+                  onChange={(e) => setSettings({ ...settings, phone: e.target.value })}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="taxRate">Tax Rate (%)</Label>
-                  <Input
-                    id="taxRate"
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    value={settings.taxRate}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="currency">Currency</Label>
-                  <Input
-                    id="currency"
-                    value={settings.currency}
-                    onChange={handleChange}
-                    disabled
-                  />
-                </div>
+
+              <div className="md:col-span-2">
+                <Label htmlFor="address">Address</Label>
+                <Input
+                  id="address"
+                  value={settings.address}
+                  onChange={(e) => setSettings({ ...settings, address: e.target.value })}
+                />
               </div>
-            </CardContent>
-          </Card>
-        </div>
+
+              <div>
+                <Label htmlFor="taxRate">Tax Rate (%)</Label>
+                <Input
+                  id="taxRate"
+                  type="number"
+                  step="0.001"
+                  value={settings.taxRate}
+                  onChange={(e) => setSettings({ ...settings, taxRate: parseFloat(e.target.value) })}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="currency">Currency</Label>
+                <Input
+                  id="currency"
+                  value={settings.currency}
+                  onChange={(e) => setSettings({ ...settings, currency: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end">
+              <Button onClick={handleSave} disabled={saving}>
+                {saving ? "Saving..." : "Save Settings"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </>
   );

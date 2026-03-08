@@ -1,340 +1,400 @@
 import { SEO } from "@/components/SEO";
 import { useState, useEffect } from "react";
-import Link from "next/link";
-import { ArrowLeft, Save, Edit2, Check, X, Plus } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { Package, Plus, Edit, Save, X } from "lucide-react";
 import { supabaseService } from "@/services/supabaseService";
 import type { Product } from "@/types";
 
 export default function ProductsPage() {
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState<Product[]>([]);
-  const [mounted, setMounted] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [isDirty, setIsDirty] = useState(false);
-  
-  // Add product state
-  const [isAdding, setIsAdding] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editForm, setEditForm] = useState<Partial<Product>>({});
   const [newProduct, setNewProduct] = useState<Partial<Product>>({
     name: "",
     nameHebrew: "",
-    category: "regular",
     pricePerLb: 0,
+    category: "regular",
     description: "",
     inStock: true,
-    currentInventory: 0
+    currentInventory: 0,
   });
 
-  const { toast } = useToast();
-
   useEffect(() => {
-    setMounted(true);
-    const loadProducts = async () => {
-      let data = await supabaseService.getProducts();
-      // Auto-seed if database is completely empty
-      if (data.length === 0) {
-        await supabaseService.seedInitialDataIfNeeded();
-        data = await supabaseService.getProducts();
-      }
-      setProducts(data);
-    };
     loadProducts();
   }, []);
 
-  const handleSave = async () => {
-    try {
-      await Promise.all(products.map(p => supabaseService.updateProduct(p)));
-      setIsDirty(false);
-      setEditingId(null);
-      toast({
-        title: "Products Updated",
-        description: "Product pricing and details have been saved successfully.",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to save products.",
-        variant: "destructive"
-      });
-    }
+  const loadProducts = async () => {
+    setLoading(true);
+    const data = await supabaseService.getProducts();
+    setProducts(data);
+    setLoading(false);
+  };
+
+  const handleEdit = (product: Product) => {
+    setEditingId(product.id);
+    setEditForm(product);
+  };
+
+  const handleSave = async (id: string) => {
+    const productToUpdate = products.find((p) => p.id === id);
+    if (!productToUpdate) return;
+
+    const updated = { ...productToUpdate, ...editForm };
+    await supabaseService.updateProduct(updated as Product);
+
+    await loadProducts();
+    setEditingId(null);
+    setEditForm({});
+
+    toast({
+      title: "Product updated",
+      description: "Product has been updated successfully.",
+    });
+  };
+
+  const handleCancel = () => {
+    setEditingId(null);
+    setEditForm({});
   };
 
   const handleAddProduct = async () => {
     if (!newProduct.name || !newProduct.category) {
-      toast({ 
-        title: "Validation Error", 
-        description: "Name and Category are required.", 
-        variant: "destructive" 
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
       });
       return;
     }
-    
-    const addedProduct = await supabaseService.addProduct(newProduct as Omit<Product, "id">);
-    if (addedProduct) {
-      setProducts(prev => [...prev, addedProduct]);
-      setIsAdding(false);
-      setNewProduct({ name: "", nameHebrew: "", category: "regular", pricePerLb: 0, description: "", inStock: true, currentInventory: 0 });
-      toast({ 
-        title: "Product Added", 
-        description: "The new product has been successfully added to the system and is now available for orders." 
-      });
-    } else {
-      toast({ 
-        title: "Error", 
-        description: "Failed to add product to the database.", 
-        variant: "destructive" 
-      });
-    }
+
+    await supabaseService.addProduct(newProduct as Omit<Product, "id">);
+    await loadProducts();
+
+    setShowAddForm(false);
+    setNewProduct({
+      name: "",
+      nameHebrew: "",
+      pricePerLb: 0,
+      category: "regular",
+      description: "",
+      inStock: true,
+      currentInventory: 0,
+    });
+
+    toast({
+      title: "Product added",
+      description: "New product has been added successfully.",
+    });
   };
 
-  const updateProduct = (id: string, field: keyof Product, value: any) => {
-    setProducts((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, [field]: value } : p))
-    );
-    setIsDirty(true);
-  };
-
-  const toggleEdit = (id: string) => {
-    if (editingId === id) {
-      setEditingId(null);
-    } else {
-      setEditingId(id);
-    }
-  };
-
-  const getProductColor = (category: string) => {
-    const colors: Record<string, string> = {
-      rashi: "bg-amber-50 border-amber-200",
-      regular: "bg-orange-50 border-orange-200",
-      spelt: "bg-yellow-50 border-yellow-200",
-      wholewheat: "bg-green-50 border-green-200",
-      flour: "bg-blue-50 border-blue-200",
-      shvurim: "bg-purple-50 border-purple-200",
+  const getCategoryBadge = (category: string) => {
+    const variants: Record<string, string> = {
+      rashi: "bg-purple-100 text-purple-800 border-purple-300",
+      regular: "bg-blue-100 text-blue-800 border-blue-300",
+      spelt: "bg-green-100 text-green-800 border-green-300",
+      wholewheat: "bg-amber-100 text-amber-800 border-amber-300",
+      flour: "bg-orange-100 text-orange-800 border-orange-300",
+      shvurim: "bg-red-100 text-red-800 border-red-300",
     };
-    return colors[category] || "bg-gray-50 border-gray-200";
+
+    return (
+      <Badge variant="outline" className={variants[category] || variants.regular}>
+        {category.charAt(0).toUpperCase() + category.slice(1)}
+      </Badge>
+    );
   };
 
-  if (!mounted) {
-    return null;
+  if (loading) {
+    return (
+      <>
+        <SEO title="Products - Bakery Sales" />
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading products...</p>
+          </div>
+        </div>
+      </>
+    );
   }
 
   return (
     <>
-      <SEO title="Product Management - Satmar Montreal Matzos" />
-      
-      <div className="container mx-auto px-6 py-8">
-        <div className="mb-6 flex items-center justify-between sticky top-0 bg-white/80 backdrop-blur-sm p-4 rounded-lg z-10 border-b shadow-sm">
-          <div className="flex items-center gap-4">
-            <Link href="/">
-              <Button variant="ghost" size="icon">
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-            </Link>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900" style={{ fontFamily: "'Frank Ruhl Libre', serif" }}>Product Management</h1>
-              <p className="text-gray-600">Configure pricing and product details</p>
-            </div>
+      <SEO title="Products - Bakery Sales" />
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Package className="h-8 w-8 text-orange-500" />
+            <h1 className="text-3xl font-bold">Products</h1>
           </div>
-          <div className="flex gap-2">
-            <Dialog open={isAdding} onOpenChange={setIsAdding}>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="gap-2">
-                  <Plus className="w-4 h-4" /> Add Product
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Add New Product</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label>English Name *</Label>
-                    <Input 
-                      value={newProduct.name} 
-                      onChange={e => setNewProduct(p => ({...p, name: e.target.value}))} 
-                      placeholder="e.g. Spelt Matzoh"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Hebrew Name</Label>
-                    <Input 
-                      value={newProduct.nameHebrew} 
-                      onChange={e => setNewProduct(p => ({...p, nameHebrew: e.target.value}))} 
-                      dir="rtl" 
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Category *</Label>
-                      <Select 
-                        value={newProduct.category} 
-                        onValueChange={v => setNewProduct(p => ({...p, category: v as Product["category"]}))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="rashi">Rashi</SelectItem>
-                          <SelectItem value="regular">Regular</SelectItem>
-                          <SelectItem value="spelt">Spelt</SelectItem>
-                          <SelectItem value="wholewheat">Whole Wheat</SelectItem>
-                          <SelectItem value="flour">Flour</SelectItem>
-                          <SelectItem value="shvurim">Shvurim</SelectItem>
-                          <SelectItem value="custom">Custom/Other</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Price / Lb</Label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-2.5 text-gray-500">$</span>
-                        <Input 
-                          type="number" 
-                          step="0.01" 
-                          className="pl-7"
-                          value={newProduct.pricePerLb} 
-                          onChange={e => setNewProduct(p => ({...p, pricePerLb: parseFloat(e.target.value) || 0}))} 
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="ghost" onClick={() => setIsAdding(false)}>Cancel</Button>
-                  <Button onClick={handleAddProduct}>Save Product</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-
-            {isDirty && (
-              <Button onClick={handleSave} className="gap-2 animate-pulse bg-green-600 hover:bg-green-700">
-                <Save className="w-4 h-4" />
-                Save All Changes
-              </Button>
-            )}
-          </div>
+          <Button onClick={() => setShowAddForm(!showAddForm)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Product
+          </Button>
         </div>
 
-        <div className="grid grid-cols-1 gap-6">
+        {showAddForm && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Add New Product</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="name">Name</Label>
+                  <Input
+                    id="name"
+                    value={newProduct.name}
+                    onChange={(e) =>
+                      setNewProduct({ ...newProduct, name: e.target.value })
+                    }
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="nameHebrew">Name (Hebrew)</Label>
+                  <Input
+                    id="nameHebrew"
+                    value={newProduct.nameHebrew}
+                    onChange={(e) =>
+                      setNewProduct({ ...newProduct, nameHebrew: e.target.value })
+                    }
+                    dir="rtl"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="pricePerLb">Price per Lb ($)</Label>
+                  <Input
+                    id="pricePerLb"
+                    type="number"
+                    step="0.01"
+                    value={newProduct.pricePerLb}
+                    onChange={(e) =>
+                      setNewProduct({
+                        ...newProduct,
+                        pricePerLb: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="category">Category</Label>
+                  <select
+                    id="category"
+                    value={newProduct.category}
+                    onChange={(e) =>
+                      setNewProduct({
+                        ...newProduct,
+                        category: e.target.value as Product["category"],
+                      })
+                    }
+                    className="w-full h-10 px-3 rounded-md border border-gray-300"
+                  >
+                    <option value="rashi">Rashi</option>
+                    <option value="regular">Regular</option>
+                    <option value="spelt">Spelt</option>
+                    <option value="wholewheat">Whole Wheat</option>
+                    <option value="flour">Flour</option>
+                    <option value="shvurim">Shvurim</option>
+                  </select>
+                </div>
+
+                <div className="md:col-span-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={newProduct.description}
+                    onChange={(e) =>
+                      setNewProduct({ ...newProduct, description: e.target.value })
+                    }
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="currentInventory">Current Inventory (lbs)</Label>
+                  <Input
+                    id="currentInventory"
+                    type="number"
+                    step="0.01"
+                    value={newProduct.currentInventory}
+                    onChange={(e) =>
+                      setNewProduct({
+                        ...newProduct,
+                        currentInventory: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="inStock"
+                    checked={newProduct.inStock}
+                    onCheckedChange={(checked) =>
+                      setNewProduct({ ...newProduct, inStock: checked })
+                    }
+                  />
+                  <Label htmlFor="inStock">In Stock</Label>
+                </div>
+              </div>
+
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" onClick={() => setShowAddForm(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleAddProduct}>Add Product</Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {products.map((product) => {
             const isEditing = editingId === product.id;
-            const colorClass = getProductColor(product.category);
-            
+            const currentData = isEditing ? { ...product, ...editForm } : product;
+
             return (
-              <Card key={product.id} className={`transition-all duration-200 ${isEditing ? 'ring-2 ring-blue-500 shadow-lg scale-[1.01]' : ''} ${colorClass}`}>
-                <CardContent className="p-6">
-                  <div className="flex flex-col md:flex-row gap-6 items-start">
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <h3 className="text-xl font-bold text-gray-900">{product.name}</h3>
-                          <Badge variant="outline" className="text-sm font-normal">
-                            {product.category}
-                          </Badge>
-                        </div>
-                        <h3 className="text-xl font-heebo text-gray-800" dir="rtl">{product.nameHebrew}</h3>
-                      </div>
-                      
+              <Card key={product.id}>
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
                       {isEditing ? (
-                        <Textarea
-                          value={product.description || ""}
-                          onChange={(e) => updateProduct(product.id, "description", e.target.value)}
-                          rows={2}
-                          className="mt-2"
+                        <Input
+                          value={currentData.name}
+                          onChange={(e) =>
+                            setEditForm({ ...editForm, name: e.target.value })
+                          }
+                          className="mb-2"
                         />
                       ) : (
-                        <p className="text-gray-600">{product.description}</p>
+                        <CardTitle>{product.name}</CardTitle>
+                      )}
+                      {isEditing ? (
+                        <Input
+                          value={currentData.nameHebrew}
+                          onChange={(e) =>
+                            setEditForm({ ...editForm, nameHebrew: e.target.value })
+                          }
+                          dir="rtl"
+                          className="text-sm"
+                        />
+                      ) : (
+                        <p className="text-sm text-gray-600" dir="rtl">
+                          {product.nameHebrew}
+                        </p>
                       )}
                     </div>
-
-                    <div className="flex-1 grid grid-cols-2 md:grid-cols-3 gap-6">
-                      <div className="space-y-1">
-                        <Label className="text-xs text-gray-500 uppercase tracking-wide">Price / Lb</Label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-2.5 text-gray-500">$</span>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={product.pricePerLb || ""}
-                            onChange={(e) => updateProduct(product.id, "pricePerLb", parseFloat(e.target.value) || 0)}
-                            className="pl-7 font-semibold text-lg"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-1">
-                        <Label className="text-xs text-gray-500 uppercase tracking-wide">Inventory</Label>
-                        <div className="relative">
-                          <Input
-                            type="number"
-                            step="1"
-                            min="0"
-                            value={product.currentInventory || 0}
-                            onChange={(e) => updateProduct(product.id, "currentInventory", parseFloat(e.target.value) || 0)}
-                            className={`font-semibold text-lg ${(product.currentInventory || 0) < 50 ? 'text-red-600 border-red-200 bg-red-50' : ''}`}
-                          />
-                          <span className="absolute right-3 top-2.5 text-gray-500 text-sm">lbs</span>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col justify-center space-y-3">
-                         <div className="flex items-center justify-between">
-                           <Label htmlFor={`stock-${product.id}`} className="cursor-pointer">Active</Label>
-                           <Switch
-                             id={`stock-${product.id}`}
-                             checked={product.inStock}
-                             onCheckedChange={(checked) => updateProduct(product.id, "inStock", checked)}
-                           />
-                         </div>
-                         <Button 
-                           variant={isEditing ? "secondary" : "ghost"} 
-                           size="sm" 
-                           onClick={() => toggleEdit(product.id)}
-                           className="w-full"
-                         >
-                           {isEditing ? (
-                             <>
-                               <Check className="w-3 h-3 mr-2" /> Done
-                             </>
-                           ) : (
-                             <>
-                               <Edit2 className="w-3 h-3 mr-2" /> Details
-                             </>
-                           )}
-                         </Button>
-                      </div>
+                    <div className="flex gap-2">
+                      {isEditing ? (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleSave(product.id)}
+                          >
+                            <Save className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={handleCancel}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEdit(product)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </div>
-                  
-                  {isEditing && (
-                    <div className="mt-4 pt-4 border-t border-gray-200 grid grid-cols-2 gap-4 animate-in slide-in-from-top-2">
-                       <div>
-                         <Label>Hebrew Name</Label>
-                         <Input 
-                           value={product.nameHebrew} 
-                           onChange={(e) => updateProduct(product.id, "nameHebrew", e.target.value)}
-                           dir="rtl"
-                         />
-                       </div>
-                       <div>
-                         <Label>Minimum Order</Label>
-                         <Input 
-                           type="number" 
-                           value={(product as any).minOrder || ""} 
-                           onChange={(e) => updateProduct(product.id, "minOrder" as any, parseFloat(e.target.value))}
-                           placeholder="Optional"
-                         />
-                       </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    {getCategoryBadge(currentData.category)}
+                    <Badge
+                      variant="outline"
+                      className={
+                        currentData.inStock
+                          ? "bg-green-100 text-green-800 border-green-300"
+                          : "bg-red-100 text-red-800 border-red-300"
+                      }
+                    >
+                      {currentData.inStock ? "In Stock" : "Out of Stock"}
+                    </Badge>
+                  </div>
+
+                  {isEditing ? (
+                    <div className="space-y-2">
+                      <div>
+                        <Label className="text-xs">Price per Lb</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={currentData.pricePerLb}
+                          onChange={(e) =>
+                            setEditForm({
+                              ...editForm,
+                              pricePerLb: parseFloat(e.target.value) || 0,
+                            })
+                          }
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Current Inventory (lbs)</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={currentData.currentInventory}
+                          onChange={(e) =>
+                            setEditForm({
+                              ...editForm,
+                              currentInventory: parseFloat(e.target.value) || 0,
+                            })
+                          }
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Description</Label>
+                        <Textarea
+                          value={currentData.description}
+                          onChange={(e) =>
+                            setEditForm({ ...editForm, description: e.target.value })
+                          }
+                        />
+                      </div>
                     </div>
+                  ) : (
+                    <>
+                      <div className="text-2xl font-bold text-orange-600">
+                        ${product.pricePerLb.toFixed(2)}
+                        <span className="text-sm text-gray-600 font-normal">/lb</span>
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        <span className="font-semibold">Stock:</span>{" "}
+                        {product.currentInventory || 0} lbs
+                      </div>
+                      {product.description && (
+                        <p className="text-sm text-gray-600">{product.description}</p>
+                      )}
+                    </>
                   )}
                 </CardContent>
               </Card>

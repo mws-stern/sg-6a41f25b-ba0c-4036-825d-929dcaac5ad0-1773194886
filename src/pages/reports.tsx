@@ -1,382 +1,324 @@
 import { SEO } from "@/components/SEO";
 import { useState, useEffect } from "react";
-import Link from "next/link";
-import { ArrowLeft, TrendingUp, DollarSign, ShoppingCart, Users, Calendar, Download, FileText, Filter } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { FileText, DollarSign, TrendingUp, Users, Package } from "lucide-react";
 import { supabaseService } from "@/services/supabaseService";
-import type { Order, Product } from "@/types";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-import Papa from "papaparse";
+import type { Order, Product, Customer } from "@/types";
 
 export default function ReportsPage() {
+  const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [customerCount, setCustomerCount] = useState(0);
-  const [mounted, setMounted] = useState(false);
-  const [period, setPeriod] = useState("all");
-  const [reportType, setReportType] = useState("summary");
-  const [loading, setLoading] = useState(true);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [dateRange, setDateRange] = useState<"week" | "month" | "year">("month");
 
   useEffect(() => {
-    const loadData = async () => {
-      const [fetchedOrders, fetchedProducts, fetchedCustomers] = await Promise.all([
-        supabaseService.getOrders(),
-        supabaseService.getProducts(),
-        supabaseService.getCustomers()
-      ]);
-      setOrders(fetchedOrders);
-      setProducts(fetchedProducts);
-      setCustomerCount(fetchedCustomers.length);
-      setLoading(false);
-    };
-    
-    setMounted(true);
-    loadData();
+    loadReportData();
   }, []);
 
-  const calculateStats = () => {
-    let filteredOrders = orders;
+  const loadReportData = async () => {
+    setLoading(true);
+    
+    const [ordersData, productsData, customersData] = await Promise.all([
+      supabaseService.getOrders(),
+      supabaseService.getProducts(),
+      supabaseService.getCustomers(),
+    ]);
+
+    setOrders(ordersData);
+    setProducts(productsData);
+    setCustomers(customersData);
+    setLoading(false);
+  };
+
+  const getFilteredOrders = () => {
     const now = new Date();
-    const startOfDay = new Date(now.setHours(0, 0, 0, 0));
-    const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startDate = new Date();
 
-    if (period === "today") {
-      filteredOrders = orders.filter(o => new Date(o.createdAt) >= startOfDay);
-    } else if (period === "week") {
-      filteredOrders = orders.filter(o => new Date(o.createdAt) >= startOfWeek);
-    } else if (period === "month") {
-      filteredOrders = orders.filter(o => new Date(o.createdAt) >= startOfMonth);
+    switch (dateRange) {
+      case "week":
+        startDate.setDate(now.getDate() - 7);
+        break;
+      case "month":
+        startDate.setMonth(now.getMonth() - 1);
+        break;
+      case "year":
+        startDate.setFullYear(now.getFullYear() - 1);
+        break;
     }
 
-    const totalRevenue = filteredOrders.reduce((sum, o) => sum + o.total, 0);
-    const totalOrders = filteredOrders.length;
-    const totalWeight = filteredOrders.reduce((sum, o) => 
-      sum + o.items.reduce((itemSum, item) => itemSum + item.quantity, 0), 0
+    return orders.filter((order) => new Date(order.createdAt) >= startDate);
+  };
+
+  const filteredOrders = getFilteredOrders();
+
+  const totalRevenue = filteredOrders.reduce((sum, order) => sum + order.total, 0);
+  const paidRevenue = filteredOrders
+    .filter((order) => order.paymentStatus === "paid")
+    .reduce((sum, order) => sum + order.total, 0);
+  const pendingRevenue = filteredOrders
+    .filter((order) => order.paymentStatus !== "paid")
+    .reduce((sum, order) => sum + order.amountDue, 0);
+
+  // Sales by product
+  const salesByProduct: Record<string, { quantity: number; revenue: number; productName: string }> = {};
+  filteredOrders.forEach((order) => {
+    order.items.forEach((item) => {
+      if (!salesByProduct[item.productId]) {
+        salesByProduct[item.productId] = {
+          quantity: 0,
+          revenue: 0,
+          productName: item.productName,
+        };
+      }
+      salesByProduct[item.productId].quantity += item.quantity;
+      salesByProduct[item.productId].revenue += item.finalPrice;
+    });
+  });
+
+  const topProducts = Object.entries(salesByProduct)
+    .map(([id, data]) => ({ productId: id, ...data }))
+    .sort((a, b) => b.revenue - a.revenue)
+    .slice(0, 10);
+
+  // Sales by customer
+  const salesByCustomer: Record<string, { orders: number; revenue: number; customerName: string }> = {};
+  filteredOrders.forEach((order) => {
+    if (!salesByCustomer[order.customerId]) {
+      salesByCustomer[order.customerId] = {
+        orders: 0,
+        revenue: 0,
+        customerName: order.customerName,
+      };
+    }
+    salesByCustomer[order.customerId].orders += 1;
+    salesByCustomer[order.customerId].revenue += order.total;
+  });
+
+  const topCustomers = Object.entries(salesByCustomer)
+    .map(([id, data]) => ({ customerId: id, ...data }))
+    .sort((a, b) => b.revenue - a.revenue)
+    .slice(0, 10);
+
+  // Order status breakdown
+  const ordersByStatus: Record<string, number> = {};
+  filteredOrders.forEach((order) => {
+    ordersByStatus[order.status] = (ordersByStatus[order.status] || 0) + 1;
+  });
+
+  if (loading) {
+    return (
+      <>
+        <SEO title="Reports - Bakery Sales" />
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading reports...</p>
+          </div>
+        </div>
+      </>
     );
-
-    const productSales: Record<string, { name: string; quantity: number; revenue: number }> = {};
-    
-    filteredOrders.forEach(order => {
-      order.items.forEach(item => {
-        if (!productSales[item.productId]) {
-          productSales[item.productId] = {
-            name: item.productName,
-            quantity: 0,
-            revenue: 0
-          };
-        }
-        productSales[item.productId].quantity += item.quantity;
-        productSales[item.productId].revenue += item.totalPrice;
-      });
-    });
-
-    const topProducts = Object.values(productSales).sort((a, b) => b.revenue - a.revenue);
-
-    return {
-      totalRevenue,
-      totalOrders,
-      totalWeight,
-      topProducts,
-      filteredOrders
-    };
-  };
-
-  const stats = calculateStats();
-
-  const exportToCSV = () => {
-    const csvData = stats.filteredOrders.map(order => ({
-      "Order Number": order.orderNumber,
-      "Customer": order.customerName,
-      "Date": new Date(order.createdAt).toLocaleDateString(),
-      "Status": order.status,
-      "Items": order.items.map(item => `${item.productName} (${item.quantity} lbs)`).join("; "),
-      "Subtotal": order.subtotal.toFixed(2),
-      "Tax": order.tax.toFixed(2),
-      "Total": order.total.toFixed(2)
-    }));
-
-    const productData = stats.topProducts.map(product => ({
-      "Product": product.name,
-      "Quantity Sold (lbs)": product.quantity.toFixed(1),
-      "Revenue": product.revenue.toFixed(2),
-      "Percentage": ((product.revenue / (stats.totalRevenue || 1)) * 100).toFixed(1) + "%"
-    }));
-
-    const summaryData = [{
-      "Metric": "Total Revenue",
-      "Value": `$${stats.totalRevenue.toFixed(2)}`
-    }, {
-      "Metric": "Total Orders",
-      "Value": stats.totalOrders
-    }, {
-      "Metric": "Total Weight Sold",
-      "Value": `${stats.totalWeight.toFixed(1)} lbs`
-    }, {
-      "Metric": "Active Customers",
-      "Value": customerCount
-    }];
-
-    const csv1 = Papa.unparse(summaryData);
-    const csv2 = Papa.unparse(productData);
-    const csv3 = Papa.unparse(csvData);
-
-    const combinedCSV = `SUMMARY REPORT\n${csv1}\n\n\nPRODUCT SALES\n${csv2}\n\n\nORDER DETAILS\n${csv3}`;
-
-    const blob = new Blob([combinedCSV], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `satmar-matzos-report-${period}-${new Date().toISOString().split("T")[0]}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
-  };
-
-  const exportToPDF = () => {
-    const doc = new jsPDF();
-    
-    doc.setFontSize(20);
-    doc.text("Satmar Montreal Matzos", 105, 20, { align: "center" });
-    doc.setFontSize(14);
-    doc.text("Financial Report", 105, 28, { align: "center" });
-    doc.setFontSize(10);
-    doc.text(`Period: ${period.charAt(0).toUpperCase() + period.slice(1)}`, 105, 35, { align: "center" });
-    doc.text(`Generated: ${new Date().toLocaleDateString()}`, 105, 41, { align: "center" });
-
-    doc.setFontSize(12);
-    doc.text("Summary", 14, 52);
-    
-    autoTable(doc, {
-      startY: 56,
-      head: [["Metric", "Value"]],
-      body: [
-        ["Total Revenue", `$${stats.totalRevenue.toFixed(2)}`],
-        ["Total Orders", stats.totalOrders.toString()],
-        ["Total Weight Sold", `${stats.totalWeight.toFixed(1)} lbs`],
-        ["Active Customers", customerCount.toString()]
-      ],
-      theme: "striped",
-      headStyles: { fillColor: [251, 191, 36] }
-    });
-
-    const finalY1 = (doc as any).lastAutoTable.finalY || 90;
-    
-    doc.text("Sales by Product", 14, finalY1 + 10);
-    
-    autoTable(doc, {
-      startY: finalY1 + 14,
-      head: [["Product", "Quantity (lbs)", "Revenue", "% of Total"]],
-      body: stats.topProducts.map(p => [
-        p.name,
-        p.quantity.toFixed(1),
-        `$${p.revenue.toFixed(2)}`,
-        `${((p.revenue / (stats.totalRevenue || 1)) * 100).toFixed(1)}%`
-      ]),
-      theme: "striped",
-      headStyles: { fillColor: [251, 191, 36] }
-    });
-
-    const finalY2 = (doc as any).lastAutoTable.finalY || 140;
-
-    if (finalY2 > 240) {
-      doc.addPage();
-      doc.text("Order Details", 14, 20);
-      autoTable(doc, {
-        startY: 24,
-        head: [["Order #", "Customer", "Date", "Status", "Total"]],
-        body: stats.filteredOrders.map(o => [
-          o.orderNumber,
-          o.customerName,
-          new Date(o.createdAt).toLocaleDateString(),
-          o.status,
-          `$${o.total.toFixed(2)}`
-        ]),
-        theme: "striped",
-        headStyles: { fillColor: [251, 191, 36] }
-      });
-    } else {
-      doc.text("Order Details", 14, finalY2 + 10);
-      autoTable(doc, {
-        startY: finalY2 + 14,
-        head: [["Order #", "Customer", "Date", "Status", "Total"]],
-        body: stats.filteredOrders.map(o => [
-          o.orderNumber,
-          o.customerName,
-          new Date(o.createdAt).toLocaleDateString(),
-          o.status,
-          `$${o.total.toFixed(2)}`
-        ]),
-        theme: "striped",
-        headStyles: { fillColor: [251, 191, 36] }
-      });
-    }
-
-    doc.save(`satmar-matzos-report-${period}-${new Date().toISOString().split("T")[0]}.pdf`);
-  };
-
-  if (!mounted) return null;
+  }
 
   return (
     <>
-      <SEO title="Reports & Analytics - Satmar Montreal Matzos" />
-      
-      <div className="container mx-auto px-6 py-8">
-        <div className="mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/">
-              <Button variant="ghost" size="icon">
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-            </Link>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Reports & Analytics</h1>
-              <p className="text-gray-600">Financial overview and sales performance</p>
-            </div>
-          </div>
+      <SEO title="Reports - Bakery Sales" />
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-gray-500" />
-              <Select value={period} onValueChange={setPeriod}>
-                <SelectTrigger className="w-40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Time</SelectItem>
-                  <SelectItem value="month">This Month</SelectItem>
-                  <SelectItem value="week">This Week</SelectItem>
-                  <SelectItem value="today">Today</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <Button onClick={exportToCSV} variant="outline" className="gap-2">
-              <Download className="w-4 h-4" />
-              Export CSV
-            </Button>
-            <Button onClick={exportToPDF} className="gap-2 bg-amber-600 hover:bg-amber-700">
-              <FileText className="w-4 h-4" />
-              Export PDF
-            </Button>
+            <FileText className="h-8 w-8 text-orange-500" />
+            <h1 className="text-3xl font-bold">Reports</h1>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setDateRange("week")}
+              className={`px-4 py-2 rounded-lg transition-colors ${
+                dateRange === "week"
+                  ? "bg-orange-500 text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              Last Week
+            </button>
+            <button
+              onClick={() => setDateRange("month")}
+              className={`px-4 py-2 rounded-lg transition-colors ${
+                dateRange === "month"
+                  ? "bg-orange-500 text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              Last Month
+            </button>
+            <button
+              onClick={() => setDateRange("year")}
+              className={`px-4 py-2 rounded-lg transition-colors ${
+                dateRange === "year"
+                  ? "bg-orange-500 text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              Last Year
+            </button>
           </div>
         </div>
 
-        {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="border-amber-200 hover:shadow-lg transition-shadow cursor-pointer">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Total Revenue</CardTitle>
-              <DollarSign className="w-4 h-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">${stats.totalRevenue.toFixed(2)}</div>
-              <p className="text-xs text-gray-500 mt-1">
-                {period === 'all' ? 'Lifetime revenue' : 'For selected period'}
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="border-amber-200 hover:shadow-lg transition-shadow cursor-pointer">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Orders</CardTitle>
-              <ShoppingCart className="w-4 h-4 text-blue-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalOrders}</div>
-              <p className="text-xs text-gray-500 mt-1">Total orders processed</p>
-            </CardContent>
-          </Card>
-          <Card className="border-amber-200 hover:shadow-lg transition-shadow cursor-pointer">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Volume Sold</CardTitle>
-              <TrendingUp className="w-4 h-4 text-orange-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalWeight.toFixed(1)} lbs</div>
-              <p className="text-xs text-gray-500 mt-1">Total weight of matzos</p>
-            </CardContent>
-          </Card>
-          <Card className="border-amber-200 hover:shadow-lg transition-shadow cursor-pointer">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Active Customers</CardTitle>
-              <Users className="w-4 h-4 text-purple-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{customerCount}</div>
-              <p className="text-xs text-gray-500 mt-1">Total registered customers</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Sales by Product */}
-          <Card className="border-amber-200">
-            <CardHeader>
-              <CardTitle>Sales by Product</CardTitle>
-              <CardDescription>Revenue breakdown by matzah type</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {stats.topProducts.length === 0 ? (
-                  <p className="text-center text-gray-500 py-8">No sales data available</p>
-                ) : (
-                  stats.topProducts.map((product, index) => (
-                    <div key={index} className="flex items-center justify-between border-b border-gray-100 last:border-0 pb-2 last:pb-0">
-                      <div>
-                        <p className="font-medium text-gray-900">{product.name}</p>
-                        <p className="text-sm text-gray-500">{product.quantity.toFixed(1)} lbs sold</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-bold text-gray-900">${product.revenue.toFixed(2)}</p>
-                        <p className="text-sm text-gray-500">
-                          {((product.revenue / (stats.totalRevenue || 1)) * 100).toFixed(1)}%
-                        </p>
-                      </div>
-                    </div>
-                  ))
-                )}
+        {/* Revenue Summary */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Total Revenue</p>
+                  <p className="text-2xl font-bold">${totalRevenue.toFixed(2)}</p>
+                </div>
+                <div className="p-3 bg-green-100 rounded-lg">
+                  <DollarSign className="h-6 w-6 text-green-600" />
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Recent Activity */}
-          <Card className="border-amber-200">
-            <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
-              <CardDescription>Latest financial transactions</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {stats.filteredOrders.slice(0, 5).map((order) => (
-                  <div key={order.id} className="flex items-center justify-between hover:bg-gray-50 p-2 rounded transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                        order.status === 'confirmed' || order.status === 'delivered' 
-                          ? 'bg-green-100 text-green-600' 
-                          : 'bg-yellow-100 text-yellow-600'
-                      }`}>
-                        <DollarSign className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">Order #{order.orderNumber}</p>
-                        <p className="text-xs text-gray-500">{order.customerName}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-bold text-gray-900">+${order.total.toFixed(2)}</p>
-                      <p className="text-xs text-gray-500">{new Date(order.createdAt).toLocaleDateString()}</p>
-                    </div>
-                  </div>
-                ))}
-                {stats.filteredOrders.length === 0 && (
-                  <p className="text-center text-gray-500 py-8">No recent activity</p>
-                )}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Paid Revenue</p>
+                  <p className="text-2xl font-bold text-green-600">${paidRevenue.toFixed(2)}</p>
+                </div>
+                <div className="p-3 bg-green-100 rounded-lg">
+                  <TrendingUp className="h-6 w-6 text-green-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Pending Revenue</p>
+                  <p className="text-2xl font-bold text-orange-600">${pendingRevenue.toFixed(2)}</p>
+                </div>
+                <div className="p-3 bg-orange-100 rounded-lg">
+                  <DollarSign className="h-6 w-6 text-orange-600" />
+                </div>
               </div>
             </CardContent>
           </Card>
         </div>
+
+        {/* Top Products */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5 text-orange-500" />
+              Top Selling Products
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                      Product
+                    </th>
+                    <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">
+                      Quantity Sold
+                    </th>
+                    <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">
+                      Revenue
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {topProducts.map((product, index) => (
+                    <tr key={product.productId} className="hover:bg-gray-50">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-gray-600">#{index + 1}</span>
+                          <span className="font-medium">{product.productName}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-right text-gray-700">
+                        {product.quantity.toFixed(2)} lbs
+                      </td>
+                      <td className="px-4 py-3 text-right font-semibold text-green-600">
+                        ${product.revenue.toFixed(2)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Top Customers */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-orange-500" />
+              Top Customers
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                      Customer
+                    </th>
+                    <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">
+                      Orders
+                    </th>
+                    <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">
+                      Total Spent
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {topCustomers.map((customer, index) => (
+                    <tr key={customer.customerId} className="hover:bg-gray-50">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-gray-600">#{index + 1}</span>
+                          <span className="font-medium">{customer.customerName}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-right text-gray-700">
+                        {customer.orders}
+                      </td>
+                      <td className="px-4 py-3 text-right font-semibold text-green-600">
+                        ${customer.revenue.toFixed(2)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Order Status Breakdown */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Order Status Breakdown</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {Object.entries(ordersByStatus).map(([status, count]) => (
+                <div key={status} className="text-center p-4 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-600 mb-1 capitalize">{status}</p>
+                  <p className="text-2xl font-bold">{count}</p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </>
   );
