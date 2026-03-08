@@ -1,85 +1,65 @@
 import { SEO } from "@/components/SEO";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Plus, Search, Phone, Mail, MapPin } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { supabaseService } from "@/services/supabaseService";
 import { supabase } from "@/integrations/supabase/client";
 import type { Customer } from "@/types";
-import { useAuth } from "@/components/AuthProvider";
 
-export default function CustomersPage() {
-  const { user } = useAuth();
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+// THIS RUNS ON THE SERVER - Bypasses local browser network restrictions/firewalls
+export async function getServerSideProps() {
+  try {
+    const { data, error } = await supabase
+      .from("customers")
+      .select("*")
+      .order("name", { ascending: true });
 
-  useEffect(() => {
-    loadCustomers();
-    
-    // Test direct fetch to see what's happening
-    const testFetch = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("customers")
-          .select("*")
-          .order("name", { ascending: true });
-        console.log("Test fetch response:", { data, error });
-      } catch (e) {
-        console.error("Test fetch error:", e);
-      }
-    };
-    
-    testFetch();
-  }, []);
-
-  async function loadCustomers() {
-    setLoading(true);
-    setError(null);
-    try {
-      console.log("Loading customers...");
-      console.log("Auth user:", user);
-      
-      const { data, error } = await supabase
-        .from("customers")
-        .select("*")
-        .order("name", { ascending: true });
-
-      console.log("Supabase response:", { data, error });
-
-      if (error) {
-        console.error("Error loading customers:", error);
-        setError(`Error: ${error.message} (${error.code})`);
-        return;
-      }
-
-      const mappedCustomers: Customer[] = (data || []).map((c: any) => ({
-        id: c.id,
-        name: c.name,
-        nameHebrew: c.name_hebrew,
-        email: c.email,
-        phone: c.phone,
-        mobile: c.mobile,
-        address: c.address,
-        city: c.city,
-        state: c.state,
-        zip: c.zip,
-        notes: c.notes,
-        createdAt: c.created_at,
-      }));
-
-      setCustomers(mappedCustomers);
-    } catch (e) {
-      console.error("Error loading customers:", e);
-      setError(`Network error: ${e instanceof Error ? e.message : String(e)}`);
-    } finally {
-      setLoading(false);
+    if (error) {
+      return { props: { initialCustomers: [], serverError: error.message } };
     }
+
+    const mappedCustomers = (data || []).map((c: any) => ({
+      id: c.id,
+      name: c.name,
+      nameHebrew: c.name_hebrew || null,
+      email: c.email || null,
+      phone: c.phone || null,
+      mobile: c.mobile || null,
+      address: c.address || null,
+      city: c.city || null,
+      state: c.state || null,
+      zip: c.zip || null,
+      notes: c.notes || null,
+      createdAt: c.created_at,
+    }));
+
+    return {
+      props: {
+        initialCustomers: mappedCustomers,
+        serverError: null,
+      },
+    };
+  } catch (e) {
+    return {
+      props: {
+        initialCustomers: [],
+        serverError: e instanceof Error ? e.message : String(e),
+      },
+    };
   }
+}
+
+export default function CustomersPage({ 
+  initialCustomers, 
+  serverError 
+}: { 
+  initialCustomers: Customer[], 
+  serverError: string | null 
+}) {
+  const [customers] = useState<Customer[]>(initialCustomers || []);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const filteredCustomers = customers.filter((customer) => {
     const query = searchQuery.toLowerCase();
@@ -92,24 +72,13 @@ export default function CustomersPage() {
     );
   });
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading customers...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
+  if (serverError) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center max-w-md">
-          <div className="text-red-600 text-xl mb-4">⚠️ Error Loading Customers</div>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <Button onClick={loadCustomers} variant="outline">
+          <div className="text-red-600 text-xl mb-4">⚠️ Server Error Loading Customers</div>
+          <p className="text-gray-600 mb-4">{serverError}</p>
+          <Button onClick={() => window.location.reload()} variant="outline">
             Try Again
           </Button>
         </div>
