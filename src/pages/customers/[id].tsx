@@ -24,6 +24,9 @@ export default function CustomerDetailPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [editedCustomer, setEditedCustomer] = useState<Customer | null>(null);
+  const [isEditingEmail, setIsEditingEmail] = useState(false);
+  const [tempEmail, setTempEmail] = useState("");
 
   useEffect(() => {
     if (id && typeof id === "string") {
@@ -58,6 +61,24 @@ export default function CustomerDetailPage() {
       description: "Customer information has been saved successfully",
     });
   };
+
+  async function handleSaveEmail() {
+    if (!customer || !tempEmail.includes("@")) {
+      alert("Please enter a valid email address");
+      return;
+    }
+
+    const updated = await supabaseService.updateCustomer(customer.id, {
+      ...customer,
+      email: tempEmail,
+    });
+
+    if (updated) {
+      setCustomer(updated);
+      setIsEditingEmail(false);
+      alert("Email updated successfully!");
+    }
+  }
 
   const handleChange = (field: keyof Customer, value: string) => {
     if (!customer) return;

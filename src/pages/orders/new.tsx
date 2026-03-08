@@ -2,7 +2,7 @@ import { SEO } from "@/components/SEO";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { ArrowLeft, Plus, Trash2, Send, Save, Copy, Zap, Check, ChevronsUpDown, Search, UserPlus } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Send, Save, Copy, Zap, Check, ChevronsUpDown, Search, UserPlus, Calendar, FileText, Mail } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +32,9 @@ export default function NewOrderPage() {
   const [orderDiscountType, setOrderDiscountType] = useState<"percent" | "fixed">("percent");
   const [customerOrders, setCustomerOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [requireEmail, setRequireEmail] = useState(false);
+  const [tempEmail, setTempEmail] = useState("");
 
   useEffect(() => {
     setMounted(true);
