@@ -1,8 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import PDFDocument from "pdfkit";
-import { Order, Customer } from "@/types";
 import fs from "fs";
 import path from "path";
+import type { Order } from "@/types";
 
 export default async function handler(
   req: NextApiRequest,
@@ -13,364 +13,234 @@ export default async function handler(
   }
 
   try {
-    const { order, customer } = req.body as {
-      order: Order;
-      customer: Customer;
-    };
+    const { order } = req.body as { order: Order };
 
-    if (!order || !customer) {
-      return res.status(400).json({ error: "Missing order or customer data" });
+    if (!order) {
+      return res.status(400).json({ error: "Order data is required" });
     }
 
-    // Create PDF document
-    const doc = new PDFDocument({ margin: 50, size: "LETTER" });
-    const chunks: Buffer[] = [];
+    const doc = new PDFDocument({ size: "A4", margin: 50 });
 
-    doc.on("data", (chunk) => chunks.push(chunk));
-    doc.on("end", () => {
-      const pdfBuffer = Buffer.concat(chunks);
-      res.setHeader("Content-Type", "application/pdf");
-      res.setHeader(
-        "Content-Disposition",
-        `attachment; filename="invoice-${order.orderNumber}.pdf"`
-      );
-      res.send(pdfBuffer);
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=invoice-${order.orderNumber}.pdf`
+    );
+
+    doc.pipe(res);
+
+    // Add logo (MUCH BIGGER)
+    const logoPath = path.join(process.cwd(), "public", "logo.png");
+    if (fs.existsSync(logoPath)) {
+      doc.image(logoPath, 50, 45, { width: 200 }); // Increased from 80 to 200
+    }
+
+    // Company info (moved down to accommodate larger logo)
+    doc
+      .fontSize(20)
+      .fillColor("#f59e0b")
+      .text("Satmar Montreal Matzos", 270, 60, { align: "right" })
+      .fontSize(10)
+      .fillColor("#000000")
+      .text("123 Business St", 270, 90, { align: "right" })
+      .text("Montreal, QC H1X 1X1", 270, 105, { align: "right" })
+      .text("Phone: (514) 555-0123", 270, 120, { align: "right" })
+      .text("sales@satmarmatzosmtl.ca", 270, 135, { align: "right" });
+
+    // Invoice title (moved down)
+    doc
+      .fontSize(28)
+      .fillColor("#f59e0b")
+      .text("INVOICE", 50, 180)
+      .fontSize(10)
+      .fillColor("#000000");
+
+    // Invoice details
+    const yStart = 220;
+    doc
+      .text(`Invoice #: ${order.orderNumber}`, 50, yStart)
+      .text(`Order Date: ${new Date(order.createdAt || Date.now()).toLocaleDateString()}`, 50, yStart + 15)
+      .text(
+        `Delivery Date: ${order.deliveryDate ? new Date(order.deliveryDate).toLocaleDateString() : 'N/A'}`,
+        50,
+        yStart + 30
+      )
+      .text(`Payment Status: ${order.paymentStatus}`, 50, yStart + 45);
+
+    // Customer info
+    doc
+      .text("Bill To:", 320, yStart)
+      .fontSize(12)
+      .text(order.customerName || "N/A", 320, yStart + 15)
+      .fontSize(10)
+      .text(order.customerEmail || "", 320, yStart + 30);
+
+    // Table
+    const tableTop = yStart + 80;
+    const tableHeaders = ["Item", "Qty", "Price/Lb", "Discount", "Total"];
+    const colWidths = [200, 60, 80, 80, 75];
+    let xPos = 50;
+
+    // Table header
+    doc
+      .fontSize(10)
+      .fillColor("#ffffff")
+      .rect(50, tableTop, 495, 25)
+      .fill("#f59e0b");
+
+    doc.fillColor("#ffffff");
+    tableHeaders.forEach((header, i) => {
+      doc.text(header, xPos, tableTop + 7, {
+        width: colWidths[i],
+        align: i === 0 ? "left" : "right",
+      });
+      xPos += colWidths[i];
     });
 
-    // Logo path
-    const logoPath = path.join(process.cwd(), "public", "logo.png");
-    let hasLogo = false;
-    
-    try {
-      if (fs.existsSync(logoPath)) {
-        hasLogo = true;
-      }
-    } catch (err) {
-      console.log("Logo not found, continuing without logo");
-    }
-
-    // Header with gradient background and logo
-    doc
-      .rect(0, 0, doc.page.width, 180)
-      .fill("#f59e0b");
-    
-    doc
-      .rect(0, 0, doc.page.width, 180)
-      .fillOpacity(0.8)
-      .fill("#d97706");
-
-    // Add logo if available
-    if (hasLogo) {
-      try {
-        doc.image(logoPath, 50, 30, { width: 100, height: 100 });
-      } catch (err) {
-        console.log("Error loading logo:", err);
-      }
-    }
-
-    // Company name and title
-    doc
-      .fillColor("#ffffff")
-      .fillOpacity(1)
-      .font("Helvetica-Bold")
-      .fontSize(32)
-      .text("INVOICE", hasLogo ? 170 : 50, 50, { width: doc.page.width - (hasLogo ? 220 : 100) });
-
-    doc
-      .fontSize(18)
-      .text("Satmar Montreal Matzos", hasLogo ? 170 : 50, 90, { width: doc.page.width - (hasLogo ? 220 : 100) });
-
-    doc
-      .fillColor("#ffffff")
-      .font("Helvetica")
-      .fontSize(11)
-      .text("2765 Chemin Bates, Montreal, QC", hasLogo ? 170 : 50, 115)
-      .text("sales@satmarmatzosmtl.ca", hasLogo ? 170 : 50, 130)
-      .text(`Invoice #${order.orderNumber}`, hasLogo ? 170 : 50, 145);
-
-    // Invoice number and date (right aligned)
-    doc
-      .fillColor("#ffffff")
-      .fontSize(12)
-      .font("Helvetica-Bold")
-      .text(`Invoice #${order.orderNumber}`, 400, 75, { align: "right" })
-      .font("Helvetica")
-      .text(
-        `Date: ${new Date(order.createdAt).toLocaleDateString()}`,
-        400,
-        90,
-        { align: "right" }
-      );
-
-    // Bill To section
-    let yPos = 150;
-    doc
-      .fillColor("#92400e")
-      .fontSize(11)
-      .font("Helvetica-Bold")
-      .text("BILL TO:", 50, yPos);
-
-    yPos += 20;
-    doc
-      .fillColor("#111827")
-      .fontSize(14)
-      .font("Helvetica-Bold")
-      .text(customer.name, 50, yPos);
-
-    yPos += 18;
-    doc.fillColor("#4b5563").fontSize(11).font("Helvetica");
-
-    if (customer.email) {
-      doc.text(`Email: ${customer.email}`, 50, yPos);
-      yPos += 15;
-    }
-    if (customer.phone) {
-      doc.text(`Phone: ${customer.phone}`, 50, yPos);
-      yPos += 15;
-    }
-    if (customer.address) {
-      doc.text(customer.address, 50, yPos);
-      yPos += 15;
-    }
-
-    // Payment status badge
-    yPos += 10;
-    const paymentStatus = order.paymentStatus || "unpaid";
-    const statusColors: Record<string, { bg: string; text: string }> = {
-      paid: { bg: "#d1fae5", text: "#065f46" },
-      partial: { bg: "#fef3c7", text: "#92400e" },
-      unpaid: { bg: "#fee2e2", text: "#991b1b" },
-    };
-    const statusColor = statusColors[paymentStatus] || statusColors.unpaid;
-
-    doc
-      .rect(50, yPos, 100, 20)
-      .fill(statusColor.bg)
-      .fillColor(statusColor.text)
-      .fontSize(10)
-      .font("Helvetica-Bold")
-      .text(
-        paymentStatus.charAt(0).toUpperCase() + paymentStatus.slice(1),
-        50,
-        yPos + 5,
-        { width: 100, align: "center" }
-      );
-
-    // Items table
-    yPos += 50;
-    doc
-      .fillColor("#111827")
-      .fontSize(14)
-      .font("Helvetica-Bold")
-      .text("Items", 50, yPos);
-
-    yPos += 25;
-
-    // Table header with gradient background
-    doc.rect(50, yPos, doc.page.width - 100, 25).fill("#f9fafb");
-
-    doc
-      .fillColor("#6b7280")
-      .fontSize(10)
-      .font("Helvetica-Bold")
-      .text("PRODUCT", 60, yPos + 8)
-      .text("QTY", 280, yPos + 8, { width: 50, align: "center" })
-      .text("PRICE", 340, yPos + 8, { width: 70, align: "right" })
-      .text("DISCOUNT", 420, yPos + 8, { width: 70, align: "right" })
-      .text("TOTAL", 500, yPos + 8, { width: 70, align: "right" });
-
-    yPos += 25;
-
     // Table rows
-    doc.fillColor("#111827").fontSize(10).font("Helvetica");
+    let yPos = tableTop + 30;
+    doc.fillColor("#000000");
 
     order.items.forEach((item, index) => {
-      // Add new page if needed
-      if (yPos > doc.page.height - 150) {
+      if (yPos > 700) {
         doc.addPage();
         yPos = 50;
       }
 
-      // Alternate row background
+      const itemTotal = item.finalPrice ?? (item.quantity * (item.pricePerLb || 0));
+
+      xPos = 50;
+      const rowData = [
+        item.productName || "Item",
+        item.quantity.toString(),
+        `$${(item.pricePerLb || 0).toFixed(2)}`,
+        item.discount ? `${item.discount}${item.discountType === 'fixed' ? '$' : '%'}` : "-",
+        `$${itemTotal.toFixed(2)}`,
+      ];
+
       if (index % 2 === 0) {
-        doc.rect(50, yPos, doc.page.width - 100, 30).fill("#ffffff");
-      } else {
-        doc.rect(50, yPos, doc.page.width - 100, 30).fill("#f9fafb");
+        doc.rect(50, yPos - 5, 495, 20).fill("#f9fafb");
+        doc.fillColor("#000000");
       }
 
-      doc
-        .fillColor("#111827")
-        .font("Helvetica-Bold")
-        .text(item.productName, 60, yPos + 8, { width: 200 });
-
-      if ((item as any).notes) {
-        doc
-          .fillColor("#6b7280")
-          .fontSize(9)
-          .font("Helvetica")
-          .text((item as any).notes, 60, yPos + 20, { width: 200 });
-      }
-
-      doc
-        .fillColor("#111827")
-        .fontSize(10)
-        .font("Helvetica")
-        .text(`${item.quantity || 0} lbs`, 280, yPos + 8, {
-          width: 50,
-          align: "center",
-        })
-        .text(`$${(item.pricePerLb || 0).toFixed(2)}/lb`, 340, yPos + 8, {
-          width: 70,
-          align: "right",
+      rowData.forEach((data, i) => {
+        doc.text(data, xPos, yPos, {
+          width: colWidths[i],
+          align: i === 0 ? "left" : "right",
         });
+        xPos += colWidths[i];
+      });
 
-      if (item.discount) {
-        doc
-          .fillColor("#dc2626")
-          .text(`-$${(item.discount || 0).toFixed(2)}`, 420, yPos + 8, {
-            width: 70,
-            align: "right",
-          });
-      }
-
-      doc
-        .fillColor("#111827")
-        .font("Helvetica-Bold")
-        .text(`$${(item.finalPrice || 0).toFixed(2)}`, 500, yPos + 8, {
-          width: 70,
-          align: "right",
-        });
-
-      yPos += 30;
+      yPos += 20;
     });
 
-    // Draw bottom border for table
-    doc
-      .strokeColor("#e5e7eb")
-      .lineWidth(1)
-      .moveTo(50, yPos)
-      .lineTo(doc.page.width - 50, yPos)
-      .stroke();
+    // Use order totals directly from database instead of recalculating
+    const subtotal = order.subtotal || 0;
+    const tax = order.tax || 0;
+    const total = order.total || 0;
+    
+    // Only calculate discount if there's a difference between subtotal and total before tax
+    const calculatedDiscount = Math.max(0, subtotal - (total - tax));
 
-    // Totals section
-    yPos += 30;
-
-    // Add new page if needed for totals
-    if (yPos > doc.page.height - 200) {
-      doc.addPage();
-      yPos = 50;
-    }
-
-    // Background box for totals
-    doc.rect(doc.page.width - 250, yPos, 200, 120).fill("#f9fafb");
-
-    yPos += 15;
-    const totalsX = doc.page.width - 230;
+    // Summary section
+    yPos += 20;
+    const summaryX = 370;
 
     doc
-      .fillColor("#6b7280")
-      .fontSize(11)
-      .font("Helvetica")
-      .text("Subtotal:", totalsX, yPos)
-      .fillColor("#111827")
-      .text(`$${(order.subtotal || 0).toFixed(2)}`, totalsX + 100, yPos, {
-        width: 80,
+      .fontSize(10)
+      .text("Subtotal:", summaryX, yPos, { width: 100, align: "right" })
+      .text(`$${subtotal.toFixed(2)}`, summaryX + 100, yPos, {
+        width: 75,
         align: "right",
       });
 
-    yPos += 20;
-
-    if (order.discount) {
+    if (calculatedDiscount > 0) {
+      yPos += 20;
       doc
-        .fillColor("#dc2626")
-        .text("Discount:", totalsX, yPos)
-        .text(`-$${(order.discount || 0).toFixed(2)}`, totalsX + 100, yPos, {
-          width: 80,
+        .text("Discount:", summaryX, yPos, { width: 100, align: "right" })
+        .fillColor("#ef4444")
+        .text(`-$${calculatedDiscount.toFixed(2)}`, summaryX + 100, yPos, {
+          width: 75,
+          align: "right",
+        })
+        .fillColor("#000000");
+    }
+
+    if (tax > 0) {
+      yPos += 20;
+      doc
+        .text("Tax:", summaryX, yPos, { width: 100, align: "right" })
+        .text(`$${tax.toFixed(2)}`, summaryX + 100, yPos, {
+          width: 75,
           align: "right",
         });
-      yPos += 20;
     }
 
-    // Total line
-    doc
-      .strokeColor("#e5e7eb")
-      .lineWidth(2)
-      .moveTo(totalsX, yPos)
-      .lineTo(totalsX + 180, yPos)
-      .stroke();
-
-    yPos += 15;
-
-    doc
-      .fillColor("#111827")
-      .fontSize(14)
-      .font("Helvetica-Bold")
-      .text("Total:", totalsX, yPos)
-      .fillColor("#f59e0b")
-      .text(`$${(order.total || 0).toFixed(2)}`, totalsX + 100, yPos, {
-        width: 80,
-        align: "right",
-      });
-
-    yPos += 25;
-
-    doc
-      .fillColor("#6b7280")
-      .fontSize(11)
-      .font("Helvetica")
-      .text("Amount Paid:", totalsX, yPos)
-      .fillColor("#059669")
-      .text(`$${(order.amountPaid || 0).toFixed(2)}`, totalsX + 100, yPos, {
-        width: 80,
-        align: "right",
-      });
-
     yPos += 20;
-
-    // Balance Due line
     doc
-      .strokeColor("#e5e7eb")
-      .lineWidth(2)
-      .moveTo(totalsX, yPos)
-      .lineTo(totalsX + 180, yPos)
-      .stroke();
-
-    yPos += 15;
-
-    const balanceDue = (order.total || 0) - (order.amountPaid || 0);
-
-    doc
-      .fillColor("#111827")
-      .fontSize(14)
-      .font("Helvetica-Bold")
-      .text("Balance Due:", totalsX, yPos)
-      .fillColor(balanceDue > 0 ? "#dc2626" : "#059669")
-      .text(`$${balanceDue.toFixed(2)}`, totalsX + 100, yPos, {
-        width: 80,
+      .fontSize(12)
+      .fillColor("#f59e0b")
+      .text("Total:", summaryX, yPos, { width: 100, align: "right" })
+      .text(`$${total.toFixed(2)}`, summaryX + 100, yPos, {
+        width: 75,
         align: "right",
-      });
+      })
+      .fillColor("#000000")
+      .fontSize(10);
+
+    // Payment info
+    if (order.amountPaid && order.amountPaid > 0) {
+      yPos += 20;
+      doc
+        .text("Amount Paid:", summaryX, yPos, { width: 100, align: "right" })
+        .fillColor("#10b981")
+        .text(`$${order.amountPaid.toFixed(2)}`, summaryX + 100, yPos, {
+          width: 75,
+          align: "right",
+        })
+        .fillColor("#000000");
+
+      const balance = total - order.amountPaid;
+      yPos += 20;
+      doc
+        .fontSize(12)
+        .text("Balance Due:", summaryX, yPos, { width: 100, align: "right" })
+        .fillColor(balance > 0 ? "#ef4444" : "#10b981")
+        .text(`$${balance.toFixed(2)}`, summaryX + 100, yPos, {
+          width: 75,
+          align: "right",
+        })
+        .fillColor("#000000")
+        .fontSize(10);
+    }
+
+    // Notes
+    if (order.notes) {
+      yPos += 40;
+      if (yPos > 700) {
+        doc.addPage();
+        yPos = 50;
+      }
+      doc
+        .fontSize(10)
+        .text("Notes:", 50, yPos)
+        .fontSize(9)
+        .fillColor("#666666")
+        .text(order.notes, 50, yPos + 15, { width: 495 })
+        .fillColor("#000000");
+    }
 
     // Footer
-    const footerY = doc.page.height - 80;
     doc
-      .fillColor("#9ca3af")
-      .fontSize(10)
-      .font("Helvetica")
+      .fontSize(8)
+      .fillColor("#666666")
       .text(
-        "Questions about this invoice? Contact us at sales@satmarmatzosmtl.ca",
+        "Thank you for your business!",
         50,
-        footerY,
-        { align: "center", width: doc.page.width - 100 }
-      )
-      .fontSize(9)
-      .text(
-        `© ${new Date().getFullYear()} Satmar Montreal Matzos. All rights reserved.`,
-        50,
-        footerY + 20,
-        { align: "center", width: doc.page.width - 100 }
+        doc.page.height - 50,
+        { align: "center", width: 495 }
       );
 
-    // Finalize PDF
     doc.end();
   } catch (error) {
     console.error("Error generating PDF:", error);
