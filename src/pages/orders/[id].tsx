@@ -142,7 +142,7 @@ export default function OrderDetailPage() {
           description: "Order confirmation email sent successfully"
         });
       } else {
-        throw new Error(result.error || 'Failed to send email');
+        throw new Error('Failed to send email');
       }
     } catch (error) {
       console.error('Error sending confirmation:', error);
@@ -176,7 +176,7 @@ export default function OrderDetailPage() {
           description: "Invoice email sent successfully"
         });
       } else {
-        throw new Error(result.error || 'Failed to send email');
+        throw new Error('Failed to send email');
       }
     } catch (error) {
       console.error('Error sending invoice:', error);
