@@ -91,6 +91,8 @@ export interface Payment {
   createdAt: string;
   creditCardNumber?: string;
   creditCardLast4?: string;
+  creditCardExpiry?: string;
+  checkNumber?: string;
   confirmed: boolean;
   confirmedAt?: string | null;
 }

@@ -10,10 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { getReceivablesSummary, getPayments, getInvoices } from "@/lib/store";
 import { generateOverdueReminders } from "@/lib/automation";
 import { useToast } from "@/hooks/use-toast";
-import type { ReceivablesSummary, Payment, Invoice } from "@/types";
+import type { Payment, Invoice } from "@/types";
 
 export default function ReceivablesPage() {
-  const [summary, setSummary] = useState<ReceivablesSummary | null>(null);
+  const [summary, setSummary] = useState<any>(null);
   const [allPayments, setAllPayments] = useState<Payment[]>([]);
   const [allInvoices, setAllInvoices] = useState<Invoice[]>([]);
   const [mounted, setMounted] = useState(false);
@@ -52,8 +52,7 @@ export default function ReceivablesPage() {
       case "credit_card": return <CreditCard className="w-4 h-4" />;
       case "cash": return <DollarSign className="w-4 h-4" />;
       case "check": return <Receipt className="w-4 h-4" />;
-      case "e_transfer": return <TrendingUp className="w-4 h-4" />;
-      case "voucher": return <Receipt className="w-4 h-4" />;
+      case "bank_transfer": return <TrendingUp className="w-4 h-4" />;
       default: return <DollarSign className="w-4 h-4" />;
     }
   };
@@ -63,8 +62,7 @@ export default function ReceivablesPage() {
       credit_card: "Credit Card",
       cash: "Cash",
       check: "Check",
-      e_transfer: "E-Transfer",
-      voucher: "Voucher"
+      bank_transfer: "Bank Transfer",
     };
     return labels[method] || method;
   };
@@ -263,8 +261,8 @@ export default function ReceivablesPage() {
                           <p className="text-sm text-gray-600">
                             {getPaymentMethodLabel(payment.paymentMethod)}
                             {payment.creditCardLast4 && ` •••• ${payment.creditCardLast4}`}
-                            {payment.creditCardExpiry && ` Exp: ${payment.creditCardExpiry}`}
-                            {payment.checkNumber && ` #${payment.checkNumber}`}
+                            {payment.creditCardExpiry && payment.creditCardExpiry && ` Exp: ${payment.creditCardExpiry}`}
+                            {payment.checkNumber && payment.checkNumber && ` #${payment.checkNumber}`}
                           </p>
                           {payment.notes && (
                             <p className="text-xs text-gray-500 mt-1">{payment.notes}</p>

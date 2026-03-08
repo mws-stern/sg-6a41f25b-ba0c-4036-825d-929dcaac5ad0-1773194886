@@ -1,7 +1,10 @@
 import "@/styles/globals.css";
 import { Sidebar } from "@/components/Sidebar";
+import { AuthProvider, useAuth } from "@/components/AuthProvider";
 import type { AppProps } from "next/app";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/router";
+import { useEffect } from "react";
 import "@fontsource/heebo/400.css";
 import "@fontsource/heebo/700.css";
 import "@fontsource/frank-ruhl-libre/400.css";
@@ -13,9 +16,50 @@ const Toaster = dynamic(
   { ssr: false }
 );
 
-export default function App({ Component, pageProps }: AppProps) {
-  // Check if we're on a print page (invoice)
-  const isPrintPage = typeof window !== 'undefined' && window.location.pathname.includes('/invoices/');
+function AuthGuard({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+  const isLoginPage = router.pathname === "/login";
+
+  useEffect(() => {
+    if (!loading && !user && !isLoginPage) {
+      router.push("/login");
+    }
+  }, [user, loading, router, isLoginPage]);
+
+  // Show loading state while checking authentication
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render protected content if not authenticated (unless on login page)
+  if (!user && !isLoginPage) {
+    return null;
+  }
+
+  return <>{children}</>;
+}
+
+function AppContent({ Component, pageProps }: AppProps) {
+  const router = useRouter();
+  const isLoginPage = router.pathname === "/login";
+  const isPrintPage = router.pathname.includes("/invoices/");
+
+  if (isLoginPage) {
+    return (
+      <>
+        <Component {...pageProps} />
+        <Toaster />
+      </>
+    );
+  }
 
   if (isPrintPage) {
     return (
@@ -34,5 +78,15 @@ export default function App({ Component, pageProps }: AppProps) {
       </main>
       <Toaster />
     </div>
+  );
+}
+
+export default function App(props: AppProps) {
+  return (
+    <AuthProvider>
+      <AuthGuard>
+        <AppContent {...props} />
+      </AuthGuard>
+    </AuthProvider>
   );
 }
