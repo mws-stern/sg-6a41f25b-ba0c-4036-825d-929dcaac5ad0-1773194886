@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Sidebar } from "@/components/Sidebar";
+import { AlertsPanel } from "@/components/AlertsPanel";
+import { EmailDashboard } from "@/components/email/EmailDashboard";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { format } from "date-fns";
 
 export default function EmailsPage() {
   const [emails, setEmails] = useState<EmailLog[]>([]);
@@ -142,7 +144,6 @@ export default function EmailsPage() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="bg-white border-b border-gray-200 px-8 py-6">
           <div className="flex items-center justify-between">
@@ -157,197 +158,201 @@ export default function EmailsPage() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-auto p-8">
-          {/* Stats Cards */}
-          <div className="grid grid-cols-5 gap-4 mb-8">
-            <Card className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-gray-100 rounded-lg">
-                  <Mail className="h-6 w-6 text-gray-600" />
+        <div className="flex flex-1 overflow-hidden relative">
+          
+          {/* Main Content */}
+          <main className="flex-1 overflow-y-auto bg-stone-50 p-8">
+            {/* Stats Cards */}
+            <div className="grid grid-cols-5 gap-4 mb-8">
+              <Card className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-gray-100 rounded-lg">
+                    <Mail className="h-6 w-6 text-gray-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Total Emails</p>
+                    <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-600">Total Emails</p>
-                  <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-                </div>
-              </div>
-            </Card>
+              </Card>
 
-            <Card className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-green-100 rounded-lg">
-                  <CheckCircle2 className="h-6 w-6 text-green-600" />
+              <Card className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-green-100 rounded-lg">
+                    <CheckCircle2 className="h-6 w-6 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Sent</p>
+                    <p className="text-2xl font-bold text-green-600">{stats.sent}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-600">Sent</p>
-                  <p className="text-2xl font-bold text-green-600">{stats.sent}</p>
-                </div>
-              </div>
-            </Card>
+              </Card>
 
-            <Card className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-red-100 rounded-lg">
-                  <XCircle className="h-6 w-6 text-red-600" />
+              <Card className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-red-100 rounded-lg">
+                    <XCircle className="h-6 w-6 text-red-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Failed</p>
+                    <p className="text-2xl font-bold text-red-600">{stats.failed}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-600">Failed</p>
-                  <p className="text-2xl font-bold text-red-600">{stats.failed}</p>
-                </div>
-              </div>
-            </Card>
+              </Card>
 
-            <Card className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-amber-100 rounded-lg">
-                  <Mail className="h-6 w-6 text-amber-600" />
+              <Card className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-amber-100 rounded-lg">
+                    <Mail className="h-6 w-6 text-amber-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Confirmations</p>
+                    <p className="text-2xl font-bold text-amber-600">{stats.confirmations}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-600">Confirmations</p>
-                  <p className="text-2xl font-bold text-amber-600">{stats.confirmations}</p>
+              </Card>
+
+              <Card className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-blue-100 rounded-lg">
+                    <Mail className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Invoices</p>
+                    <p className="text-2xl font-bold text-blue-600">{stats.invoices}</p>
+                  </div>
                 </div>
-              </div>
-            </Card>
-
-            <Card className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-blue-100 rounded-lg">
-                  <Mail className="h-6 w-6 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Invoices</p>
-                  <p className="text-2xl font-bold text-blue-600">{stats.invoices}</p>
-                </div>
-              </div>
-            </Card>
-          </div>
-
-          {/* Filters */}
-          <Card className="p-6 mb-6">
-            <div className="flex items-center gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Search by customer name, email, or subject..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Filter className="h-4 w-4 text-gray-400" />
-                <Select value={filterType} onValueChange={(value: any) => setFilterType(value)}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Email Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value="order_confirmation">Order Confirmations</SelectItem>
-                    <SelectItem value="invoice">Invoices</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <Select value={filterStatus} onValueChange={(value: any) => setFilterStatus(value)}>
-                  <SelectTrigger className="w-[150px]">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="sent">Sent</SelectItem>
-                    <SelectItem value="failed">Failed</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              </Card>
             </div>
-          </Card>
 
-          {/* Email List */}
-          <Card>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Type
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Customer
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Subject
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Sent At
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {loading ? (
+            {/* Filters */}
+            <Card className="p-6 mb-6">
+              <div className="flex items-center gap-4">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Search by customer name, email, or subject..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-gray-400" />
+                  <Select value={filterType} onValueChange={(value: any) => setFilterType(value)}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Email Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Types</SelectItem>
+                      <SelectItem value="order_confirmation">Order Confirmations</SelectItem>
+                      <SelectItem value="invoice">Invoices</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={filterStatus} onValueChange={(value: any) => setFilterStatus(value)}>
+                    <SelectTrigger className="w-[150px]">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="sent">Sent</SelectItem>
+                      <SelectItem value="failed">Failed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </Card>
+
+            {/* Email List */}
+            <Card>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
-                      <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
-                        Loading emails...
-                      </td>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        Type
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        Customer
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        Subject
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        Sent At
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        Actions
+                      </th>
                     </tr>
-                  ) : filteredEmails.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
-                        No emails found
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredEmails.map((email) => (
-                      <tr key={email.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-2">
-                            {getStatusIcon(email.status)}
-                            {getStatusBadge(email.status)}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">{getTypeBadge(email.emailType)}</td>
-                        <td className="px-6 py-4">
-                          <div>
-                            <p className="font-medium text-gray-900">{email.customerName || "Unknown"}</p>
-                            <p className="text-sm text-gray-500">{email.customerEmail}</p>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <p className="text-sm text-gray-900">{email.subject}</p>
-                          {email.errorMessage && (
-                            <p className="text-xs text-red-600 mt-1">Error: {email.errorMessage}</p>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-600">
-                          {new Date(email.sentAt).toLocaleString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </td>
-                        <td className="px-6 py-4">
-                          {email.orderId && (
-                            <Link href={`/orders/${email.orderId}`}>
-                              <Button variant="outline" size="sm" className="gap-2">
-                                View Order
-                              </Button>
-                            </Link>
-                          )}
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {loading ? (
+                      <tr>
+                        <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                          Loading emails...
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-        </main>
+                    ) : filteredEmails.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                          No emails found
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredEmails.map((email) => (
+                        <tr key={email.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-2">
+                              {getStatusIcon(email.status)}
+                              {getStatusBadge(email.status)}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">{getTypeBadge(email.emailType)}</td>
+                          <td className="px-6 py-4">
+                            <div>
+                              <p className="font-medium text-gray-900">{email.customerName || "Unknown"}</p>
+                              <p className="text-sm text-gray-500">{email.customerEmail}</p>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <p className="text-sm text-gray-900">{email.subject}</p>
+                            {email.errorMessage && (
+                              <p className="text-xs text-red-600 mt-1">Error: {email.errorMessage}</p>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-600">
+                            {new Date(email.sentAt).toLocaleString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </td>
+                          <td className="px-6 py-4">
+                            {email.orderId && (
+                              <Link href={`/orders/${email.orderId}`}>
+                                <Button variant="outline" size="sm" className="gap-2">
+                                  View Order
+                                </Button>
+                              </Link>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          </main>
+        </div>
       </div>
     </div>
   );
