@@ -63,20 +63,18 @@ export const supabaseService = {
   },
 
   async addCustomer(customer: Omit<Customer, "id" | "createdAt">): Promise<Customer | null> {
+    const customerData = {
+      name: customer.name,
+      phone: customer.phone || null,
+      email: customer.email || null,
+      address: customer.address || null,
+      notes: customer.notes || null,
+      created_at: new Date().toISOString(),
+    };
+
     const { data, error } = await supabase
       .from('customers')
-      .insert({
-        name: customer.name,
-        name_hebrew: customer.nameHebrew,
-        email: customer.email,
-        phone: customer.phone,
-        mobile: customer.mobile,
-        address: customer.address,
-        city: customer.city,
-        state: customer.state,
-        zip: customer.zip,
-        notes: customer.notes
-      })
+      .insert(customerData)
       .select()
       .single();
 
@@ -85,20 +83,22 @@ export const supabaseService = {
       return null;
     }
 
-    return {
+    console.log('Customer added successfully:', data);
+
+    return data ? {
       id: data.id,
       name: data.name,
       nameHebrew: data.name_hebrew,
-      email: data.email,
       phone: data.phone,
       mobile: data.mobile,
+      email: data.email,
       address: data.address,
       city: data.city,
       state: data.state,
       zip: data.zip,
       notes: data.notes,
-      createdAt: data.created_at
-    };
+      createdAt: data.created_at,
+    } : null;
   },
 
   async updateCustomer(customer: Customer): Promise<void> {
