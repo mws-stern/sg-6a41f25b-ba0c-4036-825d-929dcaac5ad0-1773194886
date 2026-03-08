@@ -149,7 +149,7 @@ export const supabaseService = {
         name: product.name,
         name_hebrew: product.nameHebrew,
         price_per_lb: product.pricePerLb,
-        category: product.category,
+        category: product.category as string,
         description: product.description,
         in_stock: product.inStock,
         current_inventory: product.currentInventory
@@ -167,7 +167,7 @@ export const supabaseService = {
       name: data.name,
       nameHebrew: data.name_hebrew,
       pricePerLb: data.price_per_lb,
-      category: data.category,
+      category: data.category as Product["category"],
       description: data.description,
       inStock: data.in_stock,
       currentInventory: data.current_inventory
