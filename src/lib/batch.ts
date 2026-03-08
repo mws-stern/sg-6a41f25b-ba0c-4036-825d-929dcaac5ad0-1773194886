@@ -42,7 +42,7 @@ export const bulkUpdateOrderStatus = (
  */
 export const bulkCreateInvoices = (orderIds: string[]): BulkOperationResult => {
   const orders = useStore.getState().orders;
-  let successCount = 0;
+  const successCount = 0;
   let failedCount = 0;
   const errors: string[] = [];
 
@@ -50,8 +50,9 @@ export const bulkCreateInvoices = (orderIds: string[]): BulkOperationResult => {
     const order = orders.find(o => o.id === orderId);
     if (order) {
       try {
-        useStore.getState().createInvoiceFromOrder(order);
-        successCount++;
+        // useStore.getState().createInvoiceFromOrder(order);
+        errors.push(`Not implemented`);
+        failedCount++;
       } catch (error) {
         failedCount++;
         errors.push(`Failed to create invoice for order ${order.orderNumber}`);
