@@ -1,9 +1,9 @@
 import { SEO } from "@/components/SEO";
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/router";
-import { ArrowLeft, Save, User, Mail, Phone, MapPin } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
+import { ArrowLeft, Save } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +15,8 @@ import type { Customer } from "@/types";
 export default function NewCustomerPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  
   const [formData, setFormData] = useState({
     name: "",
     nameHebrew: "",
@@ -22,53 +24,42 @@ export default function NewCustomerPage() {
     phone: "",
     mobile: "",
     address: "",
-    city: "Montreal",
-    state: "QC",
+    city: "",
+    state: "",
     zip: "",
     notes: "",
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { id, value } = e.target;
-    setFormData((prev) => ({ ...prev, [id]: value }));
+  const handleChange = (field: keyof typeof formData, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Email validation
-    if (!formData.email) {
+    if (!formData.name.trim()) {
       toast({
         title: "Validation Error",
-        description: "Email address is required.",
+        description: "Customer name is required",
         variant: "destructive",
       });
       return;
     }
 
-    const newCustomer = await supabaseService.addCustomer({
-      name: formData.name,
-      nameHebrew: formData.nameHebrew,
-      email: formData.email,
-      phone: formData.phone,
-      mobile: formData.mobile,
-      address: formData.address,
-      city: formData.city,
-      state: formData.state,
-      zip: formData.zip,
-      notes: formData.notes,
-    });
+    setLoading(true);
+    const newCustomer = await supabaseService.addCustomer(formData);
+    setLoading(false);
 
     if (newCustomer) {
       toast({
-        title: "Customer Created",
-        description: `${newCustomer.name} has been added to your database.`,
+        title: "Customer Added",
+        description: `${newCustomer.name} has been added successfully`,
       });
       router.push("/customers");
     } else {
       toast({
         title: "Error",
-        description: "Failed to create customer.",
+        description: "Failed to add customer",
         variant: "destructive",
       });
     }
@@ -76,7 +67,7 @@ export default function NewCustomerPage() {
 
   return (
     <>
-      <SEO title="New Customer - Satmar Montreal Matzos" />
+      <SEO title="Add New Customer - Satmar Montreal Matzos" />
       
       <div className="container mx-auto px-6 py-8">
         <div className="mb-6 flex items-center gap-4">
@@ -86,92 +77,76 @@ export default function NewCustomerPage() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">New Customer</h1>
-            <p className="text-gray-600">Add a new customer to your database</p>
+            <h1 className="text-3xl font-bold text-gray-900">Add New Customer</h1>
+            <p className="text-gray-600">Create a new customer record</p>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="max-w-3xl mx-auto">
-          <Card className="border-amber-200 shadow-lg">
+        <form onSubmit={handleSubmit}>
+          <Card>
             <CardHeader>
-              <CardTitle>Customer Details</CardTitle>
+              <CardTitle>Customer Information</CardTitle>
+              <CardDescription>Enter the customer details below</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="name" className="flex items-center gap-2">
-                    <User className="w-4 h-4" /> Name (English)
-                  </Label>
+                  <Label htmlFor="name">Name *</Label>
                   <Input
                     id="name"
                     value={formData.name}
-                    onChange={handleChange}
-                    placeholder="Full Name (e.g. Mr. John Doe)"
+                    onChange={(e) => handleChange("name", e.target.value)}
+                    required
                   />
                 </div>
+                
                 <div className="space-y-2">
-                  <Label htmlFor="nameHebrew" className="flex items-center gap-2">
-                    <User className="w-4 h-4" /> Name (Hebrew)
-                  </Label>
+                  <Label htmlFor="nameHebrew">Hebrew Name</Label>
                   <Input
                     id="nameHebrew"
                     value={formData.nameHebrew}
-                    onChange={handleChange}
-                    placeholder="שם מלא (לדוגמא: הר״ר יואל כהן)"
-                    className="text-right"
+                    onChange={(e) => handleChange("nameHebrew", e.target.value)}
                     dir="rtl"
                   />
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email <span className="text-red-500">*</span></Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="customer@example.com"
-                      className="pl-9"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      required
-                    />
-                  </div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => handleChange("email", e.target.value)}
+                  />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="phone" className="flex items-center gap-2">
-                      <Phone className="w-4 h-4" /> Home Phone
-                    </Label>
-                    <Input
-                      id="phone"
-                      value={formData.phone}
-                      onChange={handleChange}
-                      placeholder="(514) 555-0123"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="mobile" className="flex items-center gap-2">
-                      <Phone className="w-4 h-4" /> Mobile Phone
-                    </Label>
-                    <Input
-                      id="mobile"
-                      value={formData.mobile}
-                      onChange={handleChange}
-                      placeholder="(514) 555-0123"
-                    />
-                  </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => handleChange("phone", e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="mobile">Mobile</Label>
+                  <Input
+                    id="mobile"
+                    type="tel"
+                    value={formData.mobile}
+                    onChange={(e) => handleChange("mobile", e.target.value)}
+                  />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="address" className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4" /> Address
-                </Label>
+                <Label htmlFor="address">Address</Label>
                 <Input
                   id="address"
                   value={formData.address}
-                  onChange={handleChange}
-                  placeholder="Street Address"
+                  onChange={(e) => handleChange("address", e.target.value)}
                 />
               </div>
 
@@ -181,24 +156,25 @@ export default function NewCustomerPage() {
                   <Input
                     id="city"
                     value={formData.city}
-                    onChange={handleChange}
+                    onChange={(e) => handleChange("city", e.target.value)}
                   />
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="state">Province/State</Label>
+                  <Label htmlFor="state">State/Province</Label>
                   <Input
                     id="state"
                     value={formData.state}
-                    onChange={handleChange}
+                    onChange={(e) => handleChange("state", e.target.value)}
                   />
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="zip">Postal Code</Label>
+                  <Label htmlFor="zip">ZIP/Postal Code</Label>
                   <Input
                     id="zip"
                     value={formData.zip}
-                    onChange={handleChange}
-                    placeholder="H3W 2R2"
+                    onChange={(e) => handleChange("zip", e.target.value)}
                   />
                 </div>
               </div>
@@ -208,20 +184,22 @@ export default function NewCustomerPage() {
                 <Textarea
                   id="notes"
                   value={formData.notes}
-                  onChange={handleChange}
-                  placeholder="Additional notes about this customer..."
+                  onChange={(e) => handleChange("notes", e.target.value)}
                   rows={3}
                 />
               </div>
-
-              <div className="pt-4 flex justify-end">
-                <Button type="submit" className="gap-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800">
-                  <Save className="w-4 h-4" />
-                  Save Customer
-                </Button>
-              </div>
             </CardContent>
           </Card>
+
+          <div className="mt-6 flex justify-end gap-4">
+            <Link href="/customers">
+              <Button type="button" variant="outline">Cancel</Button>
+            </Link>
+            <Button type="submit" disabled={loading}>
+              <Save className="w-4 h-4 mr-2" />
+              {loading ? "Saving..." : "Save Customer"}
+            </Button>
+          </div>
         </form>
       </div>
     </>
