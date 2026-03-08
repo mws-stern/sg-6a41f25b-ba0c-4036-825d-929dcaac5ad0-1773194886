@@ -20,49 +20,48 @@ import type { Product, Customer, OrderItem, Order } from "@/types";
 
 export async function getServerSideProps() {
   try {
-    const [
-      { data: pData },
-      { data: cData },
-      { data: oData }
-    ] = await Promise.all([
-      supabase.from("products").select("*").order("name"),
-      supabase.from("customers").select("*").order("name"),
-      supabase.from("orders").select("*").order("created_at", { ascending: false })
+    const [customersData, productsData, ordersData, settingsData] = await Promise.all([
+      supabaseService.getCustomers(),
+      supabaseService.getProducts(),
+      supabaseService.getOrders(),
+      supabaseService.getSettings()
     ]);
 
-    const products = (pData || []).map((p: any) => ({
-      id: p.id, name: p.name, nameHebrew: p.name_hebrew || null, 
-      pricePerLb: p.price_per_lb, category: p.category || 'regular', 
-      description: p.description || null, inStock: p.in_stock, 
-      currentInventory: p.current_inventory || 0
+    // Ensure all fields are properly serializable (no undefined values)
+    const serializedOrders = ordersData.map(order => ({
+      ...order,
+      items: order.items || [],
+      notes: order.notes || null,
+      deliveryDate: order.deliveryDate || null,
+      discount: order.discount || 0
     }));
 
-    const customers = (cData || []).map((c: any) => ({
-      id: c.id, name: c.name, nameHebrew: c.name_hebrew || null,
-      email: c.email || null, phone: c.phone || null, mobile: c.mobile || null,
-      address: c.address || null, city: c.city || null, state: c.state || null,
-      zip: c.zip || null, notes: c.notes || null, createdAt: c.created_at
-    }));
-
-    const orders = (oData || []).map((o: any) => ({
-      id: o.id, orderNumber: o.order_number, customerId: o.customer_id,
-      customerName: o.customer_name, customerEmail: o.customer_email || '',
-      status: o.status, items: typeof o.items === 'string' ? JSON.parse(o.items) : o.items,
-      subtotal: o.subtotal, tax: o.tax, total: o.total,
-      discount: o.discount || undefined, discountType: o.discount_type || undefined,
-      notes: o.notes || null, deliveryDate: o.delivery_date || null, createdAt: o.created_at
-    }));
-
-    return { 
-      props: { 
-        initialProducts: products, 
-        initialCustomers: customers, 
-        initialOrders: orders 
-      } 
+    return {
+      props: {
+        initialCustomers: customersData,
+        initialProducts: productsData,
+        initialOrders: serializedOrders,
+        initialSettings: settingsData
+      }
     };
   } catch (error) {
-    console.error("Server fetch error:", error);
-    return { props: { initialProducts: [], initialCustomers: [], initialOrders: [] } };
+    console.error("Error fetching data:", error);
+    return {
+      props: {
+        initialCustomers: [],
+        initialProducts: [],
+        initialOrders: [],
+        initialSettings: {
+          companyName: "Satmar Montreal Matzos",
+          companyNameHebrew: "מצות סאטמאר מאנטרעאל",
+          email: "sales@satmarmatzosmtl.ca",
+          phone: "(514) 000-0000",
+          address: "Montreal, QC, Canada",
+          taxRate: 0.14975,
+          currency: "CAD"
+        }
+      }
+    };
   }
 }
 
