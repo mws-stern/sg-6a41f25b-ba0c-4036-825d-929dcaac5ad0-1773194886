@@ -7,39 +7,52 @@ import { INITIAL_CUSTOMERS_DATA } from "@/lib/initialCustomers";
 export const supabaseService = {
   // --- Customers ---
   async getCustomers(): Promise<Customer[]> {
-    console.log('🔍 Fetching customers from Supabase...');
-    const { data, error } = await supabase
-      .from('customers')
-      .select('*')
-      .order('name');
-      
-    if (error) {
-      console.error('❌ Error fetching customers:', error);
-      console.error('Error details:', {
-        code: error.code,
-        message: error.message,
-        details: error.details,
-        hint: error.hint
-      });
-      throw error;
+    console.log("🔍 Fetching customers from Supabase...");
+
+    try {
+      const { data, error } = await supabase
+        .from("customers")
+        .select("*")
+        .order("name");
+
+      if (error) {
+        console.error("❌ Error fetching customers (Supabase response error):", error);
+        console.error("Error details:", {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+        });
+        return [];
+      }
+
+      if (!data) {
+        console.warn("⚠️ Supabase returned no data for customers (data is null/undefined).");
+        return [];
+      }
+
+      console.log("✅ Successfully fetched customers:", data.length);
+
+      // Map snake_case to camelCase
+      return data.map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        nameHebrew: c.name_hebrew,
+        email: c.email,
+        phone: c.phone,
+        mobile: c.mobile,
+        address: c.address,
+        city: c.city,
+        state: c.state,
+        zip: c.zip,
+        notes: c.notes,
+        createdAt: c.created_at,
+      }));
+    } catch (err) {
+      console.error("🔥 Network or unexpected error while fetching customers:", err);
+      // Gracefully degrade instead of crashing the page
+      return [];
     }
-    
-    console.log('✅ Successfully fetched customers:', data?.length || 0);
-    // Map snake_case to camelCase
-    return data.map((c: any) => ({
-      id: c.id,
-      name: c.name,
-      nameHebrew: c.name_hebrew,
-      email: c.email,
-      phone: c.phone,
-      mobile: c.mobile,
-      address: c.address,
-      city: c.city,
-      state: c.state,
-      zip: c.zip,
-      notes: c.notes,
-      createdAt: c.created_at
-    }));
   },
 
   async getCustomer(id: string): Promise<Customer | null> {
