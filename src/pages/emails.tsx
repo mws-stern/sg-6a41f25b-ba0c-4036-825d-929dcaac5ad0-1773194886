@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { AlertsPanel } from "@/components/AlertsPanel";
-import { EmailDashboard } from "@/components/email/EmailDashboard";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
