@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Search, Package } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Order } from "@/types";
+import type { Order } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { supabaseService } from "@/services/supabaseService";
 import type { GetServerSideProps } from "next";
@@ -28,8 +28,13 @@ export default function OrdersPage({ initialOrders, initialCustomers }: OrdersPa
         "postgres_changes",
         { event: "*", schema: "public", table: "orders" },
         async () => {
-          const updatedOrders = await supabaseService.getOrders();
-          setOrders(updatedOrders);
+          const { data, error } = await supabaseService.getOrders();
+          if (error) {
+             
+            console.error("[OrdersPage][realtime getOrders] error", error);
+            return;
+          }
+          setOrders((data || []) as Order[]);
         }
       )
       .subscribe();
@@ -40,11 +45,11 @@ export default function OrdersPage({ initialOrders, initialCustomers }: OrdersPa
   }, []);
 
   const getCustomerName = (customerId: string) => {
-    const customer = customers.find(c => c.id === customerId);
+    const customer = customers.find((c) => c.id === customerId);
     return customer?.name || "Unknown";
   };
 
-  const filteredOrders = orders.filter(order => {
+  const filteredOrders = orders.filter((order) => {
     const customerName = getCustomerName(order.customerId);
     return (
       customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -145,22 +150,38 @@ export default function OrdersPage({ initialOrders, initialCustomers }: OrdersPa
 
 export const getServerSideProps: GetServerSideProps = async () => {
   try {
-    const initialOrders = await supabaseService.getOrders();
-    const customersData = await supabaseService.getCustomers();
+    const { data: ordersData, error: ordersError } = await supabaseService.getOrders();
+    if (ordersError) {
+       
+      console.error("[OrdersPage][getServerSideProps getOrders] error", ordersError);
+    }
+
+    const { data: customersData, error: customersError } = await supabaseService.getCustomers();
+    if (customersError) {
+       
+      console.error("[OrdersPage][getServerSideProps getCustomers] error", customersError);
+    }
+
+    const safeOrders = (ordersData || []) as Order[];
+    const safeCustomers = (customersData || []).map((c: any) => ({
+      id: c.id,
+      name: c.name,
+    }));
 
     return {
       props: {
-        initialOrders: initialOrders || [],
-        initialCustomers: customersData.map(c => ({ id: c.id, name: c.name })) || []
-      }
+        initialOrders: safeOrders,
+        initialCustomers: safeCustomers,
+      },
     };
   } catch (error) {
-    console.error("Error fetching data:", error);
+     
+    console.error("[OrdersPage][getServerSideProps] thrown error", error);
     return {
       props: {
         initialOrders: [],
-        initialCustomers: []
-      }
+        initialCustomers: [],
+      },
     };
   }
 };

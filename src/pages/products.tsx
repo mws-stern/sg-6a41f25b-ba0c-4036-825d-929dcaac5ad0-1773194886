@@ -35,9 +35,22 @@ export default function ProductsPage() {
 
   const loadProducts = async () => {
     setLoading(true);
-    const data = await supabaseService.getProducts();
-    setProducts(data);
-    setLoading(false);
+    try {
+      const { data, error } = await supabaseService.getProducts();
+      if (error) {
+         
+        console.error("[ProductsPage][getProducts] error", error);
+        setProducts([]);
+      } else {
+        setProducts((data || []) as Product[]);
+      }
+    } catch (err) {
+       
+      console.error("[ProductsPage][getProducts] thrown error", err);
+      setProducts([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleEdit = (product: Product) => {

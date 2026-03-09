@@ -23,32 +23,63 @@ export default function ReceivablesPage() {
 
   const loadData = async () => {
     setLoading(true);
-    const [paymentsData, invoicesData, ordersData] = await Promise.all([
-      supabaseService.getAllPayments(),
-      supabaseService.getInvoices(),
-      supabaseService.getOrders(),
-    ]);
+    try {
+      const [
+        { data: paymentsData, error: paymentsError },
+        { data: invoicesData, error: invoicesError },
+        { data: ordersData, error: ordersError },
+      ] = await Promise.all([
+        supabaseService.getAllPayments(),
+        supabaseService.getInvoices(),
+        supabaseService.getOrders(),
+      ]);
 
-    setPayments(paymentsData);
-    setInvoices(invoicesData);
-    setOrders(ordersData);
+      if (paymentsError) {
+         
+        console.error("[ReceivablesPage][getAllPayments] error", paymentsError);
+      }
+      if (invoicesError) {
+         
+        console.error("[ReceivablesPage][getInvoices] error", invoicesError);
+      }
+      if (ordersError) {
+         
+        console.error("[ReceivablesPage][getOrders] error", ordersError);
+      }
 
-    // Calculate summary
-    const totalReceivables = ordersData.reduce((sum, order) => sum + (order.amountDue || 0), 0);
-    const totalPaid = ordersData.reduce((sum, order) => sum + (order.amountPaid || 0), 0);
-    const totalOverdue = invoicesData.filter(inv => {
-      if (!inv.dueDate || inv.paid) return false;
-      return new Date(inv.dueDate) < new Date();
-    }).reduce((sum, inv) => sum + (inv.amountDue || 0), 0);
+      const safePayments = (paymentsData || []) as Payment[];
+      const safeInvoices = (invoicesData || []) as Invoice[];
+      const safeOrders = (ordersData || []) as Order[];
 
-    setSummary({
-      totalReceivables,
-      totalPaid,
-      totalOverdue,
-      unpaidInvoices: invoicesData.filter(inv => !inv.paid).length,
-    });
+      setPayments(safePayments);
+      setInvoices(safeInvoices);
+      setOrders(safeOrders);
 
-    setLoading(false);
+      const totalReceivables = safeOrders.reduce((sum, order) => sum + (order.amountDue || 0), 0);
+      const totalPaid = safeOrders.reduce((sum, order) => sum + (order.amountPaid || 0), 0);
+      const totalOverdue = safeInvoices
+        .filter((inv) => {
+          if (!inv.due_date || inv.paid) return false;
+          return new Date(inv.due_date) < new Date();
+        })
+        .reduce((sum, inv) => sum + (inv.amount_due || 0), 0);
+
+      setSummary({
+        totalReceivables,
+        totalPaid,
+        totalOverdue,
+        unpaidInvoices: safeInvoices.filter((inv) => !inv.paid).length,
+      });
+    } catch (err) {
+       
+      console.error("[ReceivablesPage][loadData] thrown error", err);
+      setPayments([]);
+      setInvoices([]);
+      setOrders([]);
+      setSummary(null);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const filteredPayments = payments.filter((payment) => {
@@ -232,7 +263,8 @@ export default function ReceivablesPage() {
                   {invoices
                     .filter((inv) => !inv.paid)
                     .map((invoice) => {
-                      const isOverdue = invoice.dueDate && new Date(invoice.dueDate) < new Date();
+                      const isOverdue =
+                        invoice.due_date && new Date(invoice.due_date) < new Date();
                       return (
                         <tr key={invoice.id} className="border-b hover:bg-gray-50">
                           <td className="py-3 px-4">
@@ -240,17 +272,17 @@ export default function ReceivablesPage() {
                               href={`/invoices/${invoice.id}`}
                               className="text-orange-600 hover:underline font-semibold"
                             >
-                              {invoice.invoiceNumber}
+                              {invoice.invoice_number}
                             </Link>
                           </td>
-                          <td className="py-3 px-4">{invoice.customerName}</td>
+                          <td className="py-3 px-4">{invoice.customer_name}</td>
                           <td className="py-3 px-4">
-                            {invoice.dueDate
-                              ? new Date(invoice.dueDate).toLocaleDateString()
+                            {invoice.due_date
+                              ? new Date(invoice.due_date).toLocaleDateString()
                               : "N/A"}
                           </td>
                           <td className="text-right py-3 px-4 font-semibold">
-                            ${(invoice.amountDue || 0).toFixed(2)}
+                            ${(invoice.amount_due || 0).toFixed(2)}
                           </td>
                           <td className="py-3 px-4">
                             <Badge

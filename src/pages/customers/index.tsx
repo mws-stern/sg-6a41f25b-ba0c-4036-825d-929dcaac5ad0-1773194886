@@ -17,10 +17,18 @@ export default function CustomersPage() {
     const loadCustomers = async () => {
       setLoading(true);
       try {
-        const data = await supabaseService.getCustomers();
-        setCustomers(data || []);
-      } catch (error) {
-        console.error("Failed to fetch customers:", error);
+        const { data, error } = await supabaseService.getCustomers();
+        if (error) {
+           
+          console.error("[CustomersPage][getCustomers] error", error);
+          setCustomers([]);
+        } else {
+          setCustomers((data || []) as Customer[]);
+        }
+      } catch (err) {
+         
+        console.error("[CustomersPage][getCustomers] thrown error", err);
+        setCustomers([]);
       } finally {
         setLoading(false);
       }
