@@ -6,15 +6,40 @@ import type { Database } from './types';
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-// Log for debugging (will show in browser console)
+// Enhanced debugging for troubleshooting
 if (typeof window !== 'undefined') {
-  console.log('[Supabase Config] URL exists:', !!SUPABASE_URL);
-  console.log('[Supabase Config] Key exists:', !!SUPABASE_PUBLISHABLE_KEY);
-  console.log('[Supabase Config] URL value:', SUPABASE_URL);
+  console.log('[Supabase Config] === DEBUG INFO ===');
+  console.log('[Supabase Config] Environment variables present:');
+  console.log('  - NEXT_PUBLIC_SUPABASE_URL exists:', !!process.env.NEXT_PUBLIC_SUPABASE_URL);
+  console.log('  - NEXT_PUBLIC_SUPABASE_ANON_KEY exists:', !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+  console.log('[Supabase Config] URL length:', SUPABASE_URL?.length || 0);
+  console.log('[Supabase Config] Key length:', SUPABASE_PUBLISHABLE_KEY?.length || 0);
+  console.log('[Supabase Config] URL starts with https:', SUPABASE_URL?.startsWith('https://') || false);
+  console.log('[Supabase Config] Key format correct (starts with ey):', SUPABASE_PUBLISHABLE_KEY?.startsWith('eyJ') || false);
+  console.log('[Supabase Config] Final URL:', SUPABASE_URL?.substring(0, 20) + '...');
+  console.log('[Supabase Config] === END DEBUG ===');
 }
 
 if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+  console.error('[Supabase Config] MISSING ENVIRONMENT VARIABLES!');
+  console.error('[Supabase Config] SUPABASE_URL:', !!SUPABASE_URL);
+  console.error('[Supabase Config] SUPABASE_PUBLISHABLE_KEY:', !!SUPABASE_PUBLISHABLE_KEY);
   throw new Error('Missing Supabase environment variables. Please check your .env.local file.');
+}
+
+// Test connection
+if (typeof window !== 'undefined') {
+  fetch(`${SUPABASE_URL}/rest/v1/`, {
+    method: 'GET',
+    headers: {
+      'apikey': SUPABASE_PUBLISHABLE_KEY,
+      'Authorization': `Bearer ${SUPABASE_PUBLISHABLE_KEY}`
+    }
+  }).then(response => {
+    console.log('[Supabase Config] Connection test response:', response.status, response.statusText);
+  }).catch(error => {
+    console.error('[Supabase Config] Connection test failed:', error);
+  });
 }
 
 // Import the supabase client like this:
