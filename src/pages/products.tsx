@@ -36,17 +36,11 @@ export default function ProductsPage() {
   const loadProducts = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabaseService.getProducts();
-      if (error) {
-         
-        console.error("[ProductsPage][getProducts] error", error);
-        setProducts([]);
-      } else {
-        setProducts((data || []) as Product[]);
-      }
+      const result = await supabaseService.getProducts();
+      const safeProducts = Array.isArray(result) ? (result as Product[]) : [];
+      setProducts(safeProducts);
     } catch (err) {
-       
-      console.error("[ProductsPage][getProducts] thrown error", err);
+      console.error("[ProductsPage][getProducts] error", err);
       setProducts([]);
     } finally {
       setLoading(false);

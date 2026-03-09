@@ -61,32 +61,36 @@ export default function OrderDetailPage() {
   const [emailPreviewType, setEmailPreviewType] = useState<"confirmation" | "invoice">("confirmation");
 
   useEffect(() => {
-    if (id) {
-      loadOrderDetails();
+    if (id && typeof id === "string") {
+      loadOrderDetails(id);
     }
   }, [id]);
 
-  const loadOrderDetails = async () => {
+  const loadOrderDetails = async (orderId: string) => {
     try {
       setLoading(true);
-      const orderData = await supabaseService.getOrder(id as string);
-      
-      if (orderData) {
-        setOrder(orderData);
-        
-        const customerData = await supabaseService.getCustomer(orderData.customerId);
-        setCustomer(customerData);
 
-        const productsData = await supabaseService.getProducts();
-        setProducts(productsData);
+      const orderData = await supabaseService.getOrder(orderId);
+      if (!orderData) {
+        setOrder(null);
+        setCustomer(null);
+        setProducts([]);
+        setLoading(false);
+        return;
       }
+
+      setOrder(orderData as Order);
+
+      const customerData = await supabaseService.getCustomer(orderData.customerId);
+      setCustomer((customerData as Customer) ?? null);
+
+      const productsData = await supabaseService.getProducts();
+      setProducts(Array.isArray(productsData) ? (productsData as Product[]) : []);
     } catch (error) {
-      console.error("Error loading order:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load order details",
-        variant: "destructive",
-      });
+      console.error("[OrderDetail][loadOrderDetails] error", error);
+      setOrder(null);
+      setCustomer(null);
+      setProducts([]);
     } finally {
       setLoading(false);
     }

@@ -30,20 +30,29 @@ export default function SettingsPage() {
 
   const loadSettings = async () => {
     setLoading(true);
-    const data = await supabaseService.getSettings();
-    setSettings(data);
-    setLoading(false);
+    try {
+      const data = await supabaseService.getSettings();
+      if (data) {
+        setSettings(data as SettingsType);
+      }
+    } catch (error) {
+      console.error("[SettingsPage][getSettings] error", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSave = async () => {
     setSaving(true);
-    await supabaseService.saveSettings(settings);
-    setSaving(false);
-    
-    toast({
-      title: "Settings saved",
-      description: "Your settings have been updated successfully.",
-    });
+    try {
+      await supabaseService.saveSettings(settings);
+      toast({
+        title: "Settings saved",
+        description: "Your settings have been updated successfully.",
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (loading) {
