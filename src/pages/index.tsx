@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import dynamic from "next/dynamic";
+import { supabase } from "@/integrations/supabase/client";
 
 // Lazy load heavy components
 const AlertsPanel = dynamic(() => import("@/components/AlertsPanel").then(mod => mod.AlertsPanel), {
@@ -43,6 +44,28 @@ export default function Dashboard() {
     setMounted(true);
     initialize();
   }, [initialize]);
+
+  // Temporary direct connectivity test
+  useEffect(() => {
+    const testSupabase = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("customers")
+          .select("*")
+          .limit(1);
+
+         
+        console.log("[Supabase test][customers]", { data, error });
+      } catch (err) {
+         
+        console.log("[Supabase test][customers] Thrown error", err);
+      }
+    };
+
+    if (mounted) {
+      testSupabase();
+    }
+  }, [mounted]);
 
   // Use memoized getters
   const totalRevenue = mounted ? getTotalRevenue() : 0;
