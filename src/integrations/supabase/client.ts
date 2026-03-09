@@ -2,45 +2,61 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-// Read from environment variables instead of hardcoding tokens
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+// Read from environment variables
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 // Enhanced debugging for troubleshooting
-if (typeof window !== 'undefined') {
-  console.log('[Supabase Config] === DEBUG INFO ===');
-  console.log('[Supabase Config] Environment variables present:');
-  console.log('  - NEXT_PUBLIC_SUPABASE_URL exists:', !!process.env.NEXT_PUBLIC_SUPABASE_URL);
-  console.log('  - NEXT_PUBLIC_SUPABASE_ANON_KEY exists:', !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-  console.log('[Supabase Config] URL length:', SUPABASE_URL?.length || 0);
-  console.log('[Supabase Config] Key length:', SUPABASE_PUBLISHABLE_KEY?.length || 0);
-  console.log('[Supabase Config] URL starts with https:', SUPABASE_URL?.startsWith('https://') || false);
-  console.log('[Supabase Config] Key format correct (starts with ey):', SUPABASE_PUBLISHABLE_KEY?.startsWith('eyJ') || false);
-  console.log('[Supabase Config] Final URL:', SUPABASE_URL?.substring(0, 20) + '...');
-  console.log('[Supabase Config] === END DEBUG ===');
-}
+console.log('[Supabase Debug] === DEBUGGING START ===');
+console.log('[Supabase Debug] Environment variables present:');
+console.log('  - NEXT_PUBLIC_SUPABASE_URL exists:', !!process.env.NEXT_PUBLIC_SUPABASE_URL);
+console.log('  - NEXT_PUBLIC_SUPABASE_ANON_KEY exists:', !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
 if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
-  console.error('[Supabase Config] MISSING ENVIRONMENT VARIABLES!');
-  console.error('[Supabase Config] SUPABASE_URL:', !!SUPABASE_URL);
-  console.error('[Supabase Config] SUPABASE_PUBLISHABLE_KEY:', !!SUPABASE_PUBLISHABLE_KEY);
+  console.error('[Supabase Debug] MISSING ENVIRONMENT VARIABLES!');
+  console.error('[Supabase Debug] SUPABASE_URL:', SUPABASE_URL?.substring(0, 20) + '...' || 'undefined');
+  console.error('[Supabase Debug] SUPABASE_PUBLISHABLE_KEY length:', SUPABASE_PUBLISHABLE_KEY?.length || 0);
   throw new Error('Missing Supabase environment variables. Please check your .env.local file.');
 }
 
-// Test connection
-if (typeof window !== 'undefined') {
-  fetch(`${SUPABASE_URL}/rest/v1/`, {
-    method: 'GET',
-    headers: {
-      'apikey': SUPABASE_PUBLISHABLE_KEY,
-      'Authorization': `Bearer ${SUPABASE_PUBLISHABLE_KEY}`
+console.log('[Supabase Debug] URL length:', SUPABASE_URL.length);
+console.log('[Supabase Debug] Key length:', SUPABASE_PUBLISHABLE_KEY.length);
+console.log('[Supabase Debug] URL starts with https:', SUPABASE_URL.startsWith('https://'));
+console.log('[Supabase Debug] Key format correct (starts with ey):', SUPABASE_PUBLISHABLE_KEY.startsWith('eyJ'));
+console.log('[Supabase Debug] URL:', SUPABASE_URL.substring(0, 30) + '...');
+console.log('[Supabase Debug] Key:', SUPABASE_PUBLISHABLE_KEY.substring(0, 20) + '...');
+
+// Test connection immediately
+const testConnection = async () => {
+  try {
+    console.log('[Supabase Debug] Testing connection...');
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/`, {
+      method: 'GET',
+      headers: {
+        'apikey': SUPABASE_PUBLISHABLE_KEY,
+        'Authorization': `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    console.log('[Supabase Debug] Connection test response status:', response.status);
+    console.log('[Supabase Debug] Connection test response ok:', response.ok);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[Supabase Debug] Connection test error:', errorText);
     }
-  }).then(response => {
-    console.log('[Supabase Config] Connection test response:', response.status, response.statusText);
-  }).catch(error => {
-    console.error('[Supabase Config] Connection test failed:', error);
-  });
+  } catch (error) {
+    console.error('[Supabase Debug] Connection test failed:', error);
+  }
+};
+
+// Run test connection
+if (typeof window !== 'undefined') {
+  testConnection();
 }
+
+console.log('[Supabase Debug] === DEBUGGING END ===');
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
