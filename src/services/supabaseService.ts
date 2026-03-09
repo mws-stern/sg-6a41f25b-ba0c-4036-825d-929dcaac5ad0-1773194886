@@ -1,12 +1,13 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import { supabase as supabaseClient } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 
-// Re-export a structured service API so existing imports keep working.
+// A thin, typed wrapper around the shared Supabase client.
+// This gives the rest of the app a stable place to import from.
 export const supabaseService: {
   client: SupabaseClient<Database>;
 } = {
-  client: supabaseClient,
+  client: supabase,
 };
 
 export type SupabaseService = typeof supabaseService;

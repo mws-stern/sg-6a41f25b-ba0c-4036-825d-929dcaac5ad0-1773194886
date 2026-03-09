@@ -122,3 +122,41 @@ export const bulkUpdateInventory = (
     total: updates.length
   };
 };
+
+export async function batchUpdateOrdersStatus(
+  orderIds: string[],
+  status: Order["status"]
+) {
+  const { updateOrder } = useStore.getState();
+
+  for (const id of orderIds) {
+    await updateOrder(id, { status });
+  }
+}
+
+export async function batchUpdateProductsInventory(
+  productIds: string[],
+  delta: number
+) {
+  const { products, updateProduct } = useStore.getState();
+
+  for (const id of productIds) {
+    const product = products.find((p) => p.id === id);
+    if (!product) continue;
+
+    await updateProduct(id, {
+      currentInventory: (product.currentInventory || 0) + delta,
+    });
+  }
+}
+
+export async function batchSetProductsInventory(
+  productIds: string[],
+  value: number
+) {
+  const { updateProduct } = useStore.getState();
+
+  for (const id of productIds) {
+    await updateProduct(id, { currentInventory: value });
+  }
+}
