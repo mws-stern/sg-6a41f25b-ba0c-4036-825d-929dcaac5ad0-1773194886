@@ -560,7 +560,7 @@ export const supabaseService = {
     return {
       id: data.id,
       order_id: data.order_id,
-      invoice_number: data.invoice_number,
+      order_number: data.invoice_number,
       customer_id: data.customer_id,
       customer_name: data.customer_name,
       customer_email: data.customer_email,
@@ -820,7 +820,7 @@ export const supabaseService = {
     if (customerCount !== null &&customerCount < 10) {
       console.log('Seeding customers...');
       // Map INITIAL_CUSTOMERS_DATA to DB format
-     const customersToInsert = INITIAL_CUSTOMERS_DATA.map(c => ({
+    const customersToInsert = INITIAL_CUSTOMERS_DATA.map(c => ({
         name: c.name,
         name_hebrew: c.nameHebrew || null,
         email: c.email || null,
