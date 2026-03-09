@@ -14,7 +14,6 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import dynamic from "next/dynamic";
-import { supabase } from "@/integrations/supabase/client";
 
 // Lazy load heavy components
 const AlertsPanel = dynamic(() => import("@/components/AlertsPanel").then(mod => mod.AlertsPanel), {
@@ -44,32 +43,6 @@ export default function Dashboard() {
     setMounted(true);
     initialize();
   }, [initialize]);
-
-  // Temporary direct connectivity test
-  useEffect(() => {
-    const testSupabase = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("customers")
-          .select("*")
-          .limit(1);
-
-         
-        console.log("[Supabase test][customers]", { data, error });
-      } catch (err: any) {
-         
-        console.log("[Supabase test][customers] Thrown error", {
-          message: err?.message,
-          stack: err?.stack,
-          error: err,
-        });
-      }
-    };
-
-    if (mounted) {
-      testSupabase();
-    }
-  }, [mounted]);
 
   const totalRevenue = mounted && isInitialized ? getTotalRevenue() : 0;
   const pendingOrders = mounted && isInitialized ? getPendingOrders() : [];
@@ -102,21 +75,6 @@ export default function Dashboard() {
         description="Sales and inventory management dashboard"
       />
       <div className="p-8 space-y-8">
-        {/* Temporary debug panel */}
-        <div className="rounded-md border border-dashed border-muted-foreground/40 p-3 text-xs text-muted-foreground mb-4">
-          <div className="font-semibold mb-1">Debug status (temporary)</div>
-          <div className="flex flex-wrap gap-4">
-            <span>mounted: {mounted ? "true" : "false"}</span>
-            <span>isInitialized: {isInitialized ? "true" : "false"}</span>
-            <span>products: {products.length}</span>
-            <span>customers: {customers.length}</span>
-            <span>orders: {orders.length}</span>
-          </div>
-          <div className="mt-1">
-            Check console logs starting with [Supabase client], [Supabase test], [initialize], [refreshData], [supabaseService] for detailed error info.
-          </div>
-        </div>
-
         <div className="flex items-center justify-between">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
             Dashboard
