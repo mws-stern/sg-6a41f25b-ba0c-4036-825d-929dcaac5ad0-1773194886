@@ -8,10 +8,15 @@ export const supabaseService = {
 
   // CUSTOMERS
   async getCustomers() {
-    return supabase
+    const { data, error } = await supabase
       .from("customers")
       .select("*")
       .order("first_name", { ascending: true });
+
+     
+    console.log("[supabaseService.getCustomers]", { dataLength: data?.length, error });
+
+    return { data, error };
   },
 
   async getCustomer(id: string) {
@@ -41,10 +46,15 @@ export const supabaseService = {
 
   // PRODUCTS
   async getProducts() {
-    return supabase
+    const { data, error } = await supabase
       .from("products")
       .select("*")
       .order("name", { ascending: true });
+
+     
+    console.log("[supabaseService.getProducts]", { dataLength: data?.length, error });
+
+    return { data, error };
   },
 
   async getProduct(id: string) {
@@ -74,10 +84,15 @@ export const supabaseService = {
 
   // ORDERS
   async getOrders() {
-    return supabase
+    const { data, error } = await supabase
       .from("orders")
       .select("*")
       .order("created_at", { ascending: false });
+
+     
+    console.log("[supabaseService.getOrders]", { dataLength: data?.length, error });
+
+    return { data, error };
   },
 
   async getOrder(id: string) {
