@@ -58,7 +58,15 @@ export const supabaseService = {
       }));
     } catch (err) {
       console.error("🔥 Network or unexpected error while fetching customers:", err);
-      // Gracefully degrade instead of crashing the page
+      
+      // If it's a network error (like Failed to fetch), retry!
+      if (retries > 0) {
+        console.log(`Network failure. Retrying... (${retries} attempts left)`);
+        await new Promise(res => setTimeout(res, 1500)); // Wait 1.5 seconds before retrying
+        return this.getCustomers(retries - 1);
+      }
+      
+      // Gracefully degrade instead of crashing the page if all retries fail
       return [];
     }
   },
