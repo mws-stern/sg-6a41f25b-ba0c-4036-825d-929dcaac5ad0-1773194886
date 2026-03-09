@@ -5,7 +5,7 @@ import { supabaseService } from "@/services/supabaseService";
 import { supabase } from "@/integrations/supabase/client";
 
 // Memoization cache
-const cache = new Map<string, { value: any; timestamp: number }>>();
+const cache = new Map<string, { value: any; timestamp: number }>();
 const CACHE_TTL = 5000;
 
 function memoize<T>(key: string, fn: () => T): T {
