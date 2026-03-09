@@ -36,16 +36,27 @@ export default function CustomerDetailPage() {
 
   const loadCustomerData = async (customerId: string) => {
     setLoading(true);
-    const [customerData, allOrders] = await Promise.all([
-      supabaseService.getCustomer(customerId),
-      supabaseService.getOrders()
-    ]);
-    
-    if (customerData) {
-      setCustomer(customerData);
-      setOrders(allOrders.filter(o => o.customerId === customerId));
+    try {
+      const customerResult = await supabaseService.getCustomer(customerId);
+      const ordersResult = await supabaseService.getOrders();
+
+      const customerData = customerResult ?? null;
+      const allOrders = Array.isArray(ordersResult) ? ordersResult : [];
+
+      if (customerData) {
+        setCustomer(customerData as Customer);
+        setOrders(allOrders.filter((o) => o.customerId === customerId));
+      } else {
+        setCustomer(null);
+        setOrders([]);
+      }
+    } catch (error) {
+      console.error("[CustomerDetail][loadCustomerData] error", error);
+      setCustomer(null);
+      setOrders([]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleSave = async () => {

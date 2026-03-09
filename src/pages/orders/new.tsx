@@ -20,32 +20,33 @@ import type { Product, Customer, OrderItem, Order } from "@/types";
 
 export async function getServerSideProps() {
   try {
-    const [customersData, productsData, ordersData, settingsData] = await Promise.all([
-      supabaseService.getCustomers(),
-      supabaseService.getProducts(),
-      supabaseService.getOrders(),
-      supabaseService.getSettings()
-    ]);
+    const customersData = await supabaseService.getCustomers();
+    const productsData = await supabaseService.getProducts();
+    const ordersData = await supabaseService.getOrders();
+    const settingsData = await supabaseService.getSettings();
 
-    // Ensure all fields are properly serializable (no undefined values)
-    const serializedOrders = ordersData.map(order => ({
+    const safeCustomers = Array.isArray(customersData) ? customersData : [];
+    const safeProducts = Array.isArray(productsData) ? productsData : [];
+    const safeOrders = Array.isArray(ordersData) ? ordersData : [];
+
+    const serializedOrders = safeOrders.map((order) => ({
       ...order,
       items: order.items || [],
       notes: order.notes || null,
       deliveryDate: order.deliveryDate || null,
-      discount: order.discount || 0
+      discount: order.discount || 0,
     }));
 
     return {
       props: {
-        initialCustomers: customersData,
-        initialProducts: productsData,
+        initialCustomers: safeCustomers,
+        initialProducts: safeProducts,
         initialOrders: serializedOrders,
-        initialSettings: settingsData
-      }
+        initialSettings: settingsData,
+      },
     };
   } catch (error) {
-    console.error("Error fetching data:", error);
+    console.error("[NewOrderPage][getServerSideProps] error", error);
     return {
       props: {
         initialCustomers: [],
@@ -58,9 +59,9 @@ export async function getServerSideProps() {
           phone: "(514) 000-0000",
           address: "Montreal, QC, Canada",
           taxRate: 0.14975,
-          currency: "CAD"
-        }
-      }
+          currency: "CAD",
+        },
+      },
     };
   }
 }
@@ -107,12 +108,12 @@ export default function NewOrderPage({
 
   useEffect(() => {
     if (selectedCustomerId) {
-      const custOrders = allOrders.filter(o => o.customerId === selectedCustomerId);
+      const custOrders = allOrders.filter((o) => o.customerId === selectedCustomerId);
       setCustomerOrders(custOrders);
 
-      const customer = customers.find(c => c.id === selectedCustomerId);
-      setSelectedCustomer(customer || null);
-      
+      const customer = customers.find((c) => c.id === selectedCustomerId) || null;
+      setSelectedCustomer(customer);
+
       if (customer && (!customer.email || !customer.email.includes("@"))) {
         setRequireEmail(true);
         setTempEmail("");

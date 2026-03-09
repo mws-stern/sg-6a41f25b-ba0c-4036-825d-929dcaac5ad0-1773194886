@@ -19,17 +19,23 @@ export default function ReportsPage() {
 
   const loadReportData = async () => {
     setLoading(true);
-    
-    const [ordersData, productsData, customersData] = await Promise.all([
-      supabaseService.getOrders(),
-      supabaseService.getProducts(),
-      supabaseService.getCustomers(),
-    ]);
 
-    setOrders(ordersData);
-    setProducts(productsData);
-    setCustomers(customersData);
-    setLoading(false);
+    try {
+      const ordersResult = await supabaseService.getOrders();
+      const productsResult = await supabaseService.getProducts();
+      const customersResult = await supabaseService.getCustomers();
+
+      setOrders(Array.isArray(ordersResult) ? (ordersResult as Order[]) : []);
+      setProducts(Array.isArray(productsResult) ? (productsResult as Product[]) : []);
+      setCustomers(Array.isArray(customersResult) ? (customersResult as Customer[]) : []);
+    } catch (error) {
+      console.error("[ReportsPage][loadReportData] error", error);
+      setOrders([]);
+      setProducts([]);
+      setCustomers([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getFilteredOrders = () => {
