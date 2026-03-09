@@ -14,12 +14,13 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<SettingsType>({
+    id: "local-settings",
     companyName: "",
     companyNameHebrew: "",
     email: "",
     phone: "",
     address: "",
-    taxRate: 14.975,
+    taxRate: 0,
     currency: "USD",
   });
 

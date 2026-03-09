@@ -232,7 +232,7 @@ const useStore = create<AppState>()(
           const state = get();
           return state.orders
             .filter((o) => o.status === "delivered")
-            .reduce((sum, order) => sum + (order.subtotal - (order.discount || 0)), 0);
+            .reduce((sum, order) => sum + Number(order.subtotal - (order.discount || 0)), 0);
         });
       },
 
@@ -262,7 +262,7 @@ const useStore = create<AppState>()(
               if (!acc[customerId]) {
                 acc[customerId] = 0;
               }
-              acc[customerId] += order.subtotal - (order.discount || 0);
+              acc[customerId] += Number(order.subtotal - (order.discount || 0));
               return acc;
             }, {} as Record<string, number>);
 
