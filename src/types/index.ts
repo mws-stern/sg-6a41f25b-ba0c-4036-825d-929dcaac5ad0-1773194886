@@ -2,6 +2,15 @@ export interface Customer {
   id: string;
   name: string;
   nameHebrew?: string;
+  titleHebrew?: string;
+  titleEnglish?: string;
+  firstNameHebrew?: string;
+  lastNameHebrew?: string;
+  firstName?: string;
+  lastName?: string;
+  houseNumber?: string;
+  apt?: string;
+  street?: string;
   email?: string;
   phone?: string;
   mobile?: string;

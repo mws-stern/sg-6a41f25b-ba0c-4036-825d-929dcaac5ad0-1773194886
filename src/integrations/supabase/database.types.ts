@@ -18,44 +18,71 @@ export type Database = {
       customers: {
         Row: {
           address: string | null
+          apt: string | null
           city: string | null
           created_at: string | null
           email: string | null
+          first_name: string | null
+          first_name_hebrew: string | null
+          house_number: string | null
           id: string
+          last_name: string | null
+          last_name_hebrew: string | null
           mobile: string | null
           name: string
           name_hebrew: string | null
           notes: string | null
           phone: string | null
           state: string | null
+          street: string | null
+          title_english: string | null
+          title_hebrew: string | null
           zip: string | null
         }
         Insert: {
           address?: string | null
+          apt?: string | null
           city?: string | null
           created_at?: string | null
           email?: string | null
+          first_name?: string | null
+          first_name_hebrew?: string | null
+          house_number?: string | null
           id?: string
+          last_name?: string | null
+          last_name_hebrew?: string | null
           mobile?: string | null
           name: string
           name_hebrew?: string | null
           notes?: string | null
           phone?: string | null
           state?: string | null
+          street?: string | null
+          title_english?: string | null
+          title_hebrew?: string | null
           zip?: string | null
         }
         Update: {
           address?: string | null
+          apt?: string | null
           city?: string | null
           created_at?: string | null
           email?: string | null
+          first_name?: string | null
+          first_name_hebrew?: string | null
+          house_number?: string | null
           id?: string
+          last_name?: string | null
+          last_name_hebrew?: string | null
           mobile?: string | null
           name?: string
           name_hebrew?: string | null
           notes?: string | null
           phone?: string | null
           state?: string | null
+          street?: string | null
+          title_english?: string | null
+          title_hebrew?: string | null
           zip?: string | null
         }
         Relationships: []

@@ -12,7 +12,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { supabaseService } from "@/services/supabaseService";
-import type { Customer } from "@/types";
 
 export async function getServerSideProps() {
   try {
@@ -43,15 +42,18 @@ export default function NewCustomerPage({ existingCustomers }: { existingCustome
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
   
   const [formData, setFormData] = useState({
-    name: "",
-    nameHebrew: "",
+    titleHebrew: "",
+    titleEnglish: "",
+    firstNameHebrew: "",
+    lastNameHebrew: "",
+    firstName: "",
+    lastName: "",
+    houseNumber: "",
+    apt: "",
+    street: "",
     email: "",
     phone: "",
     mobile: "",
-    address: "",
-    city: "",
-    state: "",
-    zip: "",
     notes: "",
   });
 
@@ -59,12 +61,12 @@ export default function NewCustomerPage({ existingCustomers }: { existingCustome
     setFormData(prev => ({ ...prev, [field]: value }));
     
     // Check for duplicates as user types
-    if (field === "name" || field === "email" || field === "phone") {
+    if (field === "email" || field === "phone" || field === "lastName") {
       checkForDuplicates(field, value);
     }
   };
 
-  const checkForDuplicates = (field: "name" | "email" | "phone", value: string) => {
+  const checkForDuplicates = (field: string, value: string) => {
     if (!value || value.length < 3) {
       setDuplicateWarning(null);
       return;
@@ -73,8 +75,8 @@ export default function NewCustomerPage({ existingCustomers }: { existingCustome
     const normalized = value.toLowerCase().trim();
     
     const duplicate = existingCustomers.find(c => {
-      if (field === "name") {
-        return c.name.toLowerCase().trim() === normalized;
+      if (field === "lastName" && c.name) {
+        return c.name.toLowerCase().includes(normalized);
       }
       if (field === "email" && c.email) {
         return c.email.toLowerCase().trim() === normalized;
@@ -89,7 +91,7 @@ export default function NewCustomerPage({ existingCustomers }: { existingCustome
     });
 
     if (duplicate) {
-      setDuplicateWarning(`A customer with this ${field} already exists: "${duplicate.name}"`);
+      setDuplicateWarning(`A customer with similar details already exists: "${duplicate.name}"`);
     } else {
       setDuplicateWarning(null);
     }
@@ -98,36 +100,28 @@ export default function NewCustomerPage({ existingCustomers }: { existingCustome
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name.trim()) {
+    if (!formData.email.trim()) {
       toast({
         title: "Validation Error",
-        description: "Customer name is required",
+        description: "Email address is strictly required.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.firstName.trim() && !formData.lastName.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Please provide at least a First or Last Name in English.",
         variant: "destructive",
       });
       return;
     }
 
     // Final duplicate check before submission
-    const nameDuplicate = existingCustomers.find(c => 
-      c.name.toLowerCase().trim() === formData.name.toLowerCase().trim()
-    );
     const emailDuplicate = formData.email && existingCustomers.find(c => 
       c.email && c.email.toLowerCase().trim() === formData.email.toLowerCase().trim()
     );
-    const cleanPhone = formData.phone.replace(/\D/g, "");
-    const phoneDuplicate = cleanPhone && existingCustomers.find(c => 
-      (c.phone && c.phone.replace(/\D/g, "") === cleanPhone) || 
-      (c.mobile && c.mobile.replace(/\D/g, "") === cleanPhone)
-    );
-
-    if (nameDuplicate) {
-      toast({
-        title: "Duplicate Customer",
-        description: `A customer named "${nameDuplicate.name}" already exists`,
-        variant: "destructive",
-      });
-      return;
-    }
 
     if (emailDuplicate) {
       toast({
@@ -138,29 +132,33 @@ export default function NewCustomerPage({ existingCustomers }: { existingCustome
       return;
     }
 
-    if (phoneDuplicate) {
-      toast({
-        title: "Duplicate Phone",
-        description: `This phone number is already used by "${phoneDuplicate.name}"`,
-        variant: "destructive",
-      });
-      return;
-    }
+    // Assemble the legacy "name" and "address" fields for backward compatibility
+    const assembledName = `${formData.firstName} ${formData.lastName}`.trim();
+    const assembledHebrewName = `${formData.firstNameHebrew} ${formData.lastNameHebrew}`.trim();
+    const assembledAddress = `${formData.houseNumber} ${formData.street} ${formData.apt ? `Apt ${formData.apt}` : ''}`.trim();
 
     setLoading(true);
-    const newCustomer = await supabaseService.addCustomer(formData);
+    const newCustomer = await supabaseService.addCustomer({
+      ...formData,
+      name: assembledName || "Unknown Name",
+      nameHebrew: assembledHebrewName,
+      address: assembledAddress,
+      city: "Montreal",
+      state: "QC",
+      zip: "",
+    });
     setLoading(false);
 
     if (newCustomer) {
       toast({
         title: "Customer Added",
-        description: `${newCustomer.name} has been added successfully`,
+        description: `${newCustomer.name} has been added successfully.`,
       });
       router.push("/customers");
     } else {
       toast({
         title: "Error",
-        description: "Failed to add customer",
+        description: "Failed to save the customer to the database.",
         variant: "destructive",
       });
     }
@@ -179,14 +177,14 @@ export default function NewCustomerPage({ existingCustomers }: { existingCustome
           </Link>
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Add New Customer</h1>
-            <p className="text-gray-600">Create a new customer record</p>
+            <p className="text-gray-600">Enter detailed customer information matching the directory.</p>
           </div>
         </div>
 
         {duplicateWarning && (
           <Alert variant="destructive" className="mb-6">
             <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Potential Duplicate</AlertTitle>
+            <AlertTitle>Potential Duplicate Found</AlertTitle>
             <AlertDescription>{duplicateWarning}</AlertDescription>
           </Alert>
         )}
@@ -194,119 +192,168 @@ export default function NewCustomerPage({ existingCustomers }: { existingCustome
         <form onSubmit={handleSubmit}>
           <Card>
             <CardHeader>
-              <CardTitle>Customer Information</CardTitle>
-              <CardDescription>Enter the customer details below</CardDescription>
+              <CardTitle>Customer Directory Details</CardTitle>
+              <CardDescription>All fields follow the standard list format. Email is required.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Name *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => handleChange("name", e.target.value)}
-                    required
-                  />
+              
+              {/* Hebrew Names */}
+              <div className="bg-gray-50/50 p-4 rounded-lg border space-y-4">
+                <h3 className="font-semibold text-sm text-gray-700 uppercase tracking-wider">Hebrew Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="titleHebrew">Title (תואר)</Label>
+                    <Input
+                      id="titleHebrew"
+                      placeholder="e.g. הר''ר"
+                      value={formData.titleHebrew}
+                      onChange={(e) => handleChange("titleHebrew", e.target.value)}
+                      dir="rtl"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="firstNameHebrew">First Name (שם פרטי)</Label>
+                    <Input
+                      id="firstNameHebrew"
+                      value={formData.firstNameHebrew}
+                      onChange={(e) => handleChange("firstNameHebrew", e.target.value)}
+                      dir="rtl"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="lastNameHebrew">Last Name (משפחה)</Label>
+                    <Input
+                      id="lastNameHebrew"
+                      value={formData.lastNameHebrew}
+                      onChange={(e) => handleChange("lastNameHebrew", e.target.value)}
+                      dir="rtl"
+                    />
+                  </div>
                 </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="nameHebrew">Hebrew Name</Label>
-                  <Input
-                    id="nameHebrew"
-                    value={formData.nameHebrew}
-                    onChange={(e) => handleChange("nameHebrew", e.target.value)}
-                    dir="rtl"
-                  />
-                </div>
+              </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => handleChange("email", e.target.value)}
-                  />
+              {/* English Names */}
+              <div className="bg-white p-4 rounded-lg border space-y-4">
+                <h3 className="font-semibold text-sm text-gray-700 uppercase tracking-wider">English Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="titleEnglish">Title</Label>
+                    <Input
+                      id="titleEnglish"
+                      placeholder="e.g. Mr. / Mrs. / Rabbi"
+                      value={formData.titleEnglish}
+                      onChange={(e) => handleChange("titleEnglish", e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="firstName">First Name</Label>
+                    <Input
+                      id="firstName"
+                      value={formData.firstName}
+                      onChange={(e) => handleChange("firstName", e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName">Last Name</Label>
+                    <Input
+                      id="lastName"
+                      value={formData.lastName}
+                      onChange={(e) => handleChange("lastName", e.target.value)}
+                    />
+                  </div>
                 </div>
+              </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) => handleChange("phone", e.target.value)}
-                  />
+              {/* Address Details */}
+              <div className="bg-white p-4 rounded-lg border space-y-4">
+                <h3 className="font-semibold text-sm text-gray-700 uppercase tracking-wider">Address Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="houseNumber">House Number</Label>
+                    <Input
+                      id="houseNumber"
+                      value={formData.houseNumber}
+                      onChange={(e) => handleChange("houseNumber", e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="apt">Apt / Unit (A-B)</Label>
+                    <Input
+                      id="apt"
+                      placeholder="e.g. A, B, #4"
+                      value={formData.apt}
+                      onChange={(e) => handleChange("apt", e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="street">Street</Label>
+                    <Input
+                      id="street"
+                      value={formData.street}
+                      onChange={(e) => handleChange("street", e.target.value)}
+                    />
+                  </div>
                 </div>
+              </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="mobile">Mobile</Label>
-                  <Input
-                    id="mobile"
-                    type="tel"
-                    value={formData.mobile}
-                    onChange={(e) => handleChange("mobile", e.target.value)}
-                  />
+              {/* Contact Details */}
+              <div className="bg-blue-50/30 p-4 rounded-lg border border-blue-100 space-y-4">
+                <h3 className="font-semibold text-sm text-blue-800 uppercase tracking-wider">Contact Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="text-blue-900 font-semibold">Email Address (Required) <span className="text-red-500">*</span></Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="customer@email.com"
+                      value={formData.email}
+                      onChange={(e) => handleChange("email", e.target.value)}
+                      required
+                      className="border-blue-300 focus-visible:ring-blue-500"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Home Phone</Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) => handleChange("phone", e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="mobile">Cell Phone</Label>
+                    <Input
+                      id="mobile"
+                      type="tel"
+                      value={formData.mobile}
+                      onChange={(e) => handleChange("mobile", e.target.value)}
+                    />
+                  </div>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="address">Address</Label>
-                <Input
-                  id="address"
-                  value={formData.address}
-                  onChange={(e) => handleChange("address", e.target.value)}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="city">City</Label>
-                  <Input
-                    id="city"
-                    value={formData.city}
-                    onChange={(e) => handleChange("city", e.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="state">State/Province</Label>
-                  <Input
-                    id="state"
-                    value={formData.state}
-                    onChange={(e) => handleChange("state", e.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="zip">ZIP/Postal Code</Label>
-                  <Input
-                    id="zip"
-                    value={formData.zip}
-                    onChange={(e) => handleChange("zip", e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="notes">Notes</Label>
+                <Label htmlFor="notes">Additional Notes</Label>
                 <Textarea
                   id="notes"
                   value={formData.notes}
                   onChange={(e) => handleChange("notes", e.target.value)}
                   rows={3}
+                  placeholder="Enter any special instructions here..."
                 />
               </div>
+
             </CardContent>
           </Card>
 
-          <div className="mt-6 flex justify-end gap-4">
+          <div className="mt-6 flex justify-end gap-4 pb-12">
             <Link href="/customers">
               <Button type="button" variant="outline">Cancel</Button>
             </Link>
-            <Button type="submit" disabled={loading || !!duplicateWarning}>
+            <Button type="submit" disabled={loading || !!duplicateWarning} className="bg-blue-600 hover:bg-blue-700">
               <Save className="w-4 h-4 mr-2" />
-              {loading ? "Saving..." : "Save Customer"}
+              {loading ? "Saving Customer..." : "Save Customer Record"}
             </Button>
           </div>
         </form>
