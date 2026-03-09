@@ -22,6 +22,8 @@ export interface User {
   created_at: string;
 }
 
+export type Customer = User;
+
 export interface Product {
   id: string;
   name: string;
@@ -133,16 +135,53 @@ export interface AppState {
   payments: Payment[];
   inventoryEntries: InventoryEntry[];
   settings: Settings | null;
+
+  // UI and lifecycle flags used throughout the app
+  isLoading: boolean;
+  isInitializing: boolean;
+  isInitialized: boolean;
+  lastSync: number | null;
+
+  // Lifecycle and data loading methods (implemented in src/lib/store.ts)
+  initialize: () => Promise<void>;
+  refreshData: () => Promise<void>;
+
+  // Product operations
+  addProduct: (product: Omit<Product, "id">) => Promise<Product>;
+  updateProduct: (id: string, updates: Partial<Product>) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
+
+  // Customer operations
+  addCustomer: (customer: Omit<Customer, "id">) => Promise<Customer>;
+  updateCustomer: (id: string, updates: Partial<Customer>) => Promise<void>;
+  deleteCustomer: (id: string) => Promise<void>;
+
+  // Order operations
+  addOrder: (order: Omit<Order, "id">) => Promise<Order>;
+  updateOrder: (id: string, updates: Partial<Order>) => Promise<void>;
+  deleteOrder: (id: string) => Promise<void>;
+
+  // Selector helpers used on the dashboard and reports
+  getTotalRevenue: () => number;
+  getPendingOrders: () => Order[];
+  getCompletedOrders: () => Order[];
+  getTopCustomers: (limit?: number) => (Customer & { totalSpent: number })[];
+  getLowStockProducts: () => Product[];
+  getRecentOrders: (limit?: number) => Order[];
 }
 
-// Shape for email logs used in emails.tsx page
+// Email logs as used in src/pages/emails.tsx
 export interface EmailLog {
   id: string;
-  to: string;
+  // Core email metadata
+  orderId?: string | null;
+  customerId?: string | null;
+  customerEmail?: string | null;
+  customerName?: string | null;
+  emailType: string;
   subject: string;
-  body: string;
-  type: "order" | "invoice" | "custom";
-  related_order_id?: string | null;
-  related_invoice_id?: string | null;
-  created_at: string;
+  status: string;
+  errorMessage?: string | null;
+  sentAt?: string | null;
+  createdAt: string;
 }
