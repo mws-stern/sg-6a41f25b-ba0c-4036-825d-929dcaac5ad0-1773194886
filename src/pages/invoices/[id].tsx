@@ -11,12 +11,22 @@ import { supabaseService } from "@/services/supabaseService";
 import { emailService } from "@/services/emailService";
 import type { Invoice, Settings } from "@/types";
 
+type InvoiceItem = {
+  productName: string;
+  productNameHebrew?: string;
+  quantity: number;
+  pricePerLb: number;
+  finalPrice: number;
+};
+
+type UiInvoice = Invoice & { items: InvoiceItem[] };
+
 export default function InvoiceDetailPage() {
   const router = useRouter();
   const { id } = router.query;
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [invoice, setInvoice] = useState<Invoice | null>(null);
+  const [invoice, setInvoice] = useState<UiInvoice | null>(null);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [sending, setSending] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
@@ -30,24 +40,62 @@ export default function InvoiceDetailPage() {
 
   const loadInvoice = async (invoiceId: string) => {
     setLoading(true);
-    const data = await supabaseService.getInvoice(invoiceId);
-    const invoiceData = data as Invoice;
-    const items = JSON.parse(invoiceData.items_json) as Array<{
-      productName: string;
-      quantity: number;
-      pricePerLb: number;
-      totalPrice: number;
-    }>;
-    setInvoice({
-      ...invoiceData,
-      items,
-    });
-    setLoading(false);
+    try {
+      const { data, error } = await supabaseService.getInvoice(invoiceId);
+      if (error || !data) {
+         
+        console.error("[InvoiceDetailPage][getInvoice] error", error);
+        setInvoice(null);
+        setLoading(false);
+        return;
+      }
+
+      let parsedItems: InvoiceItem[] = [];
+      try {
+        const raw = data.items_json ? JSON.parse(data.items_json) : [];
+        parsedItems = Array.isArray(raw)
+          ? raw.map((item: any) => ({
+              productName: item.productName,
+              productNameHebrew: item.productNameHebrew,
+              quantity: Number(item.quantity || 0),
+              pricePerLb: Number(item.pricePerLb || 0),
+              finalPrice: Number(item.finalPrice ?? item.totalPrice ?? 0),
+            }))
+          : [];
+      } catch (parseError) {
+         
+        console.error("[InvoiceDetailPage][parse items_json] error", parseError);
+        parsedItems = [];
+      }
+
+      setInvoice({
+        ...data,
+        items: parsedItems,
+      });
+    } catch (err) {
+       
+      console.error("[InvoiceDetailPage][getInvoice] thrown error", err);
+      setInvoice(null);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const loadSettings = async () => {
-    const data = await supabaseService.getSettings();
-    setSettings(data);
+    try {
+      const { data, error } = await supabaseService.getSettings();
+      if (error || !data) {
+         
+        console.error("[InvoiceDetailPage][getSettings] error", error);
+        setSettings(null);
+        return;
+      }
+      setSettings(data as Settings);
+    } catch (err) {
+       
+      console.error("[InvoiceDetailPage][getSettings] thrown error", err);
+      setSettings(null);
+    }
   };
 
   const handlePrint = () => {
@@ -137,7 +185,7 @@ export default function InvoiceDetailPage() {
 
   return (
     <>
-      <SEO title={`Invoice ${invoice.invoiceNumber} - Bakery Sales`} />
+      <SEO title={`Invoice ${invoice.invoice_number} - Bakery Sales`} />
       <div className="space-y-6">
         <div className="flex items-center justify-between print:hidden">
           <Link href="/orders">
@@ -151,7 +199,7 @@ export default function InvoiceDetailPage() {
               <Download className="h-4 w-4 mr-2" />
               Download PDF
             </Button>
-            {invoice.customerEmail && (
+            {invoice.customer_email && (
               <Button onClick={handleSendEmail} disabled={sending}>
                 <Mail className="h-4 w-4 mr-2" />
                 {sending ? "Sending..." : "Send Email"}
@@ -174,13 +222,13 @@ export default function InvoiceDetailPage() {
               </div>
               <div className="text-right">
                 <h2 className="text-2xl font-bold mb-2">INVOICE</h2>
-                <p className="text-gray-600">Invoice #: {invoice.invoiceNumber}</p>
+                <p className="text-gray-600">Invoice #: {invoice.invoice_number}</p>
                 <p className="text-gray-600">
-                  Date: {new Date(invoice.createdAt).toLocaleDateString()}
+                  Date: {new Date(invoice.created_at).toLocaleDateString()}
                 </p>
-                {invoice.dueDate && (
+                {invoice.due_date && (
                   <p className="text-gray-600">
-                    Due: {new Date(invoice.dueDate).toLocaleDateString()}
+                    Due: {new Date(invoice.due_date).toLocaleDateString()}
                   </p>
                 )}
               </div>
@@ -189,13 +237,13 @@ export default function InvoiceDetailPage() {
             <div className="flex justify-between items-start mb-8">
               <div>
                 <h3 className="font-semibold mb-2">Bill To:</h3>
-                <p className="font-medium">{invoice.customerName}</p>
-                {invoice.customerEmail && (
-                  <p className="text-gray-600">{invoice.customerEmail}</p>
+                <p className="font-medium">{invoice.customer_name}</p>
+                {invoice.customer_email && (
+                  <p className="text-gray-600">{invoice.customer_email}</p>
                 )}
               </div>
               <div className="text-right">
-                {getPaymentBadge(invoice.paymentStatus)}
+                {getPaymentBadge(invoice.payment_status)}
               </div>
             </div>
           </div>
@@ -248,15 +296,15 @@ export default function InvoiceDetailPage() {
                 <span className="font-bold">Total:</span>
                 <span className="font-bold text-lg">${invoice.total.toFixed(2)}</span>
               </div>
-              {invoice.paymentStatus !== "paid" && (
+              {invoice.payment_status !== "paid" && (
                 <>
                   <div className="flex justify-between text-green-600">
                     <span>Paid:</span>
-                    <span className="font-medium">${invoice.amountPaid.toFixed(2)}</span>
+                    <span className="font-medium">${invoice.amount_paid.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-orange-600 pt-2 border-t">
                     <span className="font-bold">Balance Due:</span>
-                    <span className="font-bold text-lg">${invoice.amountDue.toFixed(2)}</span>
+                    <span className="font-bold text-lg">${invoice.amount_due.toFixed(2)}</span>
                   </div>
                 </>
               )}
