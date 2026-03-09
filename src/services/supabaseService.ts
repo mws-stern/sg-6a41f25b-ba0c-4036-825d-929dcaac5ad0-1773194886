@@ -6,8 +6,8 @@ import { INITIAL_CUSTOMERS_DATA } from "@/lib/initialCustomers";
 
 export const supabaseService = {
   // --- Customers ---
-  async getCustomers(): Promise<Customer[]> {
-    console.log("🔍 Fetching customers from Supabase...");
+  async getCustomers(retries = 3): Promise<Customer[]> {
+    console.log(`🔍 Fetching customers from Supabase... (Retries left: ${retries})`);
 
     try {
       const { data, error } = await supabase
@@ -17,12 +17,11 @@ export const supabaseService = {
 
       if (error) {
         console.error("❌ Error fetching customers (Supabase response error):", error);
-        console.error("Error details:", {
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-        });
+        if (retries > 0) {
+          console.log("Retrying...");
+          await new Promise(res => setTimeout(res, 1000));
+          return this.getCustomers(retries - 1);
+        }
         return [];
       }
 
@@ -810,7 +809,7 @@ export const supabaseService = {
     // Check if products exist
     const { count: productCount } = await supabase.from('products').select('*', { count: 'exact', head: true });
     
-    if (productCount === 0) {
+    if (productCount !== null && productCount < 2) {
       console.log('Seeding products...');
       const products = [
         { name: "Rashi Matzoh", name_hebrew: "מצה רש\"י", price_per_lb: 0, category: "rashi" as const, description: "Traditional Rashi style matzoh", in_stock: true, current_inventory: 0 },
@@ -826,7 +825,7 @@ export const supabaseService = {
     // Check if customers exist
     const { count: customerCount } = await supabase.from('customers').select('*', { count: 'exact', head: true });
     
-    if (customerCount === 0) {
+    if (customerCount !== null && customerCount < 10) {
       console.log('Seeding customers...');
       // Map INITIAL_CUSTOMERS_DATA to DB format
       const customersToInsert = INITIAL_CUSTOMERS_DATA.map(c => ({

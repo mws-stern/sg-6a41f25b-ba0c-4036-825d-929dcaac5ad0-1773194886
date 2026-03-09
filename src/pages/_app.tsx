@@ -1,50 +1,31 @@
-import "@/styles/globals.css";
+import { ThemeProvider } from "next-themes";
 import type { AppProps } from "next/app";
-import { ThemeProvider } from "@/contexts/ThemeProvider";
-import { AuthProvider } from "@/components/AuthProvider";
+import { Inter } from "next/font/google";
 import { Toaster } from "@/components/ui/toaster";
-import { useRouter } from "next/router";
-import dynamic from "next/dynamic";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider } from "@/components/AuthProvider";
 import { useEffect } from "react";
-import useStore from "@/lib/store";
+import { supabaseService } from "@/services/supabaseService";
+import "@/styles/globals.css";
 
-const Sidebar = dynamic(() => import("@/components/Sidebar").then(mod => ({ default: mod.Sidebar })), {
-  ssr: false,
-  loading: () => <div className="w-64 bg-background border-r" />
-});
-
-const AlertsPanel = dynamic(() => import("@/components/AlertsPanel").then(mod => ({ default: mod.AlertsPanel })), {
-  ssr: false,
-  loading: () => <div className="w-80 bg-background border-l" />
-});
+const inter = Inter({ subsets: ["latin"] });
 
 export default function App({ Component, pageProps }: AppProps) {
-  const router = useRouter();
-  const isLoginPage = router.pathname === "/login";
-  const initialize = useStore(state => state.initialize);
-
   useEffect(() => {
-    // Initialize store after mount (when authentication is ready)
-    if (!isLoginPage) {
-      initialize();
-    }
-  }, [initialize, isLoginPage]);
+    // Run the database seeder on initial load to ensure all 266 customers
+    // and default products are injected if the database is empty.
+    supabaseService.seedInitialDataIfNeeded().catch(console.error);
+  }, []);
 
   return (
-    <ThemeProvider>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <AuthProvider>
-        {isLoginPage ? (
-          <Component {...pageProps} />
-        ) : (
-          <div className="flex h-screen overflow-hidden">
-            <Sidebar />
-            <main className="flex-1 overflow-y-auto">
-              <Component {...pageProps} />
-            </main>
-            <AlertsPanel />
-          </div>
-        )}
-        <Toaster />
+        <TooltipProvider>
+          <main className={inter.className}>
+            <Component {...pageProps} />
+          </main>
+          <Toaster />
+        </TooltipProvider>
       </AuthProvider>
     </ThemeProvider>
   );
