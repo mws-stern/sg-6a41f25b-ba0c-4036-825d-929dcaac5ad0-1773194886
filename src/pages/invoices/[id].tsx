@@ -31,7 +31,17 @@ export default function InvoiceDetailPage() {
   const loadInvoice = async (invoiceId: string) => {
     setLoading(true);
     const data = await supabaseService.getInvoice(invoiceId);
-    setInvoice(data);
+    const invoiceData = data as Invoice;
+    const items = JSON.parse(invoiceData.items_json) as Array<{
+      productName: string;
+      quantity: number;
+      pricePerLb: number;
+      totalPrice: number;
+    }>;
+    setInvoice({
+      ...invoiceData,
+      items,
+    });
     setLoading(false);
   };
 

@@ -105,7 +105,6 @@ export interface InventoryEntry {
   createdAt: string;
 }
 
-// Add missing types that might be referenced
 export type Invoice = {
   id: string;
   order_id: string;
@@ -124,10 +123,26 @@ export type Invoice = {
   due_date: string;
 };
 
-export type Customer = User;
-export type Order = Order;
-export type Product = Product;
-export type Payment = Payment;
-export type InventoryEntry = InventoryEntry;
-export type Settings = Settings;
-export type Invoice = Invoice;
+// Minimal AppState to satisfy imports in store.ts.
+// This matches how the app seems to use it: high-level collections of entities.
+export interface AppState {
+  products: Product[];
+  customers: User[];
+  orders: Order[];
+  invoices: Invoice[];
+  payments: Payment[];
+  inventoryEntries: InventoryEntry[];
+  settings: Settings | null;
+}
+
+// Shape for email logs used in emails.tsx page
+export interface EmailLog {
+  id: string;
+  to: string;
+  subject: string;
+  body: string;
+  type: "order" | "invoice" | "custom";
+  related_order_id?: string | null;
+  related_invoice_id?: string | null;
+  created_at: string;
+}

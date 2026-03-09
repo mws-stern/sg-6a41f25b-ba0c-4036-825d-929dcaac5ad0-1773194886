@@ -373,6 +373,27 @@ export default function NewOrderPage({
     }
   };
 
+  const handleAddProduct = (product: Product) => {
+    const quantity = 1;
+    const totalPrice = product.pricePerLb * quantity;
+
+    const newItem: OrderItem = {
+      id: crypto.randomUUID(),
+      orderId: "", // will be set when order is saved
+      productId: product.id,
+      productName: product.name,
+      productNameHebrew: product.nameHebrew,
+      quantity,
+      pricePerLb: product.pricePerLb,
+      totalPrice,
+      discount: 0,
+      discountType: "fixed",
+      finalPrice: totalPrice,
+    };
+
+    setItems((prev) => [...prev, newItem]);
+  };
+
   if (!mounted) {
     return null;
   }
