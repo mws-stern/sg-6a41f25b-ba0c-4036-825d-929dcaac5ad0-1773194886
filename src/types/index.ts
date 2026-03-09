@@ -104,3 +104,30 @@ export interface InventoryEntry {
   notes: string;
   createdAt: string;
 }
+
+// Add missing types that might be referenced
+export type Invoice = {
+  id: string;
+  order_id: string;
+  invoice_number: string;
+  customer_id: string;
+  customer_name: string;
+  customer_email: string;
+  items_json: string;
+  subtotal: number;
+  tax: number;
+  total: number;
+  paid: boolean;
+  payment_status: "unpaid" | "partial" | "paid";
+  amount_paid: number;
+  amount_due: number;
+  due_date: string;
+};
+
+export type Customer = User;
+export type Order = Order;
+export type Product = Product;
+export type Payment = Payment;
+export type InventoryEntry = InventoryEntry;
+export type Settings = Settings;
+export type Invoice = Invoice;
