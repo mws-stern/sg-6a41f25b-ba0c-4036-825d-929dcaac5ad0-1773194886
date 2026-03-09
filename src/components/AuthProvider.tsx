@@ -28,18 +28,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     // Check authentication and initialize store
     const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      // If not authenticated and not on login page, redirect
-      if (!session && router.pathname !== "/login") {
-        router.push("/login");
-        return;
-      }
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        // If not authenticated and not on login page, redirect
+        if (!session && router.pathname !== "/login") {
+          router.push("/login");
+          return;
+        }
 
-      // If authenticated, initialize store
-      if (session) {
-        setUser(session.user);
-        await initialize();
+        // If authenticated, initialize store
+        if (session) {
+          setUser(session.user);
+          await initialize();
+        }
+      } catch (error: any) {
+         
+        console.log("[AuthProvider][checkAuth] thrown error", {
+          message: error?.message,
+          stack: error?.stack,
+          error,
+        });
       }
     };
 
@@ -48,16 +57,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (session) {
-          setUser(session.user);
-        } else {
-          setUser(null);
-        }
+        try {
+          if (session) {
+            setUser(session.user);
+          } else {
+            setUser(null);
+          }
 
-        if (event === "SIGNED_IN" && session) {
-          await initialize();
-        } else if (event === "SIGNED_OUT") {
-          router.push("/login");
+          if (event === "SIGNED_IN" && session) {
+            await initialize();
+          } else if (event === "SIGNED_OUT") {
+            router.push("/login");
+          }
+        } catch (error: any) {
+           
+          console.log("[AuthProvider][onAuthStateChange] thrown error", {
+            message: error?.message,
+            stack: error?.stack,
+            error,
+          });
         }
       }
     );

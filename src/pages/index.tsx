@@ -56,9 +56,13 @@ export default function Dashboard() {
 
          
         console.log("[Supabase test][customers]", { data, error });
-      } catch (err) {
+      } catch (err: any) {
          
-        console.log("[Supabase test][customers] Thrown error", err);
+        console.log("[Supabase test][customers] Thrown error", {
+          message: err?.message,
+          stack: err?.stack,
+          error: err,
+        });
       }
     };
 
@@ -67,16 +71,18 @@ export default function Dashboard() {
     }
   }, [mounted]);
 
-  // Use memoized getters
-  const totalRevenue = mounted ? getTotalRevenue() : 0;
-  const pendingOrders = getPendingOrders();
-  const lowStockProducts = getLowStockProducts();
-  const topCustomers = getTopCustomers(5);
-  const recentOrders = getRecentOrders(5);
+  const totalRevenue = mounted && isInitialized ? getTotalRevenue() : 0;
+  const pendingOrders = mounted && isInitialized ? getPendingOrders() : [];
+  const lowStockProducts = mounted && isInitialized ? getLowStockProducts() : [];
+  const topCustomers = mounted && isInitialized ? getTopCustomers(5) : [];
+  const recentOrders = mounted && isInitialized ? getRecentOrders(5) : [];
 
-  if (isLoading && !isInitialized) {
+  if ((isLoading && !isInitialized) || !mounted) {
     return (
-      <div className="p-8">
+      <div className="p-8 space-y-4">
+        <div className="text-sm text-muted-foreground">
+          Initializing dashboard...
+        </div>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {[1, 2, 3, 4].map((i) => (
             <Card key={i} className="animate-pulse">
@@ -96,6 +102,21 @@ export default function Dashboard() {
         description="Sales and inventory management dashboard"
       />
       <div className="p-8 space-y-8">
+        {/* Temporary debug panel */}
+        <div className="rounded-md border border-dashed border-muted-foreground/40 p-3 text-xs text-muted-foreground mb-4">
+          <div className="font-semibold mb-1">Debug status (temporary)</div>
+          <div className="flex flex-wrap gap-4">
+            <span>mounted: {mounted ? "true" : "false"}</span>
+            <span>isInitialized: {isInitialized ? "true" : "false"}</span>
+            <span>products: {products.length}</span>
+            <span>customers: {customers.length}</span>
+            <span>orders: {orders.length}</span>
+          </div>
+          <div className="mt-1">
+            Check console logs starting with [Supabase client], [Supabase test], [initialize], [refreshData], [supabaseService] for detailed error info.
+          </div>
+        </div>
+
         <div className="flex items-center justify-between">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
             Dashboard
