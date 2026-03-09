@@ -1,67 +1,32 @@
 import { SEO } from "@/components/SEO";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, Plus, Search, Phone, Mail, MapPin } from "lucide-react";
+import { ArrowLeft, Plus, Search, Phone, Mail, MapPin, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { supabase } from "@/integrations/supabase/client";
+import { supabaseService } from "@/services/supabaseService";
 import type { Customer } from "@/types";
 
-// THIS RUNS ON THE SERVER - Bypasses local browser network restrictions/firewalls
-export async function getServerSideProps() {
-  try {
-    const { data, error } = await supabase
-      .from("customers")
-      .select("*")
-      .order("name", { ascending: true });
-
-    if (error) {
-      console.error("Supabase error in getServerSideProps:", error);
-      return { props: { initialCustomers: [], serverError: error.message } };
-    }
-
-    const mappedCustomers = (data || []).map((c: any) => ({
-      id: c.id,
-      name: c.name,
-      nameHebrew: c.name_hebrew || null,
-      email: c.email || null,
-      phone: c.phone || null,
-      mobile: c.mobile || null,
-      address: c.address || null,
-      city: c.city || null,
-      state: c.state || null,
-      zip: c.zip || null,
-      notes: c.notes || null,
-      createdAt: c.created_at,
-    }));
-
-    return {
-      props: {
-        initialCustomers: mappedCustomers,
-        serverError: null,
-      },
-    };
-  } catch (e) {
-    console.error("Network error in getServerSideProps:", e);
-    return {
-      props: {
-        initialCustomers: [],
-        serverError: e instanceof Error ? e.message : String(e),
-      },
-    };
-  }
-}
-
-export default function CustomersPage({ 
-  initialCustomers, 
-  serverError 
-}: { 
-  initialCustomers: Customer[], 
-  serverError: string | null 
-}) {
-  const [customers] = useState<Customer[]>(initialCustomers || []);
+export default function CustomersPage() {
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    const loadCustomers = async () => {
+      setLoading(true);
+      try {
+        const data = await supabaseService.getCustomers();
+        setCustomers(data || []);
+      } catch (error) {
+        console.error("Failed to fetch customers:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadCustomers();
+  }, []);
 
   const filteredCustomers = customers.filter((customer) => {
     const query = searchQuery.toLowerCase();
@@ -73,20 +38,6 @@ export default function CustomersPage({
       (customer.mobile && customer.mobile.includes(query))
     );
   });
-
-  if (serverError) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center max-w-md">
-          <div className="text-red-600 text-xl mb-4">⚠️ Server Error Loading Customers</div>
-          <p className="text-gray-600 mb-4">{serverError}</p>
-          <Button onClick={() => window.location.reload()} variant="outline">
-            Try Again
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <>
@@ -106,20 +57,20 @@ export default function CustomersPage({
             </div>
           </div>
           <Link href="/customers/new">
-            <Button className="gap-2">
+            <Button className="gap-2 bg-blue-600 hover:bg-blue-700 text-white">
               <Plus className="w-4 h-4" />
               Add Customer
             </Button>
           </Link>
         </div>
 
-        <Card className="mb-6">
+        <Card className="mb-6 border-0 shadow-sm ring-1 ring-gray-200/50">
           <CardContent className="pt-6">
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
               <Input
                 placeholder="Search customers by name, phone, or email..."
-                className="pl-9"
+                className="pl-9 bg-gray-50/50 border-gray-200 focus:bg-white transition-colors"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -127,65 +78,98 @@ export default function CustomersPage({
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredCustomers.map((customer) => (
-            <Link key={customer.id} href={`/customers/${customer.id}`}>
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
-                <CardHeader>
-                  <CardTitle className="flex items-start justify-between">
-                    <div>
-                      <div className="text-lg font-bold">{customer.name}</div>
-                      {customer.nameHebrew && (
-                        <div className="text-sm text-gray-500 font-hebrew mt-1" dir="rtl">
-                          {customer.nameHebrew}
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20 text-gray-500">
+            <Loader2 className="w-8 h-8 animate-spin mb-4 text-blue-600" />
+            <p>Loading customers from database...</p>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredCustomers.map((customer) => (
+                <Link key={customer.id} href={`/customers/${customer.id}`}>
+                  <Card className="hover:shadow-lg hover:ring-blue-500/20 transition-all cursor-pointer h-full border-gray-200 group">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="flex items-start justify-between">
+                        <div className="w-full">
+                          <div className="text-lg font-bold group-hover:text-blue-600 transition-colors">
+                            {customer.name}
+                          </div>
+                          {customer.nameHebrew && (
+                            <div className="text-sm text-gray-500 font-hebrew mt-1" dir="rtl">
+                              {customer.nameHebrew}
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2 text-sm text-gray-600">
-                    {customer.email && (
-                      <div className="flex items-center gap-2">
-                        <Mail className="w-4 h-4" />
-                        <span className="truncate">{customer.email}</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2.5 text-sm text-gray-600">
+                        {customer.email && (
+                          <div className="flex items-center gap-3">
+                            <div className="w-6 h-6 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
+                              <Mail className="w-3.5 h-3.5 text-blue-600" />
+                            </div>
+                            <span className="truncate font-medium text-gray-700">{customer.email}</span>
+                          </div>
+                        )}
+                        {customer.phone && (
+                          <div className="flex items-center gap-3">
+                            <div className="w-6 h-6 rounded-full bg-green-50 flex items-center justify-center flex-shrink-0">
+                              <Phone className="w-3.5 h-3.5 text-green-600" />
+                            </div>
+                            <span>{customer.phone}</span>
+                          </div>
+                        )}
+                        {customer.mobile && (
+                          <div className="flex items-center gap-3">
+                            <div className="w-6 h-6 rounded-full bg-purple-50 flex items-center justify-center flex-shrink-0">
+                              <Phone className="w-3.5 h-3.5 text-purple-600" />
+                            </div>
+                            <span>{customer.mobile} <span className="text-xs text-gray-400 ml-1">(Mobile)</span></span>
+                          </div>
+                        )}
+                        {customer.address && (
+                          <div className="flex items-start gap-3 pt-1">
+                            <div className="w-6 h-6 rounded-full bg-orange-50 flex items-center justify-center flex-shrink-0">
+                              <MapPin className="w-3.5 h-3.5 text-orange-600" />
+                            </div>
+                            <span className="line-clamp-2 leading-relaxed">
+                              {customer.address}
+                              {customer.city && `, ${customer.city}`}
+                              {customer.state && `, ${customer.state}`}
+                            </span>
+                          </div>
+                        )}
                       </div>
-                    )}
-                    {customer.phone && (
-                      <div className="flex items-center gap-2">
-                        <Phone className="w-4 h-4" />
-                        <span>{customer.phone}</span>
-                      </div>
-                    )}
-                    {customer.mobile && (
-                      <div className="flex items-center gap-2">
-                        <Phone className="w-4 h-4" />
-                        <span>{customer.mobile}</span>
-                      </div>
-                    )}
-                    {customer.address && (
-                      <div className="flex items-start gap-2">
-                        <MapPin className="w-4 h-4 mt-0.5" />
-                        <span className="line-clamp-2">
-                          {customer.address}
-                          {customer.city && `, ${customer.city}`}
-                          {customer.state && `, ${customer.state}`}
-                        </span>
-                      </div>
-                    )}
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+
+            {filteredCustomers.length === 0 && (
+              <Card className="border-dashed border-2">
+                <CardContent className="py-16 text-center">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Search className="w-8 h-8 text-gray-400" />
                   </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-1">No customers found</h3>
+                  <p className="text-gray-500 mb-6">
+                    {searchQuery ? `No results match "${searchQuery}"` : "You haven't added any customers yet."}
+                  </p>
+                  {!searchQuery && (
+                    <Link href="/customers/new">
+                      <Button className="bg-blue-600 hover:bg-blue-700">
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Your First Customer
+                      </Button>
+                    </Link>
+                  )}
                 </CardContent>
               </Card>
-            </Link>
-          ))}
-        </div>
-
-        {filteredCustomers.length === 0 && (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <p className="text-gray-500">No customers found</p>
-            </CardContent>
-          </Card>
+            )}
+          </>
         )}
       </div>
     </>
