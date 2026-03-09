@@ -48,20 +48,33 @@ const useStore = create<AppState>()(
           const { data: { session } } = await supabase.auth.getSession();
           
           if (!session) {
-            set({ isInitialized: true, isLoading: false });
+            set({ isInitialized: true, isLoading: false, isInitializing: false });
             return;
           }
 
           set({ isLoading: true });
 
-          // Load products first
-          const { data: productsData, error: productsError } = await supabase
-            .from("products")
-            .select("*")
-            .order("name", { ascending: true });
+          let productsData: any[] | null = null;
 
-          if (productsError) {
-            console.error("Error loading products:", productsError);
+          try {
+            const { data, error } = await supabase
+              .from("products")
+              .select("*")
+              .order("name", { ascending: true });
+
+            if (error) {
+               
+              console.log("[initialize][products] error", error);
+            } else {
+              productsData = data || [];
+            }
+          } catch (err: any) {
+             
+            console.log("[initialize][products] thrown error", {
+              message: err?.message,
+              stack: err?.stack,
+              error: err,
+            });
           }
 
           const products: Product[] = (productsData || []).map((p: any) => ({
@@ -75,15 +88,61 @@ const useStore = create<AppState>()(
             currentInventory: Number(p.current_inventory || 0),
           }));
 
-          set({ products, isInitialized: true });
+          set({ products });
 
-          // Load customers and orders in background
+          // Load customers and orders in background with soft failures
           Promise.all([
-            supabase.from("customers").select("*").order("first_name", { ascending: true }),
-            supabase.from("orders").select("*").order("created_at", { ascending: false }),
+            (async () => {
+              try {
+                const { data, error } = await supabase
+                  .from("customers")
+                  .select("*")
+                  .order("first_name", { ascending: true });
+
+                if (error) {
+                   
+                  console.log("[initialize][customers] error", error);
+                  return [];
+                }
+
+                return data || [];
+              } catch (err: any) {
+                 
+                console.log("[initialize][customers] thrown error", {
+                  message: err?.message,
+                  stack: err?.stack,
+                  error: err,
+                });
+                return [];
+              }
+            })(),
+            (async () => {
+              try {
+                const { data, error } = await supabase
+                  .from("orders")
+                  .select("*")
+                  .order("created_at", { ascending: false });
+
+                if (error) {
+                   
+                  console.log("[initialize][orders] error", error);
+                  return [];
+                }
+
+                return data || [];
+              } catch (err: any) {
+                 
+                console.log("[initialize][orders] thrown error", {
+                  message: err?.message,
+                  stack: err?.stack,
+                  error: err,
+                });
+                return [];
+              }
+            })(),
           ])
-            .then(([customersResult, ordersResult]) => {
-              const customers: Customer[] = (customersResult.data || []).map((c: any) => ({
+            .then(([customersRaw, ordersRaw]) => {
+              const customers: Customer[] = (customersRaw || []).map((c: any) => ({
                 id: c.id,
                 name: c.name,
                 nameHebrew: c.name_hebrew,
@@ -107,7 +166,7 @@ const useStore = create<AppState>()(
                 created_at: c.created_at,
               }));
 
-              const orders: Order[] = (ordersResult.data || []).map((o: any) => ({
+              const orders: Order[] = (ordersRaw || []).map((o: any) => ({
                 id: o.id,
                 orderNumber: o.order_number,
                 customerId: o.customer_id,
@@ -139,11 +198,23 @@ const useStore = create<AppState>()(
               });
             })
             .catch((error) => {
-              console.error("Background data load error:", error);
+               
+              console.log("[initialize][background] thrown error", {
+                message: (error as any)?.message,
+                stack: (error as any)?.stack,
+                error,
+              });
               set({ isLoading: false });
             });
-        } catch (error) {
-          console.error("Store initialization error:", error);
+
+          set({ isInitialized: true });
+        } catch (error: any) {
+           
+          console.log("[initialize][root] thrown error", {
+            message: error?.message,
+            stack: error?.stack,
+            error,
+          });
           set({ isLoading: false, isInitialized: true });
         }
 
@@ -166,6 +237,19 @@ const useStore = create<AppState>()(
             supabase.from("customers").select("*"),
             supabase.from("orders").select("*"),
           ]);
+
+          if (productsResult.error) {
+             
+            console.log("[refreshData][products] error", productsResult.error);
+          }
+          if (customersResult.error) {
+             
+            console.log("[refreshData][customers] error", customersResult.error);
+          }
+          if (ordersResult.error) {
+             
+            console.log("[refreshData][orders] error", ordersResult.error);
+          }
 
           const products: Product[] = (productsResult.data || []).map((p: any) => ({
             id: p.id,
@@ -233,8 +317,13 @@ const useStore = create<AppState>()(
             lastSync: Date.now(),
             isLoading: false,
           });
-        } catch (error) {
-          console.error("Error refreshing data:", error);
+        } catch (error: any) {
+           
+          console.log("[refreshData][root] thrown error", {
+            message: error?.message,
+            stack: error?.stack,
+            error,
+          });
           set({ isLoading: false });
         }
       },
