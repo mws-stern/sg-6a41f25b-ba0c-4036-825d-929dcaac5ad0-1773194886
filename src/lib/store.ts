@@ -5,8 +5,8 @@ import { supabaseService } from "@/services/supabaseService";
 import { supabase } from "@/integrations/supabase/client";
 
 // Memoization cache
-const cache = new Map<string, { value: any; timestamp: number }>();
-const CACHE_TTL = 5000; // 5 seconds
+const cache = new Map<string, { value: any; timestamp: number }>>();
+const CACHE_TTL = 5000;
 
 function memoize<T>(key: string, fn: () => T): T {
   const cached = cache.get(key);
@@ -63,14 +63,12 @@ const useStore = create<AppState>()(
               .order("name", { ascending: true });
 
             if (error) {
-               
-              console.log("[initialize][products] error", error);
+              console.error("[initialize][products] error", error);
             } else {
               productsData = data || [];
             }
           } catch (err: any) {
-             
-            console.log("[initialize][products] thrown error", {
+            console.error("[initialize][products] thrown error", {
               message: err?.message,
               stack: err?.stack,
               error: err,
@@ -100,15 +98,13 @@ const useStore = create<AppState>()(
                   .order("first_name", { ascending: true });
 
                 if (error) {
-                   
-                  console.log("[initialize][customers] error", error);
+                  console.error("[initialize][customers] error", error);
                   return [];
                 }
 
                 return data || [];
               } catch (err: any) {
-                 
-                console.log("[initialize][customers] thrown error", {
+                console.error("[initialize][customers] thrown error", {
                   message: err?.message,
                   stack: err?.stack,
                   error: err,
@@ -124,15 +120,13 @@ const useStore = create<AppState>()(
                   .order("created_at", { ascending: false });
 
                 if (error) {
-                   
-                  console.log("[initialize][orders] error", error);
+                  console.error("[initialize][orders] error", error);
                   return [];
                 }
 
                 return data || [];
               } catch (err: any) {
-                 
-                console.log("[initialize][orders] thrown error", {
+                console.error("[initialize][orders] thrown error", {
                   message: err?.message,
                   stack: err?.stack,
                   error: err,
@@ -198,8 +192,7 @@ const useStore = create<AppState>()(
               });
             })
             .catch((error) => {
-               
-              console.log("[initialize][background] thrown error", {
+              console.error("[initialize][background] thrown error", {
                 message: (error as any)?.message,
                 stack: (error as any)?.stack,
                 error,
@@ -209,8 +202,7 @@ const useStore = create<AppState>()(
 
           set({ isInitialized: true });
         } catch (error: any) {
-           
-          console.log("[initialize][root] thrown error", {
+          console.error("[initialize][root] thrown error", {
             message: error?.message,
             stack: error?.stack,
             error,
@@ -239,16 +231,13 @@ const useStore = create<AppState>()(
           ]);
 
           if (productsResult.error) {
-             
-            console.log("[refreshData][products] error", productsResult.error);
+            console.error("[refreshData][products] error", productsResult.error);
           }
           if (customersResult.error) {
-             
-            console.log("[refreshData][customers] error", customersResult.error);
+            console.error("[refreshData][customers] error", customersResult.error);
           }
           if (ordersResult.error) {
-             
-            console.log("[refreshData][orders] error", ordersResult.error);
+            console.error("[refreshData][orders] error", ordersResult.error);
           }
 
           const products: Product[] = (productsResult.data || []).map((p: any) => ({
@@ -318,8 +307,7 @@ const useStore = create<AppState>()(
             isLoading: false,
           });
         } catch (error: any) {
-           
-          console.log("[refreshData][root] thrown error", {
+          console.error("[refreshData][root] thrown error", {
             message: error?.message,
             stack: error?.stack,
             error,

@@ -14,16 +14,12 @@ export const supabaseService = {
         .select("*")
         .order("first_name", { ascending: true });
 
-       
-      console.log("[supabaseService.getCustomers]", {
-        dataLength: data?.length,
-        error,
-      });
-
+      if (error) {
+        console.error("[supabaseService.getCustomers] error", error);
+      }
       return { data: data ?? [], error };
     } catch (err: any) {
-       
-      console.log("[supabaseService.getCustomers] thrown error", {
+      console.error("[supabaseService.getCustomers] thrown error", {
         message: err?.message,
         stack: err?.stack,
         error: err,
@@ -40,13 +36,12 @@ export const supabaseService = {
         .eq("id", id)
         .maybeSingle();
 
-       
-      console.log("[supabaseService.getCustomer]", { hasData: Boolean(data), error });
-
+      if (error) {
+        console.error("[supabaseService.getCustomer] error", error);
+      }
       return { data, error };
     } catch (err: any) {
-       
-      console.log("[supabaseService.getCustomer] thrown error", {
+      console.error("[supabaseService.getCustomer] thrown error", {
         message: err?.message,
         stack: err?.stack,
         error: err,
@@ -63,13 +58,12 @@ export const supabaseService = {
         .select("*")
         .maybeSingle();
 
-       
-      console.log("[supabaseService.addCustomer]", { hasData: Boolean(data), error });
-
+      if (error) {
+        console.error("[supabaseService.addCustomer] error", error);
+      }
       return { data, error };
     } catch (err: any) {
-       
-      console.log("[supabaseService.addCustomer] thrown error", {
+      console.error("[supabaseService.addCustomer] thrown error", {
         message: err?.message,
         stack: err?.stack,
         error: err,
@@ -87,13 +81,12 @@ export const supabaseService = {
         .select("*")
         .maybeSingle();
 
-       
-      console.log("[supabaseService.updateCustomer]", { hasData: Boolean(data), error });
-
+      if (error) {
+        console.error("[supabaseService.updateCustomer] error", error);
+      }
       return { data, error };
     } catch (err: any) {
-       
-      console.log("[supabaseService.updateCustomer] thrown error", {
+      console.error("[supabaseService.updateCustomer] thrown error", {
         message: err?.message,
         stack: err?.stack,
         error: err,
@@ -110,16 +103,12 @@ export const supabaseService = {
         .select("*")
         .order("name", { ascending: true });
 
-       
-      console.log("[supabaseService.getProducts]", {
-        dataLength: data?.length,
-        error,
-      });
-
+      if (error) {
+        console.error("[supabaseService.getProducts] error", error);
+      }
       return { data: data ?? [], error };
     } catch (err: any) {
-       
-      console.log("[supabaseService.getProducts] thrown error", {
+      console.error("[supabaseService.getProducts] thrown error", {
         message: err?.message,
         stack: err?.stack,
         error: err,
@@ -136,13 +125,12 @@ export const supabaseService = {
         .eq("id", id)
         .maybeSingle();
 
-       
-      console.log("[supabaseService.getProduct]", { hasData: Boolean(data), error });
-
+      if (error) {
+        console.error("[supabaseService.getProduct] error", error);
+      }
       return { data, error };
     } catch (err: any) {
-       
-      console.log("[supabaseService.getProduct] thrown error", {
+      console.error("[supabaseService.getProduct] thrown error", {
         message: err?.message,
         stack: err?.stack,
         error: err,
@@ -159,13 +147,12 @@ export const supabaseService = {
         .select("*")
         .maybeSingle();
 
-       
-      console.log("[supabaseService.addProduct]", { hasData: Boolean(data), error });
-
+      if (error) {
+        console.error("[supabaseService.addProduct] error", error);
+      }
       return { data, error };
     } catch (err: any) {
-       
-      console.log("[supabaseService.addProduct] thrown error", {
+      console.error("[supabaseService.addProduct] thrown error", {
         message: err?.message,
         stack: err?.stack,
         error: err,
@@ -183,13 +170,12 @@ export const supabaseService = {
         .select("*")
         .maybeSingle();
 
-       
-      console.log("[supabaseService.updateProduct]", { hasData: Boolean(data), error });
-
+      if (error) {
+        console.error("[supabaseService.updateProduct] error", error);
+      }
       return { data, error };
     } catch (err: any) {
-       
-      console.log("[supabaseService.updateProduct] thrown error", {
+      console.error("[supabaseService.updateProduct] thrown error", {
         message: err?.message,
         stack: err?.stack,
         error: err,
@@ -206,16 +192,12 @@ export const supabaseService = {
         .select("*")
         .order("created_at", { ascending: false });
 
-       
-      console.log("[supabaseService.getOrders]", {
-        dataLength: data?.length,
-        error,
-      });
-
+      if (error) {
+        console.error("[supabaseService.getOrders] error", error);
+      }
       return { data: data ?? [], error };
     } catch (err: any) {
-       
-      console.log("[supabaseService.getOrders] thrown error", {
+      console.error("[supabaseService.getOrders] thrown error", {
         message: err?.message,
         stack: err?.stack,
         error: err,
@@ -232,13 +214,12 @@ export const supabaseService = {
         .eq("id", id)
         .maybeSingle();
 
-       
-      console.log("[supabaseService.getOrder]", { hasData: Boolean(data), error });
-
+      if (error) {
+        console.error("[supabaseService.getOrder] error", error);
+      }
       return { data, error };
     } catch (err: any) {
-       
-      console.log("[supabaseService.getOrder] thrown error", {
+      console.error("[supabaseService.getOrder] thrown error", {
         message: err?.message,
         stack: err?.stack,
         error: err,
@@ -255,13 +236,12 @@ export const supabaseService = {
         .select("*")
         .maybeSingle();
 
-       
-      console.log("[supabaseService.addOrder]", { hasData: Boolean(data), error });
-
+      if (error) {
+        console.error("[supabaseService.addOrder] error", error);
+      }
       return { data, error };
     } catch (err: any) {
-       
-      console.log("[supabaseService.addOrder] thrown error", {
+      console.error("[supabaseService.addOrder] thrown error", {
         message: err?.message,
         stack: err?.stack,
         error: err,
@@ -279,13 +259,12 @@ export const supabaseService = {
         .select("*")
         .maybeSingle();
 
-       
-      console.log("[supabaseService.updateOrder]", { hasData: Boolean(data), error });
-
+      if (error) {
+        console.error("[supabaseService.updateOrder] error", error);
+      }
       return { data, error };
     } catch (err: any) {
-       
-      console.log("[supabaseService.updateOrder] thrown error", {
+      console.error("[supabaseService.updateOrder] thrown error", {
         message: err?.message,
         stack: err?.stack,
         error: err,
@@ -301,13 +280,12 @@ export const supabaseService = {
         .delete()
         .eq("id", id);
 
-       
-      console.log("[supabaseService.deleteOrder]", { error });
-
+      if (error) {
+        console.error("[supabaseService.deleteOrder] error", error);
+      }
       return { error };
     } catch (err: any) {
-       
-      console.log("[supabaseService.deleteOrder] thrown error", {
+      console.error("[supabaseService.deleteOrder] thrown error", {
         message: err?.message,
         stack: err?.stack,
         error: err,
@@ -324,16 +302,12 @@ export const supabaseService = {
         .select("*")
         .order("created_at", { ascending: false });
 
-       
-      console.log("[supabaseService.getInvoices]", {
-        dataLength: data?.length,
-        error,
-      });
-
+      if (error) {
+        console.error("[supabaseService.getInvoices] error", error);
+      }
       return { data: data ?? [], error };
     } catch (err: any) {
-       
-      console.log("[supabaseService.getInvoices] thrown error", {
+      console.error("[supabaseService.getInvoices] thrown error", {
         message: err?.message,
         stack: err?.stack,
         error: err,
@@ -350,13 +324,12 @@ export const supabaseService = {
         .eq("id", id)
         .maybeSingle();
 
-       
-      console.log("[supabaseService.getInvoice]", { hasData: Boolean(data), error });
-
+      if (error) {
+        console.error("[supabaseService.getInvoice] error", error);
+      }
       return { data, error };
     } catch (err: any) {
-       
-      console.log("[supabaseService.getInvoice] thrown error", {
+      console.error("[supabaseService.getInvoice] thrown error", {
         message: err?.message,
         stack: err?.stack,
         error: err,
@@ -373,16 +346,12 @@ export const supabaseService = {
         .select("*")
         .order("created_at", { ascending: false });
 
-       
-      console.log("[supabaseService.getInventory]", {
-        dataLength: data?.length,
-        error,
-      });
-
+      if (error) {
+        console.error("[supabaseService.getInventory] error", error);
+      }
       return { data: data ?? [], error };
     } catch (err: any) {
-       
-      console.log("[supabaseService.getInventory] thrown error", {
+      console.error("[supabaseService.getInventory] thrown error", {
         message: err?.message,
         stack: err?.stack,
         error: err,
@@ -399,13 +368,12 @@ export const supabaseService = {
         .select("*")
         .maybeSingle();
 
-       
-      console.log("[supabaseService.addInventoryEntry]", { hasData: Boolean(data), error });
-
+      if (error) {
+        console.error("[supabaseService.addInventoryEntry] error", error);
+      }
       return { data, error };
     } catch (err: any) {
-       
-      console.log("[supabaseService.addInventoryEntry] thrown error", {
+      console.error("[supabaseService.addInventoryEntry] thrown error", {
         message: err?.message,
         stack: err?.stack,
         error: err,
@@ -422,16 +390,12 @@ export const supabaseService = {
         .select("*")
         .order("payment_date", { ascending: false });
 
-       
-      console.log("[supabaseService.getAllPayments]", {
-        dataLength: data?.length,
-        error,
-      });
-
+      if (error) {
+        console.error("[supabaseService.getAllPayments] error", error);
+      }
       return { data: data ?? [], error };
     } catch (err: any) {
-       
-      console.log("[supabaseService.getAllPayments] thrown error", {
+      console.error("[supabaseService.getAllPayments] thrown error", {
         message: err?.message,
         stack: err?.stack,
         error: err,
@@ -449,13 +413,12 @@ export const supabaseService = {
         .limit(1)
         .maybeSingle();
 
-       
-      console.log("[supabaseService.getSettings]", { hasData: Boolean(data), error });
-
+      if (error) {
+        console.error("[supabaseService.getSettings] error", error);
+      }
       return { data, error };
     } catch (err: any) {
-       
-      console.log("[supabaseService.getSettings] thrown error", {
+      console.error("[supabaseService.getSettings] thrown error", {
         message: err?.message,
         stack: err?.stack,
         error: err,
@@ -477,13 +440,12 @@ export const supabaseService = {
         .select("*")
         .maybeSingle();
 
-       
-      console.log("[supabaseService.saveSettings]", { hasData: Boolean(data), error });
-
+      if (error) {
+        console.error("[supabaseService.saveSettings] error", error);
+      }
       return { data, error };
     } catch (err: any) {
-       
-      console.log("[supabaseService.saveSettings] thrown error", {
+      console.error("[supabaseService.saveSettings] thrown error", {
         message: err?.message,
         stack: err?.stack,
         error: err,
