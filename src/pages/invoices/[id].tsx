@@ -19,7 +19,7 @@ type InvoiceItem = {
   finalPrice: number;
 };
 
-type UiInvoice = Invoice & { items: InvoiceItem[] };
+type UiInvoice = any;
 
 export default function InvoiceDetailPage() {
   const router = useRouter();
@@ -108,9 +108,12 @@ export default function InvoiceDetailPage() {
     setSending(true);
     
     // Fetch order and customer to satisfy email service requirements
-    const order = await supabaseService.getOrder(invoice.orderId);
-    const customer = await supabaseService.getCustomer(invoice.customerId);
+    const orderRes = await supabaseService.getOrder(invoice.order_id || invoice.orderId);
+    const customerRes = await supabaseService.getCustomer(invoice.customer_id || invoice.customerId);
     
+    const order = (orderRes as any).data || orderRes;
+    const customer = (customerRes as any).data || customerRes;
+
     if (!order || !customer) {
       toast({
         title: "Failed to send invoice",
@@ -126,7 +129,7 @@ export default function InvoiceDetailPage() {
     if (result.success) {
       toast({
         title: "Invoice sent",
-        description: `Invoice has been sent to ${invoice.customerEmail}`,
+        description: `Invoice has been sent to ${invoice.customer_email || invoice.customerEmail}`,
       });
     } else {
       toast({
