@@ -138,18 +138,30 @@ export default function NewCustomerPage({ existingCustomers }: { existingCustome
     const assembledAddress = `${formData.houseNumber} ${formData.street} ${formData.apt ? `Apt ${formData.apt}` : ''}`.trim();
 
     setLoading(true);
-    const newCustomer = await supabaseService.addCustomer({
-      ...formData,
+    const { data: newCustomer, error } = await supabaseService.addCustomer({
       name: assembledName || "Unknown Name",
-      nameHebrew: assembledHebrewName,
+      name_hebrew: assembledHebrewName,
+      title_hebrew: formData.titleHebrew,
+      title_english: formData.titleEnglish,
+      first_name_hebrew: formData.firstNameHebrew,
+      last_name_hebrew: formData.lastNameHebrew,
+      first_name: formData.firstName,
+      last_name: formData.lastName,
+      house_number: formData.houseNumber,
+      apt: formData.apt,
+      street: formData.street,
+      email: formData.email,
+      phone: formData.phone,
+      mobile: formData.mobile,
       address: assembledAddress,
       city: "Montreal",
       state: "QC",
       zip: "",
+      notes: formData.notes,
     });
     setLoading(false);
 
-    if (newCustomer) {
+    if (!error && newCustomer) {
       toast({
         title: "Customer Added",
         description: `${newCustomer.name} has been added successfully.`,
@@ -158,7 +170,7 @@ export default function NewCustomerPage({ existingCustomers }: { existingCustome
     } else {
       toast({
         title: "Error",
-        description: "Failed to save the customer to the database.",
+        description: error?.message || "Failed to save the customer to the database.",
         variant: "destructive",
       });
     }
