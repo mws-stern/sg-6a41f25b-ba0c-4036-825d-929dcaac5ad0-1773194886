@@ -138,7 +138,7 @@ export default function NewCustomerPage({ existingCustomers }: { existingCustome
     const assembledAddress = `${formData.houseNumber} ${formData.street} ${formData.apt ? `Apt ${formData.apt}` : ''}`.trim();
 
     setLoading(true);
-    const { data: newCustomer, error } = await supabaseService.addCustomer({
+    const response: any = await supabaseService.addCustomer({
       name: assembledName || "Unknown Name",
       name_hebrew: assembledHebrewName,
       title_hebrew: formData.titleHebrew,
@@ -159,12 +159,14 @@ export default function NewCustomerPage({ existingCustomers }: { existingCustome
       zip: "",
       notes: formData.notes,
     });
+    const newCustomer = response?.data || response;
+    const error = response?.error;
     setLoading(false);
 
     if (!error && newCustomer) {
       toast({
         title: "Customer Added",
-        description: `${newCustomer.name} has been added successfully.`,
+        description: `${newCustomer.name || assembledName} has been added successfully.`,
       });
       router.push("/customers");
     } else {

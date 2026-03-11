@@ -31,7 +31,9 @@ export default function SettingsPage() {
     const loadSettings = async () => {
         setLoading(true);
         try {
-            const { data, error } = await supabaseService.getSettings();
+            const response = await supabaseService.getSettings();
+            const data = (response as any).data || response;
+            const error = (response as any).error;
             if (!error && data) {
                 const raw = data as any;
                 setSettings({
