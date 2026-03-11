@@ -40,8 +40,8 @@ export default function InventoryPage() {
             supabaseService.getProducts(),
             supabaseService.getInventory(),
         ]);
-        setProducts((productsResult.data || []) as Product[]);
-        setInventory((inventoryResult.data || []) as InventoryEntry[]);
+        setProducts(((productsResult as any).data || productsResult || []) as Product[]);
+        setInventory(((inventoryResult as any).data || inventoryResult || []) as InventoryEntry[]);
         setLoading(false);
     };
 
@@ -58,13 +58,15 @@ export default function InventoryPage() {
         const product = products.find((p) => p.id === newEntry.productId);
         if (!product) return;
 
-        const { data: entry, error } = await supabaseService.addInventoryEntry({
+        const response: any = await supabaseService.addInventoryEntry({
             product_id: newEntry.productId,
             product_name: product.name,
             amount: newEntry.amount,
             date: newEntry.date,
             notes: newEntry.notes,
         });
+        const entry = response?.data || response;
+        const error = response?.error;
 
         if (!error && entry) {
             toast({
