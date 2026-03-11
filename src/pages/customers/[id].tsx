@@ -90,7 +90,7 @@ export default function CustomerDetailPage() {
         if (!customer) return;
 
         setSaving(true);
-        // @ts-ignore
+        // @ts-expect-error
         await supabaseService.updateCustomer(customer.id, {
             name: customer.name,
             name_hebrew: customer.nameHebrew,
@@ -118,7 +118,7 @@ export default function CustomerDetailPage() {
             return;
         }
 
-        // @ts-ignore
+        // @ts-expect-error
         await supabaseService.updateCustomer(customer.id, { email: tempEmail });
 
         setCustomer({ ...customer, email: tempEmail });

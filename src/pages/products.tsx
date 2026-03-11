@@ -61,7 +61,7 @@ export default function ProductsPage() {
         if (!productToUpdate) return;
 
         const updated = { ...productToUpdate, ...editForm };
-        // @ts-ignore
+        // @ts-expect-error
         await supabaseService.updateProduct(id, {
             name: updated.name,
             name_hebrew: updated.nameHebrew,
