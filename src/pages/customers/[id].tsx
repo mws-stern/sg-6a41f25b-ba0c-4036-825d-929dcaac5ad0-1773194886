@@ -37,12 +37,17 @@ export default function CustomerDetailPage() {
     const loadCustomerData = async (customerId: string) => {
         setLoading(true);
         try {
-            const response = await supabaseService.getCustomer(customerId);
-            const customerData = (response as any).data || response;
-            const ordersResponse = await supabaseService.getOrders();
-            const ordersRaw = (ordersResponse as any).data || ordersResponse || [];
+            const { data: customerData, error: customerError } = await supabaseService.getCustomer(customerId);
+            if (customerError || !customerData) {
+                console.error("[CustomerDetail] getCustomer error", customerError);
+                setCustomer(null);
+                setLoading(false);
+                return;
+            }
+            const { data: ordersDataRaw } = await supabaseService.getOrders();
+            const ordersRaw = (ordersDataRaw || []) as any[];
 
-            const allOrders = (ordersRaw || []) as any[];
+            const allOrders = ordersRaw;
 
             if (customerData) {
                 const mappedCustomer: Customer = { ...(customerData as any), nameHebrew: (customerData as any).name_hebrew || "", titleHebrew: (customerData as any).title_hebrew || "", titleEnglish: (customerData as any).title_english || "" };
