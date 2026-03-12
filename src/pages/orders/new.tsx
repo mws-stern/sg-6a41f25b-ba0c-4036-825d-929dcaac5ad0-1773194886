@@ -108,11 +108,13 @@ export async function getServerSideProps() {
 export default function NewOrderPage({
     initialProducts,
     initialCustomers,
-    initialOrders
+    initialOrders,
+    initialSettings,
 }: {
     initialProducts: Product[],
     initialCustomers: Customer[],
-    initialOrders: Order[]
+    initialOrders: Order[],
+    initialSettings?: { taxRate?: number } | null,
 }) {
     const router = useRouter();
     const { toast } = useToast();
@@ -179,7 +181,7 @@ export default function NewOrderPage({
             totalPrice: 0,
             discount: 0,
             discountType: "fixed",
-            finalPrice: 0,
+            finalPrice: undefined,
         }]);
     };
 
@@ -389,15 +391,15 @@ export default function NewOrderPage({
                 customer_name: customer.name,
                 customer_email: customer.email || "",
                 subtotal: calculateSubtotal(),
-                tax: 0,
-                total: calculateTotal(),
+                tax: calculateSubtotal() * (initialSettings?.taxRate || 0.14975),
+                total: calculateTotal() + calculateSubtotal() * (initialSettings?.taxRate || 0.14975),
                 discount: discount ?? null,
                 discount_type: discount ? orderDiscountType : null,
                 status,
                 notes,
                 delivery_date: deliveryDate || null,
                 amount_paid: 0,
-                amount_due: calculateTotal(),
+                amount_due: calculateTotal() + calculateSubtotal() * (initialSettings?.taxRate || 0.14975),
                 payment_status: "unpaid",
             });
 
@@ -783,10 +785,15 @@ export default function NewOrderPage({
                                         </div>
                                     )}
 
+                                    <div className="flex justify-between text-gray-600">
+                                        <span>Tax ({((initialSettings?.taxRate || 0.14975) * 100).toFixed(3)}%):</span>
+                                        <span>${(calculateSubtotal() * (initialSettings?.taxRate || 0.14975)).toFixed(2)}</span>
+                                    </div>
+
                                     <div className="border-t border-amber-200 pt-2">
                                         <div className="flex justify-between text-lg font-bold">
-                                            <span>Total:</span>
-                                            <span>${calculateTotal().toFixed(2)}</span>
+                                            <span>Total (incl. tax):</span>
+                                            <span>${(calculateTotal() + calculateSubtotal() * (initialSettings?.taxRate || 0.14975)).toFixed(2)}</span>
                                         </div>
                                     </div>
                                 </div>
