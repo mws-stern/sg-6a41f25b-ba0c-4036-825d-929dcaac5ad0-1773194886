@@ -41,7 +41,13 @@ export default function ProductsPage() {
                 console.error("[ProductsPage][getProducts] error", error);
                 setProducts([]);
             } else {
-                setProducts((result || []) as Product[]);
+                setProducts(((result || []) as any[]).map((p: any) => ({
+                    ...p,
+                    nameHebrew: p.name_hebrew || "",
+                    pricePerLb: Number(p.price_per_lb || 0),
+                    inStock: Boolean(p.in_stock),
+                    currentInventory: Number(p.current_inventory || 0),
+                })) as Product[]);
             }
         } catch (err) {
             console.error("[ProductsPage][getProducts] error", err);
