@@ -13,7 +13,8 @@ import {
     Package,
     DollarSign,
     Mail,
-    FileText
+    FileText,
+    Printer
 } from "lucide-react";
 import Link from "next/link";
 import { Order, Customer, Product } from "@/types";
@@ -292,7 +293,7 @@ export default function OrderDetailPage() {
                 title={`Order #${order.id.slice(0, 8)} - Satmar Montreal Matzos`}
                 description={`View details for order #${order.id.slice(0, 8)}`}
             />
-            <div className="container mx-auto p-6 space-y-6">
+            <div id="printable-content" className="container mx-auto p-6 space-y-6">
                 <div className="flex justify-between items-center">
                     <div className="flex items-center gap-4">
                         <Link href="/orders">
@@ -323,6 +324,14 @@ export default function OrderDetailPage() {
                         >
                             <FileText className="w-4 h-4 mr-2" />
                             {sendingInvoice ? "Sending..." : "Send Invoice"}
+                        </Button>
+                        <Button
+                            variant="outline"
+                            onClick={() => window.print()}
+                            className="gap-2 no-print"
+                        >
+                            <Printer className="w-4 h-4 mr-2" />
+                            Print / PDF
                         </Button>
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
