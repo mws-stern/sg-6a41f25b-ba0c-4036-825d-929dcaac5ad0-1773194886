@@ -121,8 +121,27 @@ export default function InvoiceDetailPage() {
         const orderRes = await supabaseService.getOrder(invoice.order_id || invoice.orderId);
         const customerRes = await supabaseService.getCustomer(invoice.customer_id || invoice.customerId);
 
-        const order = (orderRes as any).data || orderRes;
+        const orderRaw = (orderRes as any).data || orderRes;
         const customer = (customerRes as any).data || customerRes;
+
+        const order = orderRaw ? {
+            ...orderRaw,
+            orderNumber: orderRaw.order_number,
+            customerId: orderRaw.customer_id,
+            customerName: orderRaw.customer_name,
+            customerEmail: orderRaw.customer_email,
+            subtotal: Number(orderRaw.subtotal || 0),
+            tax: Number(orderRaw.tax || 0),
+            total: Number(orderRaw.total || 0),
+            discount: Number(orderRaw.discount || 0),
+            discountType: orderRaw.discount_type ?? "fixed",
+            paymentStatus: orderRaw.payment_status ?? "unpaid",
+            amountPaid: Number(orderRaw.amount_paid || 0),
+            amountDue: Number(orderRaw.amount_due || 0),
+            deliveryDate: orderRaw.delivery_date,
+            createdAt: orderRaw.created_at,
+            items: orderRaw.items || [],
+        } : null;
 
         if (!order || !customer) {
             toast({
