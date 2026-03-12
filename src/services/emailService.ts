@@ -5,22 +5,22 @@ const BUSINESS_EMAIL = "sales@satmarmatzosmtl.ca";
 const BUSINESS_PHONE = "(514) 555-1234"; // Update with actual phone if available
 
 interface EmailResult {
-  success: boolean;
-  message?: string;
+    success: boolean;
+    message?: string;
 }
 
 export const emailService = {
-  async sendOrderConfirmation(
-    order: Order,
-    customer: Customer
-  ): Promise<EmailResult> {
-    if (!customer.email) {
-      return { success: false, message: "Customer has no email address" };
-    }
+    async sendOrderConfirmation(
+        order: Order,
+        customer: Customer
+    ): Promise<EmailResult> {
+        if (!customer.email) {
+            return { success: false, message: "Customer has no email address" };
+        }
 
-    const itemsHtml = order.items
-      .map(
-        (item) => `
+        const itemsHtml = order.items
+            .map(
+                (item) => `
         <tr>
           <td style="padding: 16px; border-bottom: 1px solid #e5e7eb;">
             <div style="font-weight: 600; color: #111827; margin-bottom: 4px;">${item.productName}</div>
@@ -28,18 +28,17 @@ export const emailService = {
           </td>
           <td style="padding: 16px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.quantity || 0} lbs</td>
           <td style="padding: 16px; border-bottom: 1px solid #e5e7eb; text-align: right;">$${(item.pricePerLb || 0).toFixed(2)}/lb</td>
-          ${
-            item.discount
-              ? `<td style="padding: 16px; border-bottom: 1px solid #e5e7eb; text-align: right; color: #dc2626;">-$${(item.discount || 0).toFixed(2)}</td>`
-              : `<td style="padding: 16px; border-bottom: 1px solid #e5e7eb;"></td>`
-          }
+          ${item.discount
+                        ? `<td style="padding: 16px; border-bottom: 1px solid #e5e7eb; text-align: right; color: #dc2626;">-$${(item.discount || 0).toFixed(2)}</td>`
+                        : `<td style="padding: 16px; border-bottom: 1px solid #e5e7eb;"></td>`
+                    }
           <td style="padding: 16px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 600;">$${(item.finalPrice || 0).toFixed(2)}</td>
         </tr>
       `
-      )
-      .join("");
+            )
+            .join("");
 
-    const emailHtml = `
+        const emailHtml = `
       <!DOCTYPE html>
       <html>
         <head>
@@ -52,12 +51,19 @@ export const emailService = {
               <td align="center" style="padding: 40px 0;">
                 <table role="presentation" style="width: 100%; max-width: 600px; border-collapse: collapse; background-color: #ffffff; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); border-radius: 8px; overflow: hidden;">
                   
-                  <!-- Header with Logo -->
+                  <!-- Header Letterhead -->
                   <tr>
-                    <td style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 40px 30px; text-align: center;">
-                      <img src="${process.env.NEXT_PUBLIC_SITE_URL || 'https://3000-6a41f25b-ba0c-4036-825d-929dcaac5ad0.softgen.dev'}/logo.png" alt="Satmar Montreal Matzos" style="max-width: 120px; height: auto; margin-bottom: 20px;" />
-                      <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">Order Confirmation</h1>
-                      <p style="color: #ffffff; margin: 10px 0 0 0; font-size: 16px;">Thank you for your order!</p>
+                    <td style="background: linear-gradient(135deg, #92400e 0%, #d97706 60%, #f59e0b 100%); padding: 50px 40px 40px; text-align: center;">
+                      <div style="margin-bottom: 16px;">
+                        <div style="display: inline-block; background: rgba(255,255,255,0.15); border-radius: 50%; padding: 16px; margin-bottom: 12px;">
+                          <div style="font-size: 48px; line-height: 1;">🌾</div>
+                        </div>
+                      </div>
+                      <h1 style="color: #ffffff; margin: 0 0 6px 0; font-size: 36px; font-weight: 900; letter-spacing: -0.5px; text-shadow: 0 2px 4px rgba(0,0,0,0.2);">Satmar Montreal Matzos</h1>
+                      <p style="color: #fef3c7; margin: 0 0 6px 0; font-size: 22px; font-weight: 600; letter-spacing: 1px;" dir="rtl">מצות סאטמאר מאנטרעאל</p>
+                      <div style="width: 60px; height: 3px; background: rgba(255,255,255,0.5); margin: 16px auto;"></div>
+                      <h2 style="color: #fff7ed; margin: 0 0 6px 0; font-size: 22px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px;">Order Confirmation</h2>
+                      <p style="color: #fef3c7; margin: 8px 0 0 0; font-size: 15px;">Thank you for your order!</p>
                     </td>
                   </tr>
 
@@ -128,16 +134,15 @@ export const emailService = {
                             <td style="padding: 10px 0; color: #6b7280; font-size: 15px;">Subtotal:</td>
                             <td style="padding: 10px 0; text-align: right; font-size: 15px; color: #111827;">$${(order.subtotal || 0).toFixed(2)}</td>
                           </tr>
-                          ${
-                            order.discount
-                              ? `
+                          ${order.discount
+                ? `
                           <tr>
                             <td style="padding: 10px 0; color: #dc2626; font-size: 15px;">Discount:</td>
                             <td style="padding: 10px 0; text-align: right; font-size: 15px; color: #dc2626;">-$${(order.discount || 0).toFixed(2)}</td>
                           </tr>
                           `
-                              : ""
-                          }
+                : ""
+            }
                           <tr style="border-top: 2px solid #e5e7eb;">
                             <td style="padding: 16px 0 0 0; color: #111827; font-size: 18px; font-weight: 700;">Total:</td>
                             <td style="padding: 16px 0 0 0; text-align: right; font-size: 18px; font-weight: 700; color: #f59e0b;">$${(order.total || 0).toFixed(2)}</td>
@@ -165,36 +170,36 @@ export const emailService = {
       </html>
     `;
 
-    try {
-      const response = await fetch("/api/send-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          to: customer.email,
-          subject: `Order Confirmation - #${order.orderNumber}`,
-          html: emailHtml,
-        }),
-      });
+        try {
+            const response = await fetch("/api/send-email", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    to: customer.email,
+                    subject: `Order Confirmation - #${order.orderNumber}`,
+                    html: emailHtml,
+                }),
+            });
 
-      if (!response.ok) {
-        return { success: false, message: "Failed to send email" };
-      }
+            if (!response.ok) {
+                return { success: false, message: "Failed to send email" };
+            }
 
-      return { success: true, message: "Confirmation email sent successfully" };
-    } catch (error) {
-      console.error("Error sending confirmation email:", error);
-      return { success: false, message: "Failed to send email" };
-    }
-  },
+            return { success: true, message: "Confirmation email sent successfully" };
+        } catch (error) {
+            console.error("Error sending confirmation email:", error);
+            return { success: false, message: "Failed to send email" };
+        }
+    },
 
-  async sendInvoice(order: Order, customer: Customer): Promise<EmailResult> {
-    if (!customer.email) {
-      return { success: false, message: "Customer has no email address" };
-    }
+    async sendInvoice(order: Order, customer: Customer): Promise<EmailResult> {
+        if (!customer.email) {
+            return { success: false, message: "Customer has no email address" };
+        }
 
-    const itemsHtml = order.items
-      .map(
-        (item) => `
+        const itemsHtml = order.items
+            .map(
+                (item) => `
         <tr>
           <td style="padding: 16px; border-bottom: 1px solid #e5e7eb;">
             <div style="font-weight: 600; color: #111827; margin-bottom: 4px;">${item.productName}</div>
@@ -202,42 +207,41 @@ export const emailService = {
           </td>
           <td style="padding: 16px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.quantity || 0} lbs</td>
           <td style="padding: 16px; border-bottom: 1px solid #e5e7eb; text-align: right;">$${(item.pricePerLb || 0).toFixed(2)}/lb</td>
-          ${
-            item.discount
-              ? `<td style="padding: 16px; border-bottom: 1px solid #e5e7eb; text-align: right; color: #dc2626;">-$${(item.discount || 0).toFixed(2)}</td>`
-              : `<td style="padding: 16px; border-bottom: 1px solid #e5e7eb;"></td>`
-          }
+          ${item.discount
+                        ? `<td style="padding: 16px; border-bottom: 1px solid #e5e7eb; text-align: right; color: #dc2626;">-$${(item.discount || 0).toFixed(2)}</td>`
+                        : `<td style="padding: 16px; border-bottom: 1px solid #e5e7eb;"></td>`
+                    }
           <td style="padding: 16px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 600;">$${(item.finalPrice || 0).toFixed(2)}</td>
         </tr>
       `
-      )
-      .join("");
+            )
+            .join("");
 
-    const balanceDue = (order.total || 0) - (order.amountPaid || 0);
+        const balanceDue = (order.total || 0) - (order.amountPaid || 0);
 
-    // Generate PDF and get as base64
-    let pdfAttachment = null;
-    try {
-      const pdfResponse = await fetch("/api/generate-invoice-pdf", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ order, customer }),
-      });
+        // Generate PDF and get as base64
+        let pdfAttachment = null;
+        try {
+            const pdfResponse = await fetch("/api/generate-invoice-pdf", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ order, customer }),
+            });
 
-      if (pdfResponse.ok) {
-        const { pdf } = await pdfResponse.json();
-        pdfAttachment = {
-          filename: `Invoice-${order.orderNumber}.pdf`,
-          content: pdf,
-          encoding: "base64",
-        };
-      }
-    } catch (error) {
-      console.error("Error generating PDF:", error);
-      // Continue without PDF if generation fails
-    }
+            if (pdfResponse.ok) {
+                const { pdf } = await pdfResponse.json();
+                pdfAttachment = {
+                    filename: `Invoice-${order.orderNumber}.pdf`,
+                    content: pdf,
+                    encoding: "base64",
+                };
+            }
+        } catch (error) {
+            console.error("Error generating PDF:", error);
+            // Continue without PDF if generation fails
+        }
 
-    const emailHtml = `
+        const emailHtml = `
       <!DOCTYPE html>
       <html>
         <head>
@@ -250,12 +254,19 @@ export const emailService = {
               <td align="center" style="padding: 40px 0;">
                 <table role="presentation" style="width: 100%; max-width: 600px; border-collapse: collapse; background-color: #ffffff; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); border-radius: 8px; overflow: hidden;">
                   
-                  <!-- Header with Logo -->
+                  <!-- Header Letterhead -->
                   <tr>
-                    <td style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 40px 30px; text-align: center;">
-                      <img src="${process.env.NEXT_PUBLIC_SITE_URL || 'https://3000-6a41f25b-ba0c-4036-825d-929dcaac5ad0.softgen.dev'}/logo.png" alt="Satmar Montreal Matzos" style="max-width: 120px; height: auto; margin-bottom: 20px;" />
-                      <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">Invoice</h1>
-                      <p style="color: #ffffff; margin: 10px 0 0 0; font-size: 16px;">Payment Details</p>
+                    <td style="background: linear-gradient(135deg, #92400e 0%, #d97706 60%, #f59e0b 100%); padding: 50px 40px 40px; text-align: center;">
+                      <div style="margin-bottom: 16px;">
+                        <div style="display: inline-block; background: rgba(255,255,255,0.15); border-radius: 50%; padding: 16px; margin-bottom: 12px;">
+                          <div style="font-size: 48px; line-height: 1;">🌾</div>
+                        </div>
+                      </div>
+                      <h1 style="color: #ffffff; margin: 0 0 6px 0; font-size: 36px; font-weight: 900; letter-spacing: -0.5px; text-shadow: 0 2px 4px rgba(0,0,0,0.2);">Satmar Montreal Matzos</h1>
+                      <p style="color: #fef3c7; margin: 0 0 6px 0; font-size: 22px; font-weight: 600; letter-spacing: 1px;" dir="rtl">מצות סאטמאר מאנטרעאל</p>
+                      <div style="width: 60px; height: 3px; background: rgba(255,255,255,0.5); margin: 16px auto;"></div>
+                      <h2 style="color: #fff7ed; margin: 0 0 6px 0; font-size: 22px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px;">Invoice</h2>
+                      <p style="color: #fef3c7; margin: 8px 0 0 0; font-size: 15px;">Payment Details</p>
                     </td>
                   </tr>
 
@@ -307,13 +318,12 @@ export const emailService = {
                           <tr>
                             <td style="padding: 12px 0; color: #6b7280; font-size: 14px;">Payment Status:</td>
                             <td style="padding: 12px 0;">
-                              <span style="display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 13px; font-weight: 600; ${
-                                order.paymentStatus === "paid"
-                                  ? "background-color: #d1fae5; color: #065f46;"
-                                  : order.paymentStatus === "partial"
-                                  ? "background-color: #fef3c7; color: #92400e;"
-                                  : "background-color: #fee2e2; color: #991b1b;"
-                              }">
+                              <span style="display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 13px; font-weight: 600; ${order.paymentStatus === "paid"
+                ? "background-color: #d1fae5; color: #065f46;"
+                : order.paymentStatus === "partial"
+                    ? "background-color: #fef3c7; color: #92400e;"
+                    : "background-color: #fee2e2; color: #991b1b;"
+            }">
                                 ${order.paymentStatus ? order.paymentStatus.charAt(0).toUpperCase() + order.paymentStatus.slice(1) : "Unpaid"}
                               </span>
                             </td>
@@ -347,16 +357,15 @@ export const emailService = {
                             <td style="padding: 10px 0; color: #6b7280; font-size: 15px;">Subtotal:</td>
                             <td style="padding: 10px 0; text-align: right; font-size: 15px; color: #111827;">$${(order.subtotal || 0).toFixed(2)}</td>
                           </tr>
-                          ${
-                            order.discount
-                              ? `
+                          ${order.discount
+                ? `
                           <tr>
                             <td style="padding: 10px 0; color: #dc2626; font-size: 15px;">Discount:</td>
                             <td style="padding: 10px 0; text-align: right; font-size: 15px; color: #dc2626;">-$${(order.discount || 0).toFixed(2)}</td>
                           </tr>
                           `
-                              : ""
-                          }
+                : ""
+            }
                           <tr style="border-top: 2px solid #e5e7eb;">
                             <td style="padding: 16px 0 0 0; color: #111827; font-size: 18px; font-weight: 700;">Total:</td>
                             <td style="padding: 16px 0 0 0; text-align: right; font-size: 18px; font-weight: 700; color: #f59e0b;">$${(order.total || 0).toFixed(2)}</td>
@@ -401,34 +410,34 @@ export const emailService = {
       </html>
     `;
 
-    try {
-      const response = await fetch("/api/send-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          to: customer.email,
-          subject: `Invoice - #${order.orderNumber}`,
-          html: emailHtml,
-          attachments: pdfAttachment ? [pdfAttachment] : undefined,
-        }),
-      });
+        try {
+            const response = await fetch("/api/send-email", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    to: customer.email,
+                    subject: `Invoice - #${order.orderNumber}`,
+                    html: emailHtml,
+                    attachments: pdfAttachment ? [pdfAttachment] : undefined,
+                }),
+            });
 
-      if (!response.ok) {
-        return { success: false, message: "Failed to send invoice" };
-      }
+            if (!response.ok) {
+                return { success: false, message: "Failed to send invoice" };
+            }
 
-      return { success: true, message: "Invoice sent successfully" };
-    } catch (error) {
-      console.error("Error sending invoice:", error);
-      return { success: false, message: "Failed to send invoice" };
-    }
-  },
+            return { success: true, message: "Invoice sent successfully" };
+        } catch (error) {
+            console.error("Error sending invoice:", error);
+            return { success: false, message: "Failed to send invoice" };
+        }
+    },
 
-  // Preview methods that generate HTML without sending
-  generateConfirmationHtml(order: Order, customer: Customer): string {
-    const itemsHtml = order.items
-      .map(
-        (item) => `
+    // Preview methods that generate HTML without sending
+    generateConfirmationHtml(order: Order, customer: Customer): string {
+        const itemsHtml = order.items
+            .map(
+                (item) => `
           <tr>
             <td style="padding: 16px; border-bottom: 1px solid #e5e7eb;">${item.productName}</td>
             <td style="padding: 16px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.quantity || 0} lbs</td>
@@ -437,10 +446,10 @@ export const emailService = {
             <td style="padding: 16px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 600;">$${(item.finalPrice ?? 0).toFixed(2)}</td>
           </tr>
         `
-      )
-      .join("");
+            )
+            .join("");
 
-    return `
+        return `
       <!DOCTYPE html>
       <html>
         <head>
@@ -554,12 +563,12 @@ export const emailService = {
         </body>
       </html>
     `;
-  },
+    },
 
-  generateInvoiceHtml(order: Order, customer: Customer): string {
-    const itemsHtml = order.items
-      .map(
-        (item: any) => `
+    generateInvoiceHtml(order: Order, customer: Customer): string {
+        const itemsHtml = order.items
+            .map(
+                (item: any) => `
           <tr>
             <td style="padding: 16px; border-bottom: 1px solid #e5e7eb;">
               <div style="font-weight: 600; color: #111827; margin-bottom: 4px;">${item.productName}</div>
@@ -571,16 +580,16 @@ export const emailService = {
             <td style="padding: 16px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 600;">$${(item.finalPrice ?? 0).toFixed(2)}</td>
           </tr>
         `
-      )
-      .join("");
+            )
+            .join("");
 
-    const paymentStatus = order.paymentStatus === 'paid' 
-      ? '<span style="background-color: #dcfce7; color: #166534; padding: 4px 12px; border-radius: 9999px; font-size: 12px; font-weight: 600;">PAID</span>'
-      : order.paymentStatus === 'partial'
-      ? '<span style="background-color: #fef3c7; color: #92400e; padding: 4px 12px; border-radius: 9999px; font-size: 12px; font-weight: 600;">PARTIAL</span>'
-      : '<span style="background-color: #fee2e2; color: #991b1b; padding: 4px 12px; border-radius: 9999px; font-size: 12px; font-weight: 600;">UNPAID</span>';
+        const paymentStatus = order.paymentStatus === 'paid'
+            ? '<span style="background-color: #dcfce7; color: #166534; padding: 4px 12px; border-radius: 9999px; font-size: 12px; font-weight: 600;">PAID</span>'
+            : order.paymentStatus === 'partial'
+                ? '<span style="background-color: #fef3c7; color: #92400e; padding: 4px 12px; border-radius: 9999px; font-size: 12px; font-weight: 600;">PARTIAL</span>'
+                : '<span style="background-color: #fee2e2; color: #991b1b; padding: 4px 12px; border-radius: 9999px; font-size: 12px; font-weight: 600;">UNPAID</span>';
 
-    return `
+        return `
       <!DOCTYPE html>
       <html>
         <head>
@@ -592,11 +601,18 @@ export const emailService = {
             <tr>
               <td style="padding: 40px 0;">
                 <table role="presentation" style="width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                  <!-- Header with Logo -->
+                  <!-- Header Letterhead -->
                   <tr>
-                    <td style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 40px; text-align: center;">
-                      <img src="${process.env.NEXT_PUBLIC_SITE_URL}/logo.png" alt="Satmar Montreal Matzos" style="width: 120px; height: auto; margin-bottom: 20px;" />
-                      <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">Invoice</h1>
+                    <td style="background: linear-gradient(135deg, #92400e 0%, #d97706 60%, #f59e0b 100%); padding: 50px 40px 40px; text-align: center;">
+                      <div style="margin-bottom: 16px;">
+                        <div style="display: inline-block; background: rgba(255,255,255,0.15); border-radius: 50%; padding: 16px; margin-bottom: 12px;">
+                          <div style="font-size: 48px; line-height: 1;">🌾</div>
+                        </div>
+                      </div>
+                      <h1 style="color: #ffffff; margin: 0 0 6px 0; font-size: 36px; font-weight: 900; letter-spacing: -0.5px; text-shadow: 0 2px 4px rgba(0,0,0,0.2);">Satmar Montreal Matzos</h1>
+                      <p style="color: #fef3c7; margin: 0 0 6px 0; font-size: 22px; font-weight: 600; letter-spacing: 1px;" dir="rtl">מצות סאטמאר מאנטרעאל</p>
+                      <div style="width: 60px; height: 3px; background: rgba(255,255,255,0.5); margin: 16px auto;"></div>
+                      <h2 style="color: #fff7ed; margin: 0; font-size: 22px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px;">Invoice</h2>
                     </td>
                   </tr>
                   
@@ -715,5 +731,5 @@ export const emailService = {
         </body>
       </html>
     `;
-  },
+    },
 };
