@@ -109,7 +109,13 @@ export default function OrderDetailPage() {
             setCustomer((customerData as Customer) ?? null);
 
             const { data: productsData } = await supabaseService.getProducts();
-            setProducts((productsData || []) as Product[]);
+            setProducts(((productsData || []) as any[]).map((p: any) => ({
+                ...p,
+                nameHebrew: p.name_hebrew || "",
+                pricePerLb: Number(p.price_per_lb || 0),
+                inStock: Boolean(p.in_stock),
+                currentInventory: Number(p.current_inventory || 0),
+            })) as Product[]);
         } catch (error) {
             console.error("[OrderDetail][loadOrderDetails] error", error);
             setOrder(null);
