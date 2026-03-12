@@ -45,7 +45,8 @@ export default function CustomerDetailPage() {
             const allOrders = (ordersRaw || []) as any[];
 
             if (customerData) {
-                setCustomer(customerData as Customer);
+                const mappedCustomer: Customer = { ...(customerData as any), nameHebrew: (customerData as any).name_hebrew || "", titleHebrew: (customerData as any).title_hebrew || "", titleEnglish: (customerData as any).title_english || "" };
+                setCustomer(mappedCustomer);
                 // DB rows use customer_id (snake_case); map to our Order type's customerId
                 const customerOrders = allOrders
                     .filter((o: any) => (o.customer_id || o.customerId) === customerId)
