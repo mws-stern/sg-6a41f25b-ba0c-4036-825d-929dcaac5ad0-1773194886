@@ -25,24 +25,63 @@ export async function getServerSideProps() {
         const { data: ordersData } = await supabaseService.getOrders();
         const { data: settingsData } = await supabaseService.getSettings();
 
-        const safeCustomers = Array.isArray(customersData) ? customersData : [];
-        const safeProducts = Array.isArray(productsData) ? productsData : [];
+        const safeCustomers = (Array.isArray(customersData) ? customersData : []).map((c: any) => ({
+            ...c,
+            nameHebrew: c.name_hebrew || "",
+            titleHebrew: c.title_hebrew || "",
+            titleEnglish: c.title_english || "",
+        }));
+        const safeProducts = (Array.isArray(productsData) ? productsData : []).map((p: any) => ({
+            ...p,
+            nameHebrew: p.name_hebrew || "",
+            pricePerLb: Number(p.price_per_lb || 0),
+            inStock: Boolean(p.in_stock),
+            currentInventory: Number(p.current_inventory || 0),
+        }));
         const safeOrders = Array.isArray(ordersData) ? ordersData : [];
 
-        const serializedOrders = safeOrders.map((order) => ({
-            ...order,
+        const serializedOrders = safeOrders.map((order: any) => ({
+            id: order.id,
+            orderNumber: order.order_number,
+            customerId: order.customer_id,
+            customerName: order.customer_name,
+            customerEmail: order.customer_email,
             items: order.items || [],
+            subtotal: Number(order.subtotal || 0),
+            tax: Number(order.tax || 0),
+            total: Number(order.total || 0),
+            discount: Number(order.discount || 0),
+            discountType: order.discount_type ?? "fixed",
+            status: order.status ?? "pending",
+            paymentStatus: order.payment_status ?? "unpaid",
+            amountPaid: Number(order.amount_paid || 0),
+            amountDue: Number(order.amount_due || 0),
             notes: order.notes || null,
-            deliveryDate: order.deliveryDate || null,
-            discount: order.discount || 0,
+            deliveryDate: order.delivery_date || null,
+            orderTime: order.order_time,
+            inventoryDeducted: Boolean(order.inventory_deducted),
+            createdAt: order.created_at,
+            updatedAt: order.updated_at,
         }));
+
+        const rawSettings = settingsData as any;
+        const mappedSettings = rawSettings ? {
+            id: rawSettings.id,
+            companyName: rawSettings.company_name || "Satmar Montreal Matzos",
+            companyNameHebrew: rawSettings.company_name_hebrew || "מצות סאטמאר מאנטרעאל",
+            email: rawSettings.email || "",
+            phone: rawSettings.phone || "",
+            address: rawSettings.address || "",
+            taxRate: Number(rawSettings.tax_rate || 0.14975),
+            currency: rawSettings.currency || "CAD",
+        } : null;
 
         return {
             props: {
                 initialCustomers: safeCustomers,
                 initialProducts: safeProducts,
                 initialOrders: serializedOrders,
-                initialSettings: settingsData,
+                initialSettings: mappedSettings,
             },
         };
     } catch (error) {
