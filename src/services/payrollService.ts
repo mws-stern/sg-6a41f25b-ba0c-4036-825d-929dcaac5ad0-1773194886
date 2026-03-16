@@ -1,5 +1,4 @@
-﻿import { supabase } from "@/integrations/supabase/client";
-import { getStartOfDayNY, getEndOfDayNY } from "@/lib/dateUtils";
+import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import type { 
   PayrollTransaction, 
@@ -58,8 +57,8 @@ export const payrollService = {
       .from("time_entries")
       .select("*")
       .eq("paid", false)
-      .gte("clock_in", getStartOfDayNY(startDate))
-      .lte("clock_in", getEndOfDayNY(endDate))
+      .gte("clock_in", startDate)
+      .lte("clock_in", endDate + "T23:59:59")
       .order("clock_in");
 
     if (timeError) throw timeError;
@@ -208,8 +207,8 @@ export const payrollService = {
       .from("time_entries")
       .update({ paid: true })
       .eq("employee_id", employeeId)
-      .gte("clock_in", getStartOfDayNY(startDate))
-      .lte("clock_in", getEndOfDayNY(endDate));
+      .gte("clock_in", startDate)
+      .lte("clock_in", endDate + "T23:59:59");
 
     if (timeError) throw timeError;
 
@@ -458,8 +457,8 @@ export const payrollService = {
       .from("time_entries")
       .update({ paid: true })
       .eq("employee_id", employeeId)
-      .gte("clock_in", getStartOfDayNY(startDate))
-      .lte("clock_in", getEndOfDayNY(endDate));
+      .gte("clock_in", startDate)
+      .lte("clock_in", endDate);
 
     if (error) throw error;
   },

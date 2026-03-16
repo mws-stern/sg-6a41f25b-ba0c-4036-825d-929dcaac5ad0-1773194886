@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SEO } from "@/components/SEO";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +16,7 @@ import type { Employee, PayrollSummary, PayrollTransaction, EmployeePayrollBalan
 import { useToast } from "@/hooks/use-toast";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { formatDate, formatDateShort, formatDateRange, formatDateTime, formatTime, toLocalDateString } from "@/lib/dateUtils";
+import { formatDate, formatDateShort, formatDateRange, formatDateTime, formatTime } from "@/lib/dateUtils";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import JSZip from "jszip";
 
@@ -339,8 +339,8 @@ export default function PayrollPage() {
     const twoWeeksAgo = new Date(today);
     twoWeeksAgo.setDate(today.getDate() - 14);
     
-    setStartDate(toLocalDateString(twoWeeksAgo));
-    setEndDate(toLocalDateString(today));
+    setStartDate(twoWeeksAgo.toISOString().split("T")[0]);
+    setEndDate(today.toISOString().split("T")[0]);
   }, []);
 
   const loadData = async () => {
@@ -815,7 +815,7 @@ export default function PayrollPage() {
 
     autoTable(doc, {
       startY: 50,
-      head: [["Date", "Employee", "Period", "Hours", "Earned", "Paid", "Balance Î”"]],
+      head: [["Date", "Employee", "Period", "Hours", "Earned", "Paid", "Balance Δ"]],
       body: tableData,
       theme: "grid",
       headStyles: { fillColor: [139, 69, 19], textColor: 255 },
@@ -940,7 +940,7 @@ export default function PayrollPage() {
     loadData();
   }, []);
 
-  // Auto-recalculate removed - use the Calculate button instead //
+  // Auto-calculate when dates change
   useEffect(() => {
     if (startDate && endDate) {
       calculatePayroll();
@@ -1207,8 +1207,8 @@ export default function PayrollPage() {
                           const today = new Date();
                           const twoWeeksAgo = new Date(today);
                           twoWeeksAgo.setDate(today.getDate() - 14);
-                          setStartDate(toLocalDateString(twoWeeksAgo));
-                          setEndDate(toLocalDateString(today));
+                          setStartDate(twoWeeksAgo.toISOString().split("T")[0]);
+                          setEndDate(today.toISOString().split("T")[0]);
                         }}
                       >
                         Last 2 Weeks
@@ -1218,8 +1218,8 @@ export default function PayrollPage() {
                         onClick={() => {
                           const today = new Date();
                           const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-                          setStartDate(toLocalDateString(firstDay));
-                          setEndDate(toLocalDateString(today));
+                          setStartDate(firstDay.toISOString().split("T")[0]);
+                          setEndDate(today.toISOString().split("T")[0]);
                         }}
                       >
                         This Month
