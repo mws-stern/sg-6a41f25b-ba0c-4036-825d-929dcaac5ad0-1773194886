@@ -198,7 +198,7 @@ export const payrollService = {
         employee_id: employeeId,
         balance: newBalance,
         last_updated: new Date().toISOString()
-      });
+      }, { onConflict: "employee_id" });
 
     if (balanceError) throw balanceError;
 
@@ -300,7 +300,7 @@ export const payrollService = {
         employee_id: employeeId,
         balance: newBalance,
         last_updated: new Date().toISOString()
-      });
+      }, { onConflict: "employee_id" });
 
     if (balanceError) throw balanceError;
 
