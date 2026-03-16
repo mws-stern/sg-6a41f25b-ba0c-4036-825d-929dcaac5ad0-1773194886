@@ -1215,7 +1215,7 @@ export default function PayrollPage() {
                             ) : (
                               <>
                                 <span className="font-semibold">{days} day{days !== 1 ? "s" : ""} selected</span>
-                                <span className="text-blue-600">. {formatDateRange(startDate, endDate)}</span>
+                                <span className="text-blue-600"> {formatDateRange(startDate, endDate)}</span>
                               </>
                             )}
                           </div>
@@ -1446,7 +1446,7 @@ export default function PayrollPage() {
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                                               {regularHours > 0 && (
                                                 <div className="flex justify-between px-3 py-2 bg-white rounded border">
-                                                  <span className="text-slate-600"> Regular Hours ({regularHours.toFixed(2)} hrs - ${summary.employee.hourly_rate}/hr)</span>
+                                                  <span className="text-slate-600"> Regular Hours ({regularHours.toFixed(2)} hrs  ${summary.employee.hourly_rate}/hr)</span>
                                                   <span className="font-semibold">${regularEarnings.toFixed(2)}</span>
                                                 </div>
                                               )}
@@ -1458,7 +1458,7 @@ export default function PayrollPage() {
                                               )}
                                               {tripAdj.length > 0 && (
                                                 <div className="flex justify-between px-3 py-2 bg-white rounded border">
-                                                  <span className="text-slate-600">- Pickup Trips ({tripAdj.length} trip{tripAdj.length !== 1 ? "s" : ""})</span>
+                                                  <span className="text-slate-600"> Pickup Trips ({tripAdj.length} trip{tripAdj.length !== 1 ? "s" : ""})</span>
                                                   <span className="font-semibold">${tripsTotal.toFixed(2)}</span>
                                                 </div>
                                               )}
@@ -1763,7 +1763,7 @@ export default function PayrollPage() {
                 <div className="space-y-2 text-sm">
                   {regHours > 0 && <div className="flex justify-between"><span> Regular Hours ({regHours.toFixed(2)} hrs)</span><span>${regEarn.toFixed(2)}</span></div>}
                   {manHrs.length > 0 && <div className="flex justify-between"><span> Manual Hours</span><span>${manHrs.reduce((s,a)=>s+(a.amount||0),0).toFixed(2)}</span></div>}
-                  {trips.length > 0 && <div className="flex justify-between"><span>- Trips ({trips.length})</span><span>${trips.reduce((s,a)=>s+(a.amount||0),0).toFixed(2)}</span></div>}
+                  {trips.length > 0 && <div className="flex justify-between"><span> Trips ({trips.length})</span><span>${trips.reduce((s,a)=>s+(a.amount||0),0).toFixed(2)}</span></div>}
                   {bonuses.length > 0 && <div className="flex justify-between text-green-700"><span> Bonuses</span><span>+${bonuses.reduce((s,a)=>s+(a.amount||0),0).toFixed(2)}</span></div>}
                   {deducts.length > 0 && <div className="flex justify-between text-red-700"><span> Deductions</span><span>-${deducts.reduce((s,a)=>s+(a.amount||0),0).toFixed(2)}</span></div>}
                   <div className="border-t pt-2 flex justify-between font-semibold"><span>Earned This Period</span><span>${confirmingPayment.calculatedAmount.toFixed(2)}</span></div>
@@ -1778,7 +1778,7 @@ export default function PayrollPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmingPayment(null)}>Cancel</Button>
             <Button className="bg-green-600 hover:bg-green-700" onClick={() => confirmingPayment && confirmAndPay(confirmingPayment)}>
-               Confirm & Pay
+               Confirm &amp; Pay
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1809,7 +1809,7 @@ export default function PayrollPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmingAll(false)}>Cancel</Button>
             <Button className="bg-green-600 hover:bg-green-700" onClick={confirmAndPayAll}>
-               Confirm & Pay All
+               Confirm &amp; Pay All
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1817,4 +1817,3 @@ export default function PayrollPage() {
     </>
   );
 }
-
