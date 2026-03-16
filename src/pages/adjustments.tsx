@@ -508,7 +508,7 @@ export default function AdjustmentsPage() {
                             <TableCell className="max-w-xs truncate">{adjustment.reason}</TableCell>
                             <TableCell>
                               {adjustment.paid ? (
-                                <Badge className="bg-green-100 text-green-800 border border-green-300 text-xs">✓ Paid</Badge>
+                                <Badge className="bg-green-100 text-green-800 border border-green-300 text-xs"> Paid</Badge>
                               ) : (
                                 <Badge className="bg-amber-100 text-amber-800 border border-amber-300 text-xs">Unpaid</Badge>
                               )}

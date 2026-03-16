@@ -663,7 +663,7 @@ export default function EmployeesPage() {
               </AlertDialogTitle>
               <AlertDialogDescription className="space-y-3">
                 <p className="font-semibold text-red-900">
-                  ⚠️ This action is IRREVERSIBLE and will permanently delete:
+                   This action is IRREVERSIBLE and will permanently delete:
                 </p>
                 <ul className="list-disc list-inside space-y-1 text-sm">
                   <li><strong>{selectedEmployee?.name}</strong>'s employee record</li>

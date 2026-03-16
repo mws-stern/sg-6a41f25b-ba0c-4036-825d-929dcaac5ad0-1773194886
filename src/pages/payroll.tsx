@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SEO } from "@/components/SEO";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -819,7 +819,7 @@ export default function PayrollPage() {
 
     autoTable(doc, {
       startY: 50,
-      head: [["Date", "Employee", "Period", "Hours", "Earned", "Paid", "Balance Î”"]],
+      head: [["Date", "Employee", "Period", "Hours", "Earned", "Paid", "Balance "]],
       body: tableData,
       theme: "grid",
       headStyles: { fillColor: [139, 69, 19], textColor: 255 },
@@ -944,7 +944,7 @@ export default function PayrollPage() {
     loadData();
   }, []);
 
-  // NOTE: Auto-recalculate on date change removed â€” it fired on every keystroke
+  // NOTE: Auto-recalculate on date change removed  it fired on every keystroke
   // causing partial-input API calls. Use the Calculate Payroll button instead.
 
   // Calculate summary statistics
@@ -1211,11 +1211,11 @@ export default function PayrollPage() {
                           }`}>
                             <CalendarRange className="w-4 h-4 shrink-0" />
                             {invalid ? (
-                              <span className="font-semibold">âš ï¸ End date must be on or after start date</span>
+                              <span className="font-semibold"> End date must be on or after start date</span>
                             ) : (
                               <>
                                 <span className="font-semibold">{days} day{days !== 1 ? "s" : ""} selected</span>
-                                <span className="text-blue-600">Â. {formatDateRange(startDate, endDate)}</span>
+                                <span className="text-blue-600">. {formatDateRange(startDate, endDate)}</span>
                               </>
                             )}
                           </div>
@@ -1381,7 +1381,7 @@ export default function PayrollPage() {
                                               onClick={() => toggleExpanded(summary.employee.id)}
                                               className="text-left font-medium hover:text-blue-600 flex items-center gap-1"
                                             >
-                                              <span>{isExpanded ? "â–¼" : "â–¶"}</span>
+                                              <span>{isExpanded ? "" : ""}</span>
                                               {summary.employee.name}
                                             </button>
                                           </div>
@@ -1442,35 +1442,35 @@ export default function PayrollPage() {
                                       <TableRow className="bg-slate-50/80">
                                         <TableCell colSpan={9} className="p-0">
                                           <div className="p-4 border-t border-b border-slate-200">
-                                            <p className="text-xs font-semibold text-slate-500 uppercase mb-3">Earnings Breakdown â€” {summary.employee.name}</p>
+                                            <p className="text-xs font-semibold text-slate-500 uppercase mb-3">Earnings Breakdown  {summary.employee.name}</p>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                                               {regularHours > 0 && (
                                                 <div className="flex justify-between px-3 py-2 bg-white rounded border">
-                                                  <span className="text-slate-600">â± Regular Hours ({regularHours.toFixed(2)} hrs Ã- ${summary.employee.hourly_rate}/hr)</span>
+                                                  <span className="text-slate-600"> Regular Hours ({regularHours.toFixed(2)} hrs - ${summary.employee.hourly_rate}/hr)</span>
                                                   <span className="font-semibold">${regularEarnings.toFixed(2)}</span>
                                                 </div>
                                               )}
                                               {manualHoursAdj.length > 0 && (
                                                 <div className="flex justify-between px-3 py-2 bg-white rounded border">
-                                                  <span className="text-slate-600">âœï¸ Manual Hours ({manualHoursAdj.reduce((s,a) => s+(a.hours||0),0).toFixed(2)} hrs)</span>
+                                                  <span className="text-slate-600"> Manual Hours ({manualHoursAdj.reduce((s,a) => s+(a.hours||0),0).toFixed(2)} hrs)</span>
                                                   <span className="font-semibold">${manualHoursTotal.toFixed(2)}</span>
                                                 </div>
                                               )}
                                               {tripAdj.length > 0 && (
                                                 <div className="flex justify-between px-3 py-2 bg-white rounded border">
-                                                  <span className="text-slate-600">ðŸš- Pickup Trips ({tripAdj.length} trip{tripAdj.length !== 1 ? "s" : ""})</span>
+                                                  <span className="text-slate-600">- Pickup Trips ({tripAdj.length} trip{tripAdj.length !== 1 ? "s" : ""})</span>
                                                   <span className="font-semibold">${tripsTotal.toFixed(2)}</span>
                                                 </div>
                                               )}
                                               {bonusAdj.length > 0 && (
                                                 <div className="flex justify-between px-3 py-2 bg-white rounded border">
-                                                  <span className="text-slate-600">ðŸŽ Bonuses ({bonusAdj.length})</span>
+                                                  <span className="text-slate-600"> Bonuses ({bonusAdj.length})</span>
                                                   <span className="font-semibold text-green-600">+${bonusTotal.toFixed(2)}</span>
                                                 </div>
                                               )}
                                               {deductAdj.length > 0 && (
                                                 <div className="flex justify-between px-3 py-2 bg-white rounded border">
-                                                  <span className="text-slate-600">âž– Deductions ({deductAdj.length})</span>
+                                                  <span className="text-slate-600"> Deductions ({deductAdj.length})</span>
                                                   <span className="font-semibold text-red-600">-${deductTotal.toFixed(2)}</span>
                                                 </div>
                                               )}
@@ -1761,11 +1761,11 @@ export default function PayrollPage() {
                   <p className="text-sm text-muted-foreground">{formatDateRange(startDate, endDate)}</p>
                 </div>
                 <div className="space-y-2 text-sm">
-                  {regHours > 0 && <div className="flex justify-between"><span>â± Regular Hours ({regHours.toFixed(2)} hrs)</span><span>${regEarn.toFixed(2)}</span></div>}
-                  {manHrs.length > 0 && <div className="flex justify-between"><span>âœï¸ Manual Hours</span><span>${manHrs.reduce((s,a)=>s+(a.amount||0),0).toFixed(2)}</span></div>}
-                  {trips.length > 0 && <div className="flex justify-between"><span>ðŸš- Trips ({trips.length})</span><span>${trips.reduce((s,a)=>s+(a.amount||0),0).toFixed(2)}</span></div>}
-                  {bonuses.length > 0 && <div className="flex justify-between text-green-700"><span>ðŸŽ Bonuses</span><span>+${bonuses.reduce((s,a)=>s+(a.amount||0),0).toFixed(2)}</span></div>}
-                  {deducts.length > 0 && <div className="flex justify-between text-red-700"><span>âž– Deductions</span><span>-${deducts.reduce((s,a)=>s+(a.amount||0),0).toFixed(2)}</span></div>}
+                  {regHours > 0 && <div className="flex justify-between"><span> Regular Hours ({regHours.toFixed(2)} hrs)</span><span>${regEarn.toFixed(2)}</span></div>}
+                  {manHrs.length > 0 && <div className="flex justify-between"><span> Manual Hours</span><span>${manHrs.reduce((s,a)=>s+(a.amount||0),0).toFixed(2)}</span></div>}
+                  {trips.length > 0 && <div className="flex justify-between"><span>- Trips ({trips.length})</span><span>${trips.reduce((s,a)=>s+(a.amount||0),0).toFixed(2)}</span></div>}
+                  {bonuses.length > 0 && <div className="flex justify-between text-green-700"><span> Bonuses</span><span>+${bonuses.reduce((s,a)=>s+(a.amount||0),0).toFixed(2)}</span></div>}
+                  {deducts.length > 0 && <div className="flex justify-between text-red-700"><span> Deductions</span><span>-${deducts.reduce((s,a)=>s+(a.amount||0),0).toFixed(2)}</span></div>}
                   <div className="border-t pt-2 flex justify-between font-semibold"><span>Earned This Period</span><span>${confirmingPayment.calculatedAmount.toFixed(2)}</span></div>
                   {confirmingPayment.currentBalance !== 0 && <div className="flex justify-between text-amber-700"><span>Previous Balance</span><span>+${confirmingPayment.currentBalance.toFixed(2)}</span></div>}
                   <div className="flex justify-between font-bold text-blue-700"><span>Total Due</span><span>${totalDue.toFixed(2)}</span></div>
@@ -1778,7 +1778,7 @@ export default function PayrollPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmingPayment(null)}>Cancel</Button>
             <Button className="bg-green-600 hover:bg-green-700" onClick={() => confirmingPayment && confirmAndPay(confirmingPayment)}>
-              âœ“ Confirm & Pay
+               Confirm & Pay
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1789,7 +1789,7 @@ export default function PayrollPage() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Confirm All Payments</DialogTitle>
-            <DialogDescription>{formatDateRange(startDate, endDate)} â€” {currentSummaries.length} employees</DialogDescription>
+            <DialogDescription>{formatDateRange(startDate, endDate)}  {currentSummaries.length} employees</DialogDescription>
           </DialogHeader>
           <div className="space-y-2 max-h-64 overflow-y-auto text-sm">
             {currentSummaries.map(s => {
@@ -1809,7 +1809,7 @@ export default function PayrollPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmingAll(false)}>Cancel</Button>
             <Button className="bg-green-600 hover:bg-green-700" onClick={confirmAndPayAll}>
-              âœ“ Confirm & Pay All
+               Confirm & Pay All
             </Button>
           </DialogFooter>
         </DialogContent>

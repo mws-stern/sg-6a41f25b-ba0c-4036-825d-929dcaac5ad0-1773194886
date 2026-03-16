@@ -55,7 +55,7 @@ export default function TimeClockPage() {
           e => e.employee_id === emp.id && e.clock_in && !e.clock_out
         );
         
-        // Calculate today's hours — use local midnight for correct NY display
+        // Calculate today's hours  use local midnight for correct NY display
         const todayStart = new Date();
         todayStart.setHours(0, 0, 0, 0);
         const tomorrowStart = new Date(todayStart);
