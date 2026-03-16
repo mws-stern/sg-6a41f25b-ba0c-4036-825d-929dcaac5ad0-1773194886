@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SEO } from "@/components/SEO";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -398,7 +398,7 @@ export default function PayrollPage() {
       const initialAmounts: Record<string, string> = {};
       const initialNotes: Record<string, string> = {};
       summaries.forEach(summary => {
-        initialAmounts[summary.employee.id] = summary.calculatedAmount.toFixed(2);
+        initialAmounts[summary.employee.id] = (summary.calculatedAmount + summary.currentBalance).toFixed(2);
         initialNotes[summary.employee.id] = "";
       });
       setPaymentAmounts(initialAmounts);
@@ -815,7 +815,7 @@ export default function PayrollPage() {
 
     autoTable(doc, {
       startY: 50,
-      head: [["Date", "Employee", "Period", "Hours", "Earned", "Paid", "Balance Δ"]],
+      head: [["Date", "Employee", "Period", "Hours", "Earned", "Paid", "Balance Î”"]],
       body: tableData,
       theme: "grid",
       headStyles: { fillColor: [139, 69, 19], textColor: 255 },
