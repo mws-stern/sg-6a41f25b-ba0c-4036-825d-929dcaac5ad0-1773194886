@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { useRouter } from "next/router";
 import { Clock, Users, DollarSign, FileText, LayoutDashboard, Menu, X, Plus, Timer, Fingerprint, Croissant } from "lucide-react";
 import { Button } from "@/components/ui/button";
