@@ -1,4 +1,4 @@
-﻿/** @type {import('next').NextConfig} */
+/** @type {import('next').NextConfig} */
 import { createRequire } from "module";
 
 // Check if element-tagger is available
@@ -27,7 +27,7 @@ function getTurboRules() {
   };
 }
 
-const nextConfig = { eslint: { ignoreDuringBuilds: true }, typescript: { ignoreBuildErrors: false },
+const nextConfig = {
   reactStrictMode: true,
   experimental: {
     turbo: {
@@ -46,4 +46,3 @@ const nextConfig = { eslint: { ignoreDuringBuilds: true }, typescript: { ignoreB
 };
 
 export default nextConfig;
-

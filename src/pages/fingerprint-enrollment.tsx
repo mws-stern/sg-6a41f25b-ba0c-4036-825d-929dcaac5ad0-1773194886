@@ -368,7 +368,7 @@ export default function FingerprintEnrollment() {
                         <div>
                           <p className="font-medium">{data.employee.name}</p>
                           <p className="text-sm text-muted-foreground">
-                            {data.employee.employee_number}  {data.employee.position}
+                            {data.employee.employee_number} • {data.employee.position}
                           </p>
                         </div>
                       </div>

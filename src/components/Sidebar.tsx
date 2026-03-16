@@ -92,7 +92,7 @@ export function Sidebar() {
           <div className="p-4 border-t border-amber-200">
             <div className="text-xs text-amber-700 text-center">
               <p>Bakery Management v1.0</p>
-              <p className="mt-1"> 2026 All rights reserved</p>
+              <p className="mt-1">© 2026 All rights reserved</p>
             </div>
           </div>
         </div>

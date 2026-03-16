@@ -850,7 +850,7 @@ export default function CurrentHours() {
                               </div>
                               {entry.clock_out && (
                                 <>
-                                  <span className="text-muted-foreground"></span>
+                                  <span className="text-muted-foreground">→</span>
                                   <div>
                                     <p className="text-sm font-medium">
                                       {formatDateTime12h(entry.clock_out)}
