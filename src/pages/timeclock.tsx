@@ -55,12 +55,17 @@ export default function TimeClockPage() {
           e => e.employee_id === emp.id && e.clock_in && !e.clock_out
         );
         
-        // Calculate today's hours
+        // Calculate today's hours — use local midnight for correct NY display
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        const tomorrowStart = new Date(todayStart);
+        tomorrowStart.setDate(todayStart.getDate() + 1);
+
         const todayEntries = allEntries.filter(e => {
           const clockIn = new Date(e.clock_in);
-          return e.employee_id === emp.id && 
-                 clockIn >= today && 
-                 clockIn < tomorrow &&
+          return e.employee_id === emp.id &&
+                 clockIn >= todayStart &&
+                 clockIn < tomorrowStart &&
                  e.clock_out;
         });
         

@@ -33,7 +33,7 @@ export default function AdjustmentsPage() {
   const [earningsAmount, setEarningsAmount] = useState("");
   const [isDeduction, setIsDeduction] = useState(false);
   const [reason, setReason] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [date, setDate] = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; });
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -77,7 +77,7 @@ export default function AdjustmentsPage() {
     setEarningsAmount("");
     setIsDeduction(false);
     setReason("");
-    setDate(new Date().toISOString().split("T")[0]);
+    const _nd = new Date(); setDate(`${_nd.getFullYear()}-${String(_nd.getMonth()+1).padStart(2,'0')}-${String(_nd.getDate()).padStart(2,'0')}`);
   };
 
   const openEditDialog = (adjustment: ManualAdjustment) => {
@@ -453,6 +453,7 @@ export default function AdjustmentsPage() {
                           <TableHead>Details</TableHead>
                           <TableHead>Amount</TableHead>
                           <TableHead>Reason</TableHead>
+                          <TableHead>Status</TableHead>
                           <TableHead>Actions</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -505,6 +506,13 @@ export default function AdjustmentsPage() {
                               )}
                             </TableCell>
                             <TableCell className="max-w-xs truncate">{adjustment.reason}</TableCell>
+                            <TableCell>
+                              {adjustment.paid ? (
+                                <Badge className="bg-green-100 text-green-800 border border-green-300 text-xs">✓ Paid</Badge>
+                              ) : (
+                                <Badge className="bg-amber-100 text-amber-800 border border-amber-300 text-xs">Unpaid</Badge>
+                              )}
+                            </TableCell>
                             <TableCell>
                               <div className="flex gap-2">
                                 <Button

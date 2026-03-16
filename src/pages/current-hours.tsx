@@ -103,27 +103,11 @@ export default function CurrentHours() {
       startOfWeek.setDate(now.getDate() - now.getDay()); // Sunday
       startOfWeek.setHours(0, 0, 0, 0);
 
-      // Fetch the actual open pay period from database
-      const { data: periodData, error: periodError } = await supabase
-        .from("payroll_periods")
-        .select("*")
-        .eq("status", "open")
-        .single();
-
-      let periodStart: Date;
-      let periodEnd: Date;
-
-      if (periodError || !periodData) {
-        console.error("Failed to fetch open payroll period:", periodError);
-        // Fallback: use current month if no open period
-        periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
-        periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-        periodEnd.setHours(23, 59, 59, 999);
-      } else {
-        // Parse the dates from the database
-        periodStart = new Date(periodData.start_date + "T00:00:00");
-        periodEnd = new Date(periodData.end_date + "T23:59:59.999");
-      }
+      // Enhancement G: Remove payroll_periods dependency.
+      // "Period" now means all unpaid entries from the beginning of time
+      // so nothing is ever silently excluded. periodStart set to epoch.
+      const periodStart = new Date(0);
+      const periodEnd = now;
 
       const hoursData: EmployeeHours[] = await Promise.all(
         employeesData.map(async (employee) => {
@@ -770,8 +754,8 @@ export default function CurrentHours() {
                       <th className="text-left p-2">Status</th>
                       <th className="text-right p-2">Week Hours</th>
                       <th className="text-right p-2">Week Earnings</th>
-                      <th className="text-right p-2">Period Hours</th>
-                      <th className="text-right p-2">Period Earnings</th>
+                      <th className="text-right p-2">All Unpaid Hrs</th>
+                      <th className="text-right p-2 text-amber-700 font-bold">Total Unpaid $</th>
                       <th className="text-center p-2">Actions</th>
                     </tr>
                   </thead>
@@ -802,7 +786,7 @@ export default function CurrentHours() {
                         <td className="p-2 text-right">{eh.weekHours.toFixed(2)}</td>
                         <td className="p-2 text-right">${eh.weekEarnings.toFixed(2)}</td>
                         <td className="p-2 text-right">{eh.periodHours.toFixed(2)}</td>
-                        <td className="p-2 text-right">${eh.periodEarnings.toFixed(2)}</td>
+                        <td className="p-2 text-right font-bold text-amber-700">${eh.periodEarnings.toFixed(2)}</td>
                         <td className="p-2 text-center">
                           <Button
                             variant="outline"
@@ -820,7 +804,7 @@ export default function CurrentHours() {
                       <td className="p-2 text-right">{totals.weekHours.toFixed(2)}</td>
                       <td className="p-2 text-right">${totals.weekEarnings.toFixed(2)}</td>
                       <td className="p-2 text-right">{totals.periodHours.toFixed(2)}</td>
-                      <td className="p-2 text-right">${totals.periodEarnings.toFixed(2)}</td>
+                      <td className="p-2 text-right text-amber-700">${totals.periodEarnings.toFixed(2)}</td>
                       <td></td>
                     </tr>
                   </tbody>

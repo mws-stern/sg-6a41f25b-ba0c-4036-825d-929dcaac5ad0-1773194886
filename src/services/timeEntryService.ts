@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { getStartOfDayNY, getEndOfDayNY } from "@/lib/dateUtils";
 import type { Database } from "@/integrations/supabase/types";
 
 type TimeEntry = Database["public"]["Tables"]["time_entries"]["Row"];
@@ -85,12 +86,17 @@ export const timeEntryService = {
   },
 
   async getEntriesForPeriod(employeeId: string, startDate: string, endDate: string): Promise<TimeEntry[]> {
+    // Accept both plain YYYY-MM-DD and full ISO strings
+    // If plain date, convert to NY-timezone-aware UTC boundaries
+    const start = startDate.length === 10 ? getStartOfDayNY(startDate) : startDate;
+    const end   = endDate.length   === 10 ? getEndOfDayNY(endDate)     : endDate;
+
     const { data, error } = await supabase
       .from("time_entries")
       .select("*")
       .eq("employee_id", employeeId)
-      .gte("clock_in", startDate)
-      .lte("clock_in", endDate)
+      .gte("clock_in", start)
+      .lte("clock_in", end)
       .order("clock_in", { ascending: false });
 
     console.log("getEntriesForPeriod:", { data, error });
@@ -234,8 +240,8 @@ export const getBatchTimeData = async (
         .eq("employee_id", empId)
         .eq("paid", false)
         .not("clock_out", "is", null)
-        .gte("clock_in", startDate)
-        .lte("clock_in", endDate);
+        .gte("clock_in", getStartOfDayNY(startDate))
+        .lte("clock_in", getEndOfDayNY(endDate));
 
       if (error) throw error;
 

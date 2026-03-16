@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SEO } from "@/components/SEO";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +16,7 @@ import type { Employee, PayrollSummary, PayrollTransaction, EmployeePayrollBalan
 import { useToast } from "@/hooks/use-toast";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { formatDate, formatDateShort, formatDateRange, formatDateTime, formatTime } from "@/lib/dateUtils";
+import { formatDate, formatDateShort, formatDateRange, formatDateTime, formatTime, toLocalDateString } from "@/lib/dateUtils";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import JSZip from "jszip";
 
@@ -45,6 +45,25 @@ export default function PayrollPage() {
   const [editPaidAmount, setEditPaidAmount] = useState<string>("");
   const [editNotes, setEditNotes] = useState<string>("");
   const [editDate, setEditDate] = useState<string>("");
+
+  // Enhancement A: expanded breakdown rows
+  const [expandedEmployees, setExpandedEmployees] = useState<Set<string>>(new Set());
+
+  // Enhancement B: already-paid warnings per employee
+  const [alreadyPaidWarnings, setAlreadyPaidWarnings] = useState<Record<string, string>>({});
+
+  // Enhancement D: confirm before pay dialog
+  const [confirmingPayment, setConfirmingPayment] = useState<PayrollSummary | null>(null);
+  const [confirmingAll, setConfirmingAll] = useState(false);
+
+  const toggleExpanded = (employeeId: string) => {
+    setExpandedEmployees(prev => {
+      const next = new Set(prev);
+      if (next.has(employeeId)) next.delete(employeeId);
+      else next.add(employeeId);
+      return next;
+    });
+  };
 
   const { toast } = useToast();
 
@@ -338,9 +357,10 @@ export default function PayrollPage() {
     const today = new Date();
     const twoWeeksAgo = new Date(today);
     twoWeeksAgo.setDate(today.getDate() - 14);
-    
-    setStartDate(twoWeeksAgo.toISOString().split("T")[0]);
-    setEndDate(today.toISOString().split("T")[0]);
+
+    // Use toLocalDateString (not toISOString) to avoid UTC-shift off-by-one-day bug
+    setStartDate(toLocalDateString(twoWeeksAgo));
+    setEndDate(toLocalDateString(today));
   }, []);
 
   const loadData = async () => {
@@ -394,11 +414,29 @@ export default function PayrollPage() {
       const summaries = await payrollService.calculatePayrollForRange(startDate, endDate);
       setCurrentSummaries(summaries);
 
+      // Enhancement B: detect already-paid overlaps per employee
+      const warnings: Record<string, string> = {};
+      summaries.forEach(summary => {
+        const overlapping = transactions.filter(t =>
+          t.employee_id === summary.employee.id &&
+          t.transaction_type === 'payment' &&
+          t.date_range_start <= endDate &&
+          t.date_range_end >= startDate
+        );
+        if (overlapping.length > 0) {
+          const dates = overlapping.map(t =>
+            formatDateRange(t.date_range_start, t.date_range_end)
+          ).join(", ");
+          warnings[summary.employee.id] = `Already paid for: ${dates}`;
+        }
+      });
+      setAlreadyPaidWarnings(warnings);
+
       // Initialize payment amounts with calculated amounts
       const initialAmounts: Record<string, string> = {};
       const initialNotes: Record<string, string> = {};
       summaries.forEach(summary => {
-        initialAmounts[summary.employee.id] = (summary.calculatedAmount + summary.currentBalance).toFixed(2);
+        initialAmounts[summary.employee.id] = summary.calculatedAmount.toFixed(2);
         initialNotes[summary.employee.id] = "";
       });
       setPaymentAmounts(initialAmounts);
@@ -424,89 +462,55 @@ export default function PayrollPage() {
   const processPayment = async (employeeId: string) => {
     const summary = currentSummaries.find(s => s.employee.id === employeeId);
     if (!summary) return;
+    // Enhancement D: show confirm dialog instead of processing immediately
+    setConfirmingPayment(summary);
+  };
 
-    const paidAmount = parseFloat(paymentAmounts[employeeId] || "0");
+  const confirmAndPay = async (summary: PayrollSummary) => {
+    const paidAmount = parseFloat(paymentAmounts[summary.employee.id] || "0");
     if (isNaN(paidAmount) || paidAmount < 0) {
-      toast({
-        title: "Invalid amount",
-        description: "Please enter a valid payment amount",
-        variant: "destructive"
-      });
+      toast({ title: "Invalid amount", description: "Please enter a valid payment amount", variant: "destructive" });
       return;
     }
-
     try {
       await payrollService.processPayment(
-        employeeId,
-        startDate,
-        endDate,
-        summary.totalHours,
-        summary.calculatedAmount,
-        paidAmount,
-        paymentNotes[employeeId] || undefined
+        summary.employee.id, startDate, endDate,
+        summary.totalHours, summary.calculatedAmount, paidAmount,
+        paymentNotes[summary.employee.id] || undefined
       );
-
-      toast({
-        title: "Payment processed",
-        description: `${summary.employee.name} paid $${paidAmount.toFixed(2)}`,
-      });
-
-      // Reload data
+      toast({ title: "Payment processed", description: `${summary.employee.name} paid $${paidAmount.toFixed(2)}` });
+      setConfirmingPayment(null);
       await loadData();
       await calculatePayroll();
-
     } catch (error) {
-      console.error("Error processing payment:", error);
-      toast({
-        title: "Error",
-        description: "Failed to process payment",
-        variant: "destructive"
-      });
+      toast({ title: "Error", description: "Failed to process payment", variant: "destructive" });
     }
   };
 
   const processAllPayments = async () => {
     if (currentSummaries.length === 0) return;
+    setConfirmingAll(true);
+  };
 
-    const confirmed = confirm(
-      `Process payments for ${currentSummaries.length} employees?\n\nThis will mark all time entries and adjustments in this period as paid.`
-    );
-    
-    if (!confirmed) return;
-
+  const confirmAndPayAll = async () => {
     try {
       setLoading(true);
-
+      setConfirmingAll(false);
       for (const summary of currentSummaries) {
         const paidAmount = parseFloat(paymentAmounts[summary.employee.id] || "0");
         if (paidAmount > 0) {
           await payrollService.processPayment(
-            summary.employee.id,
-            startDate,
-            endDate,
-            summary.totalHours,
-            summary.calculatedAmount,
-            paidAmount,
+            summary.employee.id, startDate, endDate,
+            summary.totalHours, summary.calculatedAmount, paidAmount,
             paymentNotes[summary.employee.id] || undefined
           );
         }
       }
-
-      toast({
-        title: "All payments processed",
-        description: `Processed ${currentSummaries.length} payments`,
-      });
-
+      toast({ title: "All payments processed", description: `Processed ${currentSummaries.length} payments` });
       await loadData();
       await calculatePayroll();
-
     } catch (error) {
-      console.error("Error processing all payments:", error);
-      toast({
-        title: "Error",
-        description: "Failed to process all payments",
-        variant: "destructive"
-      });
+      toast({ title: "Error", description: "Failed to process all payments", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -815,7 +819,7 @@ export default function PayrollPage() {
 
     autoTable(doc, {
       startY: 50,
-      head: [["Date", "Employee", "Period", "Hours", "Earned", "Paid", "Balance Î”"]],
+      head: [["Date", "Employee", "Period", "Hours", "Earned", "Paid", "Balance Δ"]],
       body: tableData,
       theme: "grid",
       headStyles: { fillColor: [139, 69, 19], textColor: 255 },
@@ -940,12 +944,8 @@ export default function PayrollPage() {
     loadData();
   }, []);
 
-  // Auto-calculate when dates change
-  useEffect(() => {
-    if (startDate && endDate) {
-      calculatePayroll();
-    }
-  }, [startDate, endDate]);
+  // NOTE: Auto-recalculate on date change removed — it fired on every keystroke
+  // causing partial-input API calls. Use the Calculate Payroll button instead.
 
   // Calculate summary statistics
   const totalOutstanding = balances.reduce((sum, b) => sum + b.balance, 0);
@@ -1195,35 +1195,74 @@ export default function PayrollPage() {
                         />
                       </div>
                     </div>
-                    
-                    <div className="flex gap-2">
-                      <Button onClick={calculatePayroll} disabled={!startDate || !endDate}>
+
+                    {/* Day count info strip + validation */}
+                    {startDate && endDate && (
+                      (() => {
+                        const s = new Date(startDate + "T12:00:00");
+                        const e = new Date(endDate   + "T12:00:00");
+                        const days = Math.round((e.getTime() - s.getTime()) / 86400000) + 1;
+                        const invalid = days < 1;
+                        return (
+                          <div className={`mt-3 p-3 rounded-lg border text-sm flex items-center gap-2 ${
+                            invalid
+                              ? "bg-red-50 border-red-300 text-red-700"
+                              : "bg-blue-50 border-blue-200 text-blue-800"
+                          }`}>
+                            <CalendarRange className="w-4 h-4 shrink-0" />
+                            {invalid ? (
+                              <span className="font-semibold">⚠️ End date must be on or after start date</span>
+                            ) : (
+                              <>
+                                <span className="font-semibold">{days} day{days !== 1 ? "s" : ""} selected</span>
+                                <span className="text-blue-600">· {formatDateRange(startDate, endDate)}</span>
+                              </>
+                            )}
+                          </div>
+                        );
+                      })()
+                    )}
+
+                    <div className="flex flex-wrap gap-2 mt-4">
+                      <Button
+                        onClick={calculatePayroll}
+                        disabled={
+                          !startDate || !endDate ||
+                          new Date(endDate + "T12:00:00") < new Date(startDate + "T12:00:00")
+                        }
+                      >
                         <CalendarRange className="w-4 h-4 mr-2" />
                         Calculate Payroll
                       </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          const today = new Date();
-                          const twoWeeksAgo = new Date(today);
-                          twoWeeksAgo.setDate(today.getDate() - 14);
-                          setStartDate(twoWeeksAgo.toISOString().split("T")[0]);
-                          setEndDate(today.toISOString().split("T")[0]);
-                        }}
-                      >
-                        Last 2 Weeks
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          const today = new Date();
-                          const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-                          setStartDate(firstDay.toISOString().split("T")[0]);
-                          setEndDate(today.toISOString().split("T")[0]);
-                        }}
-                      >
-                        This Month
-                      </Button>
+                      <Button variant="outline" onClick={() => {
+                        const today = new Date();
+                        const twoWeeksAgo = new Date(today);
+                        twoWeeksAgo.setDate(today.getDate() - 14);
+                        setStartDate(toLocalDateString(twoWeeksAgo));
+                        setEndDate(toLocalDateString(today));
+                      }}>Last 2 Weeks</Button>
+                      <Button variant="outline" onClick={() => {
+                        const today = new Date();
+                        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+                        setStartDate(toLocalDateString(firstDay));
+                        setEndDate(toLocalDateString(today));
+                      }}>This Month</Button>
+                      <Button variant="outline" onClick={() => {
+                        const today = new Date();
+                        const lastMonday = new Date(today);
+                        lastMonday.setDate(today.getDate() - today.getDay() - 6);
+                        const lastSunday = new Date(lastMonday);
+                        lastSunday.setDate(lastMonday.getDate() + 6);
+                        setStartDate(toLocalDateString(lastMonday));
+                        setEndDate(toLocalDateString(lastSunday));
+                      }}>Last Week</Button>
+                      <Button variant="outline" onClick={() => {
+                        const today = new Date();
+                        const firstDay = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                        const lastDay = new Date(today.getFullYear(), today.getMonth(), 0);
+                        setStartDate(toLocalDateString(firstDay));
+                        setEndDate(toLocalDateString(lastDay));
+                      }}>Last Month</Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -1301,84 +1340,162 @@ export default function PayrollPage() {
                           <Table className="min-w-[1000px]">
                             <TableHeader>
                               <TableRow>
-                                <TableHead className="min-w-[150px]">Employee</TableHead>
+                                <TableHead className="min-w-[160px]">Employee</TableHead>
                                 <TableHead className="text-right">Hours</TableHead>
-                                <TableHead className="text-right">Time Entries</TableHead>
-                                <TableHead className="text-right">Adjustments</TableHead>
-                                <TableHead className="text-right">Calculated</TableHead>
-                                <TableHead className="text-right">Current Balance</TableHead>
+                                <TableHead className="text-right">Earned This Period</TableHead>
+                                <TableHead className="text-right">Prev Balance</TableHead>
+                                <TableHead className="text-right">Total Due</TableHead>
                                 <TableHead className="min-w-[140px]">Amount Paying</TableHead>
                                 <TableHead className="text-right">New Balance</TableHead>
-                                <TableHead className="min-w-[200px]">Notes</TableHead>
+                                <TableHead className="min-w-[180px]">Notes</TableHead>
                                 <TableHead className="text-right min-w-[120px]">Action</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
                               {currentSummaries.map((summary) => {
                                 const paidAmount = parseFloat(paymentAmounts[summary.employee.id] || "0");
-                                const balanceChange = summary.calculatedAmount - paidAmount;
-                                const newBalance = summary.currentBalance + balanceChange;
+                                const newBalance = summary.currentBalance + summary.calculatedAmount - paidAmount;
+                                const totalDue = summary.currentBalance + summary.calculatedAmount;
+                                const isExpanded = expandedEmployees.has(summary.employee.id);
+                                const warning = alreadyPaidWarnings[summary.employee.id];
+
+                                // Breakdown calculations
+                                const regularHours = summary.timeEntries.reduce((s, e) => s + (e.hours_worked || 0), 0);
+                                const regularEarnings = summary.timeEntries.reduce((s, e) => s + (e.earnings || 0), 0);
+                                const manualHoursAdj = summary.adjustments.filter(a => a.adjustment_type === "manual_hours");
+                                const tripAdj = summary.adjustments.filter(a => a.adjustment_type === "pickup_trip");
+                                const bonusAdj = summary.adjustments.filter(a => a.adjustment_type === "bonus");
+                                const deductAdj = summary.adjustments.filter(a => a.adjustment_type === "deduction");
+                                const manualHoursTotal = manualHoursAdj.reduce((s, a) => s + (a.amount || 0), 0);
+                                const tripsTotal = tripAdj.reduce((s, a) => s + (a.amount || 0), 0);
+                                const bonusTotal = bonusAdj.reduce((s, a) => s + (a.amount || 0), 0);
+                                const deductTotal = deductAdj.reduce((s, a) => s + (a.amount || 0), 0);
 
                                 return (
-                                  <TableRow key={summary.employee.id}>
-                                    <TableCell className="font-medium">{summary.employee.name}</TableCell>
-                                    <TableCell className="text-right">{summary.totalHours.toFixed(2)}</TableCell>
-                                    <TableCell className="text-right text-muted-foreground">
-                                      {summary.timeEntries.length}
-                                    </TableCell>
-                                    <TableCell className="text-right text-muted-foreground">
-                                      {summary.adjustments.length}
-                                    </TableCell>
-                                    <TableCell className="text-right font-semibold">
-                                      ${summary.calculatedAmount.toFixed(2)}
-                                    </TableCell>
-                                    <TableCell className={`text-right font-medium ${
-                                      summary.currentBalance > 0 ? "text-red-600" : 
-                                      summary.currentBalance < 0 ? "text-green-600" : ""
-                                    }`}>
-                                      ${summary.currentBalance.toFixed(2)}
-                                    </TableCell>
-                                    <TableCell>
-                                      <Input
-                                        type="number"
-                                        step="0.01"
-                                        value={paymentAmounts[summary.employee.id] || ""}
-                                        onChange={(e) => setPaymentAmounts(prev => ({
-                                          ...prev,
-                                          [summary.employee.id]: e.target.value
-                                        }))}
-                                        className="w-full text-right"
-                                      />
-                                    </TableCell>
-                                    <TableCell className={`text-right font-bold ${
-                                      newBalance > 0 ? "text-red-600" : 
-                                      newBalance < 0 ? "text-green-600" : "text-green-600"
-                                    }`}>
-                                      ${newBalance.toFixed(2)}
-                                    </TableCell>
-                                    <TableCell>
-                                      <Input
-                                        type="text"
-                                        placeholder="Optional"
-                                        value={paymentNotes[summary.employee.id] || ""}
-                                        onChange={(e) => setPaymentNotes(prev => ({
-                                          ...prev,
-                                          [summary.employee.id]: e.target.value
-                                        }))}
-                                        className="w-full"
-                                      />
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                      <Button
-                                        size="sm"
-                                        onClick={() => processPayment(summary.employee.id)}
-                                        className="bg-green-600 hover:bg-green-700 whitespace-nowrap"
-                                      >
-                                        <Save className="w-4 h-4 mr-1" />
-                                        Pay
-                                      </Button>
-                                    </TableCell>
-                                  </TableRow>
+                                  <React.Fragment key={summary.employee.id}>
+                                    <TableRow className={warning ? "bg-amber-50/50" : ""}>
+                                      <TableCell>
+                                        <div className="flex flex-col gap-1">
+                                          <div className="flex items-center gap-2">
+                                            <button
+                                              onClick={() => toggleExpanded(summary.employee.id)}
+                                              className="text-left font-medium hover:text-blue-600 flex items-center gap-1"
+                                            >
+                                              <span>{isExpanded ? "▼" : "▶"}</span>
+                                              {summary.employee.name}
+                                            </button>
+                                          </div>
+                                          {/* Enhancement C: balance badge */}
+                                          {summary.currentBalance > 0 ? (
+                                            <Badge className="w-fit text-xs bg-amber-100 text-amber-800 border border-amber-300">
+                                              Owes ${summary.currentBalance.toFixed(2)}
+                                            </Badge>
+                                          ) : summary.currentBalance < 0 ? (
+                                            <Badge className="w-fit text-xs bg-green-100 text-green-800 border border-green-300">
+                                              Credit ${Math.abs(summary.currentBalance).toFixed(2)}
+                                            </Badge>
+                                          ) : (
+                                            <Badge className="w-fit text-xs" variant="secondary">Paid up</Badge>
+                                          )}
+                                          {/* Enhancement B: already paid warning */}
+                                          {warning && (
+                                            <span className="text-xs text-amber-700 flex items-center gap-1">
+                                              <AlertCircle className="w-3 h-3" /> {warning}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </TableCell>
+                                      <TableCell className="text-right">{summary.totalHours.toFixed(2)}</TableCell>
+                                      <TableCell className="text-right font-semibold">${summary.calculatedAmount.toFixed(2)}</TableCell>
+                                      <TableCell className={`text-right font-medium ${summary.currentBalance > 0 ? "text-amber-600" : summary.currentBalance < 0 ? "text-green-600" : ""}`}>
+                                        ${summary.currentBalance.toFixed(2)}
+                                      </TableCell>
+                                      <TableCell className="text-right font-bold text-blue-700">${totalDue.toFixed(2)}</TableCell>
+                                      <TableCell>
+                                        <Input
+                                          type="number" step="0.01"
+                                          value={paymentAmounts[summary.employee.id] || ""}
+                                          onChange={(e) => setPaymentAmounts(prev => ({ ...prev, [summary.employee.id]: e.target.value }))}
+                                          className="w-full text-right"
+                                        />
+                                      </TableCell>
+                                      <TableCell className={`text-right font-bold ${newBalance > 0 ? "text-red-600" : newBalance < 0 ? "text-green-600" : "text-green-600"}`}>
+                                        ${newBalance.toFixed(2)}
+                                      </TableCell>
+                                      <TableCell>
+                                        <Input
+                                          type="text" placeholder="Optional"
+                                          value={paymentNotes[summary.employee.id] || ""}
+                                          onChange={(e) => setPaymentNotes(prev => ({ ...prev, [summary.employee.id]: e.target.value }))}
+                                          className="w-full"
+                                        />
+                                      </TableCell>
+                                      <TableCell className="text-right">
+                                        <Button size="sm" onClick={() => processPayment(summary.employee.id)} className="bg-green-600 hover:bg-green-700 whitespace-nowrap">
+                                          <Save className="w-4 h-4 mr-1" /> Pay
+                                        </Button>
+                                      </TableCell>
+                                    </TableRow>
+
+                                    {/* Enhancement A: breakdown row */}
+                                    {isExpanded && (
+                                      <TableRow className="bg-slate-50/80">
+                                        <TableCell colSpan={9} className="p-0">
+                                          <div className="p-4 border-t border-b border-slate-200">
+                                            <p className="text-xs font-semibold text-slate-500 uppercase mb-3">Earnings Breakdown — {summary.employee.name}</p>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                                              {regularHours > 0 && (
+                                                <div className="flex justify-between px-3 py-2 bg-white rounded border">
+                                                  <span className="text-slate-600">⏱ Regular Hours ({regularHours.toFixed(2)} hrs × ${summary.employee.hourly_rate}/hr)</span>
+                                                  <span className="font-semibold">${regularEarnings.toFixed(2)}</span>
+                                                </div>
+                                              )}
+                                              {manualHoursAdj.length > 0 && (
+                                                <div className="flex justify-between px-3 py-2 bg-white rounded border">
+                                                  <span className="text-slate-600">✏️ Manual Hours ({manualHoursAdj.reduce((s,a) => s+(a.hours||0),0).toFixed(2)} hrs)</span>
+                                                  <span className="font-semibold">${manualHoursTotal.toFixed(2)}</span>
+                                                </div>
+                                              )}
+                                              {tripAdj.length > 0 && (
+                                                <div className="flex justify-between px-3 py-2 bg-white rounded border">
+                                                  <span className="text-slate-600">🚗 Pickup Trips ({tripAdj.length} trip{tripAdj.length !== 1 ? "s" : ""})</span>
+                                                  <span className="font-semibold">${tripsTotal.toFixed(2)}</span>
+                                                </div>
+                                              )}
+                                              {bonusAdj.length > 0 && (
+                                                <div className="flex justify-between px-3 py-2 bg-white rounded border">
+                                                  <span className="text-slate-600">🎁 Bonuses ({bonusAdj.length})</span>
+                                                  <span className="font-semibold text-green-600">+${bonusTotal.toFixed(2)}</span>
+                                                </div>
+                                              )}
+                                              {deductAdj.length > 0 && (
+                                                <div className="flex justify-between px-3 py-2 bg-white rounded border">
+                                                  <span className="text-slate-600">➖ Deductions ({deductAdj.length})</span>
+                                                  <span className="font-semibold text-red-600">-${deductTotal.toFixed(2)}</span>
+                                                </div>
+                                              )}
+                                            </div>
+                                            <div className="mt-3 pt-3 border-t border-slate-200 flex flex-col gap-1 text-sm">
+                                              <div className="flex justify-between font-medium">
+                                                <span>Total Earned This Period</span>
+                                                <span>${summary.calculatedAmount.toFixed(2)}</span>
+                                              </div>
+                                              {summary.currentBalance !== 0 && (
+                                                <div className="flex justify-between font-medium text-amber-700">
+                                                  <span>Previous Balance Carried Over</span>
+                                                  <span>+${summary.currentBalance.toFixed(2)}</span>
+                                                </div>
+                                              )}
+                                              <div className="flex justify-between font-bold text-blue-700 text-base pt-1 border-t">
+                                                <span>Total Due Now</span>
+                                                <span>${totalDue.toFixed(2)}</span>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </TableCell>
+                                      </TableRow>
+                                    )}
+                                  </React.Fragment>
                                 );
                               })}
                             </TableBody>
@@ -1620,6 +1737,83 @@ export default function PayrollPage() {
           </>
         )}
       </div>
+      {/* Enhancement D: Confirm Single Payment Dialog */}
+      <Dialog open={!!confirmingPayment} onOpenChange={(o) => !o && setConfirmingPayment(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirm Payment</DialogTitle>
+            <DialogDescription>Review before processing</DialogDescription>
+          </DialogHeader>
+          {confirmingPayment && (() => {
+            const paidAmount = parseFloat(paymentAmounts[confirmingPayment.employee.id] || "0");
+            const newBal = confirmingPayment.currentBalance + confirmingPayment.calculatedAmount - paidAmount;
+            const totalDue = confirmingPayment.currentBalance + confirmingPayment.calculatedAmount;
+            const regHours = confirmingPayment.timeEntries.reduce((s,e) => s+(e.hours_worked||0),0);
+            const regEarn = confirmingPayment.timeEntries.reduce((s,e) => s+(e.earnings||0),0);
+            const trips = confirmingPayment.adjustments.filter(a => a.adjustment_type==="pickup_trip");
+            const bonuses = confirmingPayment.adjustments.filter(a => a.adjustment_type==="bonus");
+            const deducts = confirmingPayment.adjustments.filter(a => a.adjustment_type==="deduction");
+            const manHrs = confirmingPayment.adjustments.filter(a => a.adjustment_type==="manual_hours");
+            return (
+              <div className="space-y-4">
+                <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="font-bold text-lg">{confirmingPayment.employee.name}</p>
+                  <p className="text-sm text-muted-foreground">{formatDateRange(startDate, endDate)}</p>
+                </div>
+                <div className="space-y-2 text-sm">
+                  {regHours > 0 && <div className="flex justify-between"><span>⏱ Regular Hours ({regHours.toFixed(2)} hrs)</span><span>${regEarn.toFixed(2)}</span></div>}
+                  {manHrs.length > 0 && <div className="flex justify-between"><span>✏️ Manual Hours</span><span>${manHrs.reduce((s,a)=>s+(a.amount||0),0).toFixed(2)}</span></div>}
+                  {trips.length > 0 && <div className="flex justify-between"><span>🚗 Trips ({trips.length})</span><span>${trips.reduce((s,a)=>s+(a.amount||0),0).toFixed(2)}</span></div>}
+                  {bonuses.length > 0 && <div className="flex justify-between text-green-700"><span>🎁 Bonuses</span><span>+${bonuses.reduce((s,a)=>s+(a.amount||0),0).toFixed(2)}</span></div>}
+                  {deducts.length > 0 && <div className="flex justify-between text-red-700"><span>➖ Deductions</span><span>-${deducts.reduce((s,a)=>s+(a.amount||0),0).toFixed(2)}</span></div>}
+                  <div className="border-t pt-2 flex justify-between font-semibold"><span>Earned This Period</span><span>${confirmingPayment.calculatedAmount.toFixed(2)}</span></div>
+                  {confirmingPayment.currentBalance !== 0 && <div className="flex justify-between text-amber-700"><span>Previous Balance</span><span>+${confirmingPayment.currentBalance.toFixed(2)}</span></div>}
+                  <div className="flex justify-between font-bold text-blue-700"><span>Total Due</span><span>${totalDue.toFixed(2)}</span></div>
+                  <div className="border-t pt-2 flex justify-between font-bold text-green-700 text-base"><span>Paying Now</span><span>${paidAmount.toFixed(2)}</span></div>
+                  <div className="flex justify-between text-sm text-muted-foreground"><span>New Balance After</span><span>${newBal.toFixed(2)}</span></div>
+                </div>
+              </div>
+            );
+          })()}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmingPayment(null)}>Cancel</Button>
+            <Button className="bg-green-600 hover:bg-green-700" onClick={() => confirmingPayment && confirmAndPay(confirmingPayment)}>
+              ✓ Confirm &amp; Pay
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Enhancement D: Confirm All Payments Dialog */}
+      <Dialog open={confirmingAll} onOpenChange={(o) => !o && setConfirmingAll(false)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Confirm All Payments</DialogTitle>
+            <DialogDescription>{formatDateRange(startDate, endDate)} — {currentSummaries.length} employees</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 max-h-64 overflow-y-auto text-sm">
+            {currentSummaries.map(s => {
+              const amt = parseFloat(paymentAmounts[s.employee.id] || "0");
+              return (
+                <div key={s.employee.id} className="flex justify-between px-3 py-2 bg-slate-50 rounded border">
+                  <span className="font-medium">{s.employee.name}</span>
+                  <span className="font-bold text-green-700">${amt.toFixed(2)}</span>
+                </div>
+              );
+            })}
+            <div className="flex justify-between px-3 py-2 bg-blue-50 rounded border font-bold text-blue-700">
+              <span>Total Paying</span>
+              <span>${currentSummaries.reduce((s, x) => s + parseFloat(paymentAmounts[x.employee.id] || "0"), 0).toFixed(2)}</span>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmingAll(false)}>Cancel</Button>
+            <Button className="bg-green-600 hover:bg-green-700" onClick={confirmAndPayAll}>
+              ✓ Confirm &amp; Pay All
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

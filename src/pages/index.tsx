@@ -25,6 +25,8 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [clockedInEmployees, setClockedInEmployees] = useState<ClockedInEmployee[]>([]);
   const [nextPayroll, setNextPayroll] = useState<string | null>(null);
+  // Enhancement I: top employees owed
+  const [topOwed, setTopOwed] = useState<Array<{name: string; balance: number}>>([]);
   const [stats, setStats] = useState({
     totalEmployees: 0,
     activeEmployees: 0,
@@ -61,9 +63,9 @@ export default function HomePage() {
       const batchData = await getAllBatchTimeData();
       console.log("Batch data loaded:", batchData);
       
-      // Filter unpaid entries and adjustments
-      const unpaidEntries = (batchData.entries || []).filter(e => !e.is_paid);
-      const unpaidAdjustments = (batchData.adjustments || []).filter(a => !a.is_paid);
+      // Filter unpaid entries and adjustments — use correct field name "paid" not "is_paid"
+      const unpaidEntries = (batchData.entries || []).filter((e: any) => !e.paid);
+      const unpaidAdjustments = (batchData.adjustments || []).filter((a: any) => !a.paid);
       
       console.log("Unpaid entries:", unpaidEntries.length);
       console.log("Unpaid adjustments:", unpaidAdjustments.length);
@@ -166,7 +168,23 @@ export default function HomePage() {
         .filter((item): item is ClockedInEmployee => item !== null);
       
       setClockedInEmployees(clockedInData);
-      
+
+      // Enhancement I: load top owed balances
+      try {
+        const balancesData = await payrollService.getAllBalances();
+        const top = balancesData
+          .filter(b => b.balance > 0)
+          .sort((a, b) => b.balance - a.balance)
+          .slice(0, 3)
+          .map(b => ({
+            name: employeesData.find(e => e.id === b.employee_id)?.name || "Unknown",
+            balance: b.balance
+          }));
+        setTopOwed(top);
+      } catch (e) {
+        console.error("Could not load balances for dashboard:", e);
+      }
+
       console.log("Dashboard data loaded successfully");
       
     } catch (error) {
@@ -361,6 +379,39 @@ export default function HomePage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Enhancement I: Urgent Payments Widget */}
+          {topOwed.length > 0 && (
+            <Card className="border-red-200 bg-red-50/50">
+              <CardHeader>
+                <CardTitle className="text-red-800 flex items-center gap-2">
+                  <AlertCircle className="h-5 w-5 text-red-600" />
+                  Needs Payment Urgently
+                </CardTitle>
+                <CardDescription>Employees with highest outstanding balance</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {topOwed.map((emp, i) => (
+                    <div key={i} className="flex items-center justify-between p-3 bg-white rounded-lg border border-red-200">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                          {emp.name.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="font-medium text-red-900">{emp.name}</span>
+                      </div>
+                      <span className="font-bold text-red-700 text-lg">${emp.balance.toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+                <Link href="/payroll">
+                  <button className="mt-3 w-full text-sm text-red-700 font-medium py-2 px-4 rounded-lg border border-red-300 hover:bg-red-100 transition-colors">
+                    → Go to Payroll
+                  </button>
+                </Link>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Currently Clocked In */}
           <Card className="border-amber-200 bg-white/80 backdrop-blur">
