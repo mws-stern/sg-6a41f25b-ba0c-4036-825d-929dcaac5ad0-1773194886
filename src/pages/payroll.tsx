@@ -225,24 +225,95 @@ export default function PayrollPage() {
         yPos = (doc as any).lastAutoTable.finalY + 10;
       }
     } else {
-      // Fallback: Simple financial summary
-      autoTable(doc, {
-        startY: yPos,
-        head: [["Description", "Hours / Rate", "Amount"]],
-        body: [
-          ["Gross Earnings", `${transaction.hours_worked.toFixed(2)} hrs`, `$${transaction.amount_earned.toFixed(2)}`],
-          ["Amount Paid", "-", `$${transaction.amount_paid.toFixed(2)}`],
-        ],
-        theme: "grid",
-        headStyles: { fillColor: [139, 69, 19], textColor: 255 },
-        columnStyles: {
-          0: { cellWidth: 100 },
-          1: { cellWidth: 40, halign: "right" },
-          2: { cellWidth: 40, halign: "right" }
-        }
-      });
+      // Fetch from Supabase for history payslips - no paid filter so we get all entries
+      try {
+        const { data: histEntries } = await supabase
+          .from("time_entries")
+          .select("*")
+          .eq("employee_id", transaction.employee_id)
+          .gte("clock_in", transaction.date_range_start + "T00:00:00")
+          .lte("clock_in", transaction.date_range_end + "T23:59:59")
+          .not("clock_out", "is", null)
+          .order("clock_in");
 
-      yPos = (doc as any).lastAutoTable.finalY + 10;
+        const { data: histAdjs } = await supabase
+          .from("manual_adjustments")
+          .select("*")
+          .eq("employee_id", transaction.employee_id)
+          .gte("date", transaction.date_range_start)
+          .lte("date", transaction.date_range_end)
+          .order("date");
+
+        if (histEntries && histEntries.length > 0) {
+          doc.setFontSize(11);
+          doc.setFont("helvetica", "bold");
+          doc.text("Time Entries:", 20, yPos);
+          yPos += 7;
+          const teData = histEntries.map((e: any) => [
+            formatDateShort(e.clock_in),
+            formatTime(e.clock_in),
+            e.clock_out ? formatTime(e.clock_out) : "Active",
+            (e.hours_worked || 0).toFixed(2),
+            "$" + (e.earnings || 0).toFixed(2)
+          ]);
+          autoTable(doc, {
+            startY: yPos,
+            head: [["Date", "Clock In", "Clock Out", "Hours", "Earnings"]],
+            body: teData,
+            theme: "grid",
+            headStyles: { fillColor: [139, 69, 19], textColor: 255, fontSize: 9 },
+            styles: { fontSize: 8 },
+            columnStyles: { 0:{cellWidth:35}, 1:{cellWidth:30,halign:"center"}, 2:{cellWidth:30,halign:"center"}, 3:{cellWidth:25,halign:"right"}, 4:{cellWidth:30,halign:"right"} }
+          });
+          yPos = (doc as any).lastAutoTable.finalY + 10;
+        }
+
+        if (histAdjs && histAdjs.length > 0) {
+          doc.setFontSize(11);
+          doc.setFont("helvetica", "bold");
+          doc.text("Adjustments & Additional Earnings:", 20, yPos);
+          yPos += 7;
+          const adjData = histAdjs.map((adj: any) => {
+            let desc = adj.adjustment_type === "manual_hours" ? "Manual Hours" :
+                       adj.adjustment_type === "pickup_trip" ? "Pickup Trip" :
+                       adj.adjustment_type === "bonus" ? "Bonus" : "Deduction";
+            if (adj.reason) desc += ": " + adj.reason;
+            const sign = adj.adjustment_type === "deduction" ? "-" : adj.adjustment_type === "bonus" ? "+" : "";
+            return [formatDateShort(adj.date), desc, sign + "$" + (adj.amount || 0).toFixed(2)];
+          });
+          autoTable(doc, {
+            startY: yPos,
+            head: [["Date", "Description", "Amount"]],
+            body: adjData,
+            theme: "grid",
+            headStyles: { fillColor: [139, 69, 19], textColor: 255, fontSize: 9 },
+            styles: { fontSize: 8 },
+            columnStyles: { 0:{cellWidth:35}, 1:{cellWidth:90}, 2:{cellWidth:25,halign:"right"} }
+          });
+          yPos = (doc as any).lastAutoTable.finalY + 10;
+        }
+
+        if ((!histEntries || histEntries.length === 0) && (!histAdjs || histAdjs.length === 0)) {
+          autoTable(doc, {
+            startY: yPos,
+            head: [["Description", "Hours", "Amount"]],
+            body: [["Gross Earnings", transaction.hours_worked.toFixed(2) + " hrs", "$" + transaction.amount_earned.toFixed(2)]],
+            theme: "grid",
+            headStyles: { fillColor: [139, 69, 19], textColor: 255 }
+          });
+          yPos = (doc as any).lastAutoTable.finalY + 10;
+        }
+      } catch (e) {
+        console.error("Error fetching history entries:", e);
+        autoTable(doc, {
+          startY: yPos,
+          head: [["Description", "Hours", "Amount"]],
+          body: [["Gross Earnings", transaction.hours_worked.toFixed(2) + " hrs", "$" + transaction.amount_earned.toFixed(2)]],
+          theme: "grid",
+          headStyles: { fillColor: [139, 69, 19], textColor: 255 }
+        });
+        yPos = (doc as any).lastAutoTable.finalY + 10;
+      }
     }
 
     // Balances Box
