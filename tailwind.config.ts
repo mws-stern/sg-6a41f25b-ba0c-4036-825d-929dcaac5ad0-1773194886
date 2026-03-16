@@ -89,10 +89,6 @@ const config: Config = {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
       },
-      fontFamily: {
-        heebo: ["Heebo", "sans-serif"],
-        frank: ["'Frank Ruhl Libre'", "serif"],
-      },
     },
   },
   plugins: [require("tailwindcss-animate")],
