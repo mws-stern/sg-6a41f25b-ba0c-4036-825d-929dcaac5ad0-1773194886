@@ -1,4 +1,4 @@
-import { SEO } from "@/components/SEO";
+﻿import { SEO } from "@/components/SEO";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -508,7 +508,7 @@ export default function AdjustmentsPage() {
                             <TableCell className="max-w-xs truncate">{adjustment.reason}</TableCell>
                             <TableCell>
                               {adjustment.paid ? (
-                                <Badge className="bg-green-100 text-green-800 border border-green-300 text-xs">✓ Paid</Badge>
+                                <Badge className="bg-green-100 text-green-800 border border-green-300 text-xs"> Paid</Badge>
                               ) : (
                                 <Badge className="bg-amber-100 text-amber-800 border border-amber-300 text-xs">Unpaid</Badge>
                               )}

@@ -1,4 +1,4 @@
-import { SEO } from "@/components/SEO";
+﻿import { SEO } from "@/components/SEO";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -850,7 +850,7 @@ export default function CurrentHours() {
                               </div>
                               {entry.clock_out && (
                                 <>
-                                  <span className="text-muted-foreground">→</span>
+                                  <span className="text-muted-foreground"></span>
                                   <div>
                                     <p className="text-sm font-medium">
                                       {formatDateTime12h(entry.clock_out)}

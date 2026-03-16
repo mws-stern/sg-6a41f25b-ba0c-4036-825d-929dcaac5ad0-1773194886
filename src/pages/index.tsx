@@ -1,4 +1,4 @@
-import { SEO } from "@/components/SEO";
+﻿import { SEO } from "@/components/SEO";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Users, Clock, DollarSign, TrendingUp, UserCheck, AlertCircle, Calendar } from "lucide-react";
@@ -63,7 +63,7 @@ export default function HomePage() {
       const batchData = await getAllBatchTimeData();
       console.log("Batch data loaded:", batchData);
       
-      // Filter unpaid entries and adjustments — use correct field name "paid" not "is_paid"
+      // Filter unpaid entries and adjustments  use correct field name "paid" not "is_paid"
       const unpaidEntries = (batchData.entries || []).filter((e: any) => !e.paid);
       const unpaidAdjustments = (batchData.adjustments || []).filter((a: any) => !a.paid);
       
@@ -406,7 +406,7 @@ export default function HomePage() {
                 </div>
                 <Link href="/payroll">
                   <button className="mt-3 w-full text-sm text-red-700 font-medium py-2 px-4 rounded-lg border border-red-300 hover:bg-red-100 transition-colors">
-                    → Go to Payroll
+                     Go to Payroll
                   </button>
                 </Link>
               </CardContent>
